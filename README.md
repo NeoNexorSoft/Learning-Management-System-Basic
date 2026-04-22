@@ -33,7 +33,7 @@ Create a `.env` file in the `backend/` directory:
 ```env
 DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DATABASE_NAME
 JWT_SECRET=your_jwt_secret_key
-PORT=5000
+PORT=5001
 
 # Cloudinary (for file uploads)
 CLOUDINARY_CLOUD_NAME=your_cloud_name
@@ -89,7 +89,7 @@ npm install
 Create a `.env.local` file in the `frontend/` directory:
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:5000
+NEXT_PUBLIC_API_URL=http://localhost:5001
 ```
 
 ### 4. Start the development server
