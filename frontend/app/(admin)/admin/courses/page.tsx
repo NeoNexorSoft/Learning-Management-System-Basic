@@ -35,6 +35,7 @@ function AdminCoursesPage() {
   const [dialog,        setDialog]        = useState<DialogAction>(null)
   const [targetCourse,  setTargetCourse]  = useState<CourseRow | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
+  const [rejectReason,  setRejectReason]  = useState("")
 
   const fetchCourses = useCallback(async () => {
     setLoading(true)
@@ -69,6 +70,7 @@ function AdminCoursesPage() {
   function openDialog(action: DialogAction, course: CourseRow) {
     setDialog(action)
     setTargetCourse(course)
+    setRejectReason("")
   }
 
   async function handleAction() {
@@ -76,13 +78,14 @@ function AdminCoursesPage() {
     setActionLoading(true)
     try {
       if (dialog === "approve") await api.put(`/api/admin/courses/${targetCourse.id}/approve`)
-      if (dialog === "reject")  await api.put(`/api/admin/courses/${targetCourse.id}/reject`)
+      if (dialog === "reject")  await api.put(`/api/admin/courses/${targetCourse.id}/reject`, { reason: rejectReason || "Does not meet platform guidelines." })
       if (dialog === "delete")  await api.delete(`/api/admin/courses/${targetCourse.id}`)
       await fetchCourses()
     } finally {
       setActionLoading(false)
       setDialog(null)
       setTargetCourse(null)
+      setRejectReason("")
     }
   }
 
@@ -216,14 +219,24 @@ function AdminCoursesPage() {
       {dc && (
         <ConfirmDialog
           isOpen={!!dialog}
-          onClose={() => { setDialog(null); setTargetCourse(null) }}
+          onClose={() => { setDialog(null); setTargetCourse(null); setRejectReason("") }}
           onConfirm={handleAction}
           loading={actionLoading}
           title={dc.title}
           message={dc.message}
           confirmLabel={dc.label}
           danger={dc.danger}
-        />
+        >
+          {dialog === "reject" && (
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="Reason for rejection (optional)…"
+              rows={3}
+              className="w-full mt-3 px-3 py-2 text-sm border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            />
+          )}
+        </ConfirmDialog>
       )}
     </main>
   )

@@ -107,8 +107,8 @@ export default function TeacherDashboardPage() {
             ...firstCourseIds.map((id: string) => api.get(`/api/courses/${id}/reviews`)),
           ])
 
-          const enrollData = enrollRes.data.data.enrollments ?? []
-          const allReviews = reviewResults.flatMap((r) => r.data.data.reviews ?? [])
+          const enrollData = enrollRes.data.data.data ?? []
+          const allReviews = reviewResults.flatMap((r) => r.data.data.data ?? [])
           setEnrollments(enrollData)
           setReviews(allReviews)
         }

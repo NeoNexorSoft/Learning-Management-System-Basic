@@ -59,7 +59,7 @@ export default function ReviewsPage() {
           courseList.map(async (course: any) => {
             try {
               const res = await api.get(`/api/courses/${course.id}/reviews`)
-              const list: any[] = res.data.data.reviews ?? []
+              const list: any[] = res.data.data.data ?? []
               list.forEach((r: any) => allReviews.push({ ...r, course }))
             } catch {}
           }),

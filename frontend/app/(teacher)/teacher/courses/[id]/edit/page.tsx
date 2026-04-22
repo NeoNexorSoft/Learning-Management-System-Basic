@@ -26,12 +26,15 @@ interface CourseForm {
   thumbnailFile: File | null
   status: string
   slug: string
+  welcomeMessage: string
+  congratsMessage: string
 }
 
 const empty: CourseForm = {
   title: "", description: "", price: "", level: "BEGINNER",
   categoryId: "", categoryName: "", objectives: [""],
   thumbnail: null, thumbnailFile: null, status: "DRAFT", slug: "",
+  welcomeMessage: "", congratsMessage: "",
 }
 
 export default function EditCoursePage() {
@@ -64,17 +67,19 @@ export default function EditCoursePage() {
       if (!course) return
 
       const base: CourseForm = {
-        title:        course.title ?? "",
-        description:  "",
-        price:        String(course.price ?? ""),
-        level:        course.level ?? "BEGINNER",
-        categoryId:   course.category?.id   ?? "",
-        categoryName: course.category?.name ?? "",
-        objectives:   [""],
-        thumbnail:    course.thumbnail ?? null,
-        thumbnailFile: null,
-        status:       course.status ?? "DRAFT",
-        slug:         course.slug   ?? "",
+        title:           course.title ?? "",
+        description:     "",
+        price:           String(course.price ?? ""),
+        level:           course.level ?? "BEGINNER",
+        categoryId:      course.category?.id   ?? "",
+        categoryName:    course.category?.name ?? "",
+        objectives:      [""],
+        thumbnail:       course.thumbnail ?? null,
+        thumbnailFile:   null,
+        status:          course.status ?? "DRAFT",
+        slug:            course.slug   ?? "",
+        welcomeMessage:  course.welcome_message  ?? "",
+        congratsMessage: course.congrats_message ?? "",
       }
       set(base)
 
@@ -116,17 +121,19 @@ export default function EditCoursePage() {
       }
 
       await api.put(`/api/courses/${id}`, {
-        title:       form.title.trim(),
-        description: form.description || undefined,
-        price:       form.price ? Number(form.price) : undefined,
-        level:       form.level,
-        category_id: form.categoryId || undefined,
+        title:            form.title.trim(),
+        description:      form.description      || undefined,
+        price:            form.price ? Number(form.price) : undefined,
+        level:            form.level,
+        category_id:      form.categoryId       || undefined,
+        welcome_message:  form.welcomeMessage   || undefined,
+        congrats_message: form.congratsMessage  || undefined,
       })
 
       const validObjectives = form.objectives.filter(Boolean)
       if (validObjectives.length > 0) {
         await api.post(`/api/courses/${id}/objectives`, {
-          objectives: validObjectives.map((text, order) => ({ text, order })),
+          objectives: validObjectives.map((content, order) => ({ type: 'OBJECTIVE', content, order })),
         })
       }
 
@@ -337,6 +344,47 @@ export default function EditCoursePage() {
             </div>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleThumbnailChange} />
             <p className="text-xs text-slate-400 mt-1.5">Recommended: 1280×720px (16:9), JPG or PNG, max 2MB</p>
+          </div>
+
+          {/* Course Messages */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-6">
+            <h2 className="text-base font-bold text-slate-900">Course Messages</h2>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Welcome Message</label>
+              <textarea
+                value={form.welcomeMessage}
+                onChange={e => set({ welcomeMessage: e.target.value.slice(0, 1000) })}
+                rows={6}
+                placeholder="Write a welcome message for students who enroll in your course..."
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none transition-all resize-none"
+                style={{ minHeight: 150 }}
+              />
+              <div className="flex items-center justify-between mt-1.5">
+                <p className="text-xs text-slate-400">This message will be automatically sent to students when they enroll</p>
+                <span className={`text-xs font-medium ${form.welcomeMessage.length >= 1000 ? "text-red-500" : "text-slate-400"}`}>
+                  {form.welcomeMessage.length}/1000
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide">Congratulations Message</label>
+              <textarea
+                value={form.congratsMessage}
+                onChange={e => set({ congratsMessage: e.target.value.slice(0, 1000) })}
+                rows={6}
+                placeholder="Write a congratulations message for students who complete your course..."
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none transition-all resize-none"
+                style={{ minHeight: 150 }}
+              />
+              <div className="flex items-center justify-between mt-1.5">
+                <p className="text-xs text-slate-400">This message will be automatically sent to students when they complete the course</p>
+                <span className={`text-xs font-medium ${form.congratsMessage.length >= 1000 ? "text-red-500" : "text-slate-400"}`}>
+                  {form.congratsMessage.length}/1000
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </main>

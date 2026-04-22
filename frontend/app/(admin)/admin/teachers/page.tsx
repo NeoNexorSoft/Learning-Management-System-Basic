@@ -64,8 +64,7 @@ export default function AdminTeachersPage() {
     if (!targetTeacher) return
     setActionLoading(true)
     try {
-      const action = targetTeacher.is_banned ? "unban" : "ban"
-      await api.post(`/api/users/${targetTeacher.id}/${action}`)
+      await api.post(`/api/users/${targetTeacher.id}/ban`)
       await fetchTeachers()
     } finally {
       setActionLoading(false)

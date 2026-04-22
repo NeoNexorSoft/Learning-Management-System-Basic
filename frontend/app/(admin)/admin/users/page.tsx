@@ -65,8 +65,7 @@ export default function AdminUsersPage() {
     if (!targetUser) return
     setActionLoading(true)
     try {
-      const action = targetUser.is_banned ? "unban" : "ban"
-      await api.post(`/api/users/${targetUser.id}/${action}`)
+      await api.post(`/api/users/${targetUser.id}/ban`)
       await fetchUsers()
     } finally {
       setActionLoading(false)

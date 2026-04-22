@@ -58,9 +58,9 @@ export default function StudentResultsPage() {
     api.get("/api/assignments/my")
       .then(({ data }) => {
         const raw: any[] = data.data.assignments ?? data.data ?? []
-        const graded = raw.filter((a: any) => a.mySubmission?.grade !== null && a.mySubmission?.grade !== undefined)
+        const graded = raw.filter((a: any) => a.submission?.grade !== null && a.submission?.grade !== undefined)
         const mapped: Result[] = graded.map((a: any) => {
-          const marks      = a.mySubmission.marks ?? 0
+          const marks      = a.submission.grade ?? 0
           const totalMarks = a.total_marks ?? 100
           const pct        = (marks / totalMarks) * 100
           const grade      = pct >= 90 ? "A+" : pct >= 80 ? "A" : pct >= 70 ? "B+" : pct >= 60 ? "B" : "C"
@@ -71,7 +71,7 @@ export default function StudentResultsPage() {
             marks,
             totalMarks,
             grade,
-            date:       a.mySubmission.graded_at ?? new Date().toISOString(),
+            date:       a.submission.graded_at ?? new Date().toISOString(),
           }
         })
         setResults(mapped)

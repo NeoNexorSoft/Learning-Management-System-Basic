@@ -1,6 +1,7 @@
 "use client"
 
 import { AlertTriangle } from "lucide-react"
+import { ReactNode } from "react"
 
 export default function ConfirmDialog({
   isOpen,
@@ -11,6 +12,7 @@ export default function ConfirmDialog({
   confirmLabel = "Confirm",
   danger = true,
   loading = false,
+  children,
 }: {
   isOpen: boolean
   onClose: () => void
@@ -20,6 +22,7 @@ export default function ConfirmDialog({
   confirmLabel?: string
   danger?: boolean
   loading?: boolean
+  children?: ReactNode
 }) {
   if (!isOpen) return null
 
@@ -32,6 +35,7 @@ export default function ConfirmDialog({
           </div>
           <h3 className="text-base font-bold text-slate-900 mb-2">{title}</h3>
           <p className="text-sm text-slate-500 leading-relaxed">{message}</p>
+          {children}
         </div>
         <div className="px-6 pb-6 flex gap-3 justify-end">
           <button

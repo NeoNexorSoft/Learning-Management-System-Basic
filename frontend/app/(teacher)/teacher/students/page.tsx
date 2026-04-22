@@ -69,7 +69,7 @@ export default function StudentsOverviewPage() {
           courseList.slice(0, 10).map(async (course: any) => {
             try {
               const res = await api.get(`/api/courses/${course.id}/enrolled-students?limit=100`)
-              const list: any[] = res.data.data.enrollments ?? []
+              const list: any[] = res.data.data.data ?? []
               list.forEach((e: any) => {
                 const s = e.student
                 if (!s) return

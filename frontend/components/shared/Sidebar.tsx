@@ -99,7 +99,7 @@ export default function Sidebar({ role }: { role: "student" | "teacher" }) {
   }
 
   return (
-    <aside className="w-64 h-screen sticky top-0 bg-slate-900 flex flex-col flex-shrink-0">
+    <aside className="w-64 h-screen sticky top-0 bg-slate-900 flex flex-col flex-shrink-0 overflow-hidden">
       {/* Logo */}
       <div className="p-6 border-b border-slate-800">
         <Link href="/" className="flex items-center gap-2.5">

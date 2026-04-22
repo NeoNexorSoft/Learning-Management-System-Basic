@@ -30,6 +30,7 @@ type Wizard = {
   subtitle: string; description: string; language: string; level: string
   category: string; categoryId: string
   price: string; thumbnail: string | null; thumbnailFile: File | null; hasCertificate: boolean
+  welcomeMessage: string; congratsMessage: string
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -40,7 +41,7 @@ const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").repla
 const LANGUAGES  = ["English", "Bengali", "Hindi", "Arabic", "Spanish"]
 const LEVELS     = ["Beginner", "Intermediate", "Advanced"]
 
-const STEP_LABELS = ["Title & Slug", "Learners", "Curriculum", "Content", "Pricing"]
+const STEP_LABELS = ["Title & Slug", "Learners", "Curriculum", "Content", "Pricing", "Messages"]
 
 const initWizard: Wizard = {
   step: 0,
@@ -50,6 +51,7 @@ const initWizard: Wizard = {
   subtitle: "", description: "", language: "English", level: "Beginner",
   category: "", categoryId: "",
   price: "", thumbnail: null, thumbnailFile: null, hasCertificate: false,
+  welcomeMessage: "", congratsMessage: "",
 }
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
@@ -746,6 +748,54 @@ function Step4({ w, set }: { w: Wizard; set: (p: Partial<Wizard>) => void }) {
   )
 }
 
+// ─── Step 5: Course Messages ──────────────────────────────────────────────────
+
+function Step5({ w, set }: { w: Wizard; set: (p: Partial<Wizard>) => void }) {
+  const MAX = 1000
+  return (
+    <Card>
+      <h2 className="text-base font-bold text-slate-900 mb-6">Course Messages</h2>
+      <div className="space-y-6">
+        <div>
+          <Label>Welcome Message</Label>
+          <textarea
+            value={w.welcomeMessage}
+            onChange={e => set({ welcomeMessage: e.target.value.slice(0, MAX) })}
+            rows={6}
+            placeholder="Write a welcome message for students who enroll in your course..."
+            className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 bg-white focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none transition-all resize-none"
+            style={{ minHeight: 150 }}
+          />
+          <div className="flex items-center justify-between mt-1.5">
+            <p className="text-xs text-slate-400">This message will be automatically sent to students when they enroll</p>
+            <span className={`text-xs font-medium ${w.welcomeMessage.length >= MAX ? "text-red-500" : "text-slate-400"}`}>
+              {w.welcomeMessage.length}/{MAX}
+            </span>
+          </div>
+        </div>
+
+        <div>
+          <Label>Congratulations Message</Label>
+          <textarea
+            value={w.congratsMessage}
+            onChange={e => set({ congratsMessage: e.target.value.slice(0, MAX) })}
+            rows={6}
+            placeholder="Write a congratulations message for students who complete your course..."
+            className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 bg-white focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none transition-all resize-none"
+            style={{ minHeight: 150 }}
+          />
+          <div className="flex items-center justify-between mt-1.5">
+            <p className="text-xs text-slate-400">This message will be automatically sent to students when they complete the course</p>
+            <span className={`text-xs font-medium ${w.congratsMessage.length >= MAX ? "text-red-500" : "text-slate-400"}`}>
+              {w.congratsMessage.length}/{MAX}
+            </span>
+          </div>
+        </div>
+      </div>
+    </Card>
+  )
+}
+
 // ─── Main Wizard ──────────────────────────────────────────────────────────────
 
 export default function CreateCoursePage() {
@@ -768,7 +818,7 @@ export default function CreateCoursePage() {
 
   const set = useCallback((patch: Partial<Wizard>) => setW(prev => ({ ...prev, ...patch })), [])
 
-  function next() { if (w.step < 4) set({ step: w.step + 1 }) }
+  function next() { if (w.step < 5) set({ step: w.step + 1 }) }
   function back() { if (w.step > 0) set({ step: w.step - 1 }) }
 
   async function submitForReview() {
@@ -786,10 +836,12 @@ export default function CreateCoursePage() {
 
       // Update remaining fields
       await api.put(`/api/courses/${courseId}`, {
-        subtitle:    w.subtitle    || undefined,
-        description: w.description || undefined,
-        price:       w.price ? Number(w.price) : undefined,
-        language:    w.language    || undefined,
+        subtitle:         w.subtitle         || undefined,
+        description:      w.description      || undefined,
+        price:            w.price ? Number(w.price) : undefined,
+        language:         w.language         || undefined,
+        welcome_message:  w.welcomeMessage   || undefined,
+        congrats_message: w.congratsMessage  || undefined,
       })
 
       // Upload thumbnail
@@ -805,7 +857,7 @@ export default function CreateCoursePage() {
       // Add objectives
       const validObjectives = w.objectives.filter(Boolean)
       if (validObjectives.length > 0) {
-        await api.post(`/api/courses/${courseId}/objectives`, { objectives: validObjectives.map((text, order) => ({ text, order })) })
+        await api.post(`/api/courses/${courseId}/objectives`, { objectives: validObjectives.map((content, order) => ({ type: 'OBJECTIVE', content, order })) })
       }
 
       // Add sections and lessons
@@ -881,6 +933,7 @@ export default function CreateCoursePage() {
           {w.step === 2 && <Step2 {...stepProps} />}
           {w.step === 3 && <Step3 {...stepProps} categories={categories} />}
           {w.step === 4 && <Step4 {...stepProps} />}
+          {w.step === 5 && <Step5 {...stepProps} />}
 
           {/* Navigation */}
           {submitError && (
@@ -897,7 +950,7 @@ export default function CreateCoursePage() {
             </button>
 
             <div className="flex items-center gap-2">
-              {w.step < 4 ? (
+              {w.step < 5 ? (
                 <button
                   type="button" onClick={next}
                   className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-500/20"

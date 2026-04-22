@@ -48,9 +48,9 @@ app.use('/api/users',        userRoutes);
 app.use('/api/courses',      courseRouter);
 app.use('/api/teacher',      teacherRouter);
 app.use('/api/teacher',      teacherTransactionRouter);   // GET /api/teacher/transactions
-app.use('/api/admin',        adminRouter);
-app.use('/api/admin',        adminWithdrawalRouter);      // GET/PUT /api/admin/withdrawals
-app.use('/api/admin',        adminPaymentRouter);         // GET /api/admin/payments
+app.use('/api/admin',             adminRouter);
+app.use('/api/admin/withdrawals', adminWithdrawalRouter); // GET/PUT /api/admin/withdrawals/:id
+app.use('/api/admin',             adminPaymentRouter);    // GET /api/admin/payments
 app.use('/api/categories',   categoryRouter);
 app.use('/api/sections',     sectionRouter);
 // /api/lessons — three routers share this prefix (no method/path conflicts)
