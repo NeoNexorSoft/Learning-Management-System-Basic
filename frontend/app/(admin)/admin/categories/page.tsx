@@ -1,11 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Plus, Pencil, Trash2, FolderOpen, FolderTree } from "lucide-react"
+import { Plus, Pencil, Trash2, FolderOpen, FolderTree, Check, AlertCircle } from "lucide-react"
 import api from "@/lib/axios"
 import type { Category } from "@/types/admin"
 import Modal from "@/components/admin/Modal"
 import ConfirmDialog from "@/components/admin/ConfirmDialog"
+
+type Toast = { type: "success" | "error"; message: string } | null
 
 function CategoryForm({
   initial,
@@ -92,17 +94,36 @@ export default function AdminCategoriesPage() {
 
   const [deleteOpen,   setDeleteOpen]   = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null)
+  const [toast,        setToast]        = useState<Toast>(null)
 
   const parents = categories.filter((c) => !c.parent_id)
   const subs    = categories.filter((c) => !!c.parent_id)
+
+  function showToast(type: "success" | "error", message: string) {
+    setToast({ type, message })
+    setTimeout(() => setToast(null), 3500)
+  }
 
   async function fetchCategories() {
     setLoading(true)
     try {
       const { data } = await api.get("/api/categories")
-      setCategories(data.data?.categories ?? (Array.isArray(data.data) ? data.data : []))
-    } catch {
+      // Response shape: { status: 'success', data: { categories: [...] } }
+      const raw: any[] = data.data?.categories ?? (Array.isArray(data.data) ? data.data : [])
+      const all: Category[] = []
+      for (const parent of raw) {
+        all.push({ id: parent.id, name: parent.name, slug: parent.slug, parent_id: null })
+        for (const child of (parent.children ?? [])) {
+          all.push({ id: child.id, name: child.name, slug: child.slug, parent_id: parent.id })
+        }
+      }
+      setCategories(all)
+    } catch (err: any) {
+      console.error("[Categories] fetch failed:", err?.response?.status, err?.message, err)
+      const msg = err?.response?.data?.message
+        ?? (err?.code === "ERR_NETWORK" ? "Cannot reach the backend — make sure the server is running on port 5000" : "Failed to load categories")
       setCategories([])
+      showToast("error", msg)
     } finally {
       setLoading(false)
     }
@@ -127,11 +148,15 @@ export default function AdminCategoriesPage() {
     try {
       if (editTarget) {
         await api.put(`/api/categories/${editTarget.id}`, data)
+        showToast("success", `"${data.name}" updated successfully`)
       } else {
         await api.post("/api/categories", data)
+        showToast("success", `"${data.name}" created successfully`)
       }
       await fetchCategories()
       setModalOpen(false)
+    } catch (err: any) {
+      showToast("error", err.response?.data?.message ?? "Failed to save category")
     } finally {
       setFormLoading(false)
     }
@@ -142,7 +167,10 @@ export default function AdminCategoriesPage() {
     setDeleteLoading(true)
     try {
       await api.delete(`/api/categories/${deleteTarget.id}`)
+      showToast("success", `"${deleteTarget.name}" deleted successfully`)
       await fetchCategories()
+    } catch (err: any) {
+      showToast("error", err.response?.data?.message ?? "Failed to delete category")
     } finally {
       setDeleteLoading(false)
       setDeleteOpen(false)
@@ -209,7 +237,15 @@ export default function AdminCategoriesPage() {
               {[1, 2, 3].map((i) => <div key={i} className="h-16 bg-slate-100 rounded-xl animate-pulse" />)}
             </div>
           ) : items.length === 0 ? (
-            <p className="text-sm text-slate-400 py-8 text-center">No {isParent ? "categories" : "subcategories"} yet.</p>
+            <div className="py-8 text-center space-y-3">
+              <p className="text-sm text-slate-400">No {isParent ? "categories" : "subcategories"} yet.</p>
+              <button
+                onClick={fetchCategories}
+                className="text-xs font-semibold text-indigo-500 hover:text-indigo-700 underline transition-colors"
+              >
+                Retry loading
+              </button>
+            </div>
           ) : (
             <div className="space-y-2">
               {items.map((cat) => <CategoryCard key={cat.id} cat={cat} isParent={isParent} />)}
@@ -222,6 +258,13 @@ export default function AdminCategoriesPage() {
 
   return (
     <main className="flex-1 p-6 space-y-6">
+      {toast && (
+        <div className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-semibold text-white transition-all ${toast.type === "success" ? "bg-emerald-600" : "bg-red-600"}`}>
+          {toast.type === "success" ? <Check className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+          {toast.message}
+        </div>
+      )}
+
       <div>
         <h1 className="text-2xl font-extrabold text-slate-900">Categories</h1>
         <p className="text-sm text-slate-500 mt-1">Manage course categories and subcategories</p>

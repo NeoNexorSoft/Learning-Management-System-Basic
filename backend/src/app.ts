@@ -33,7 +33,20 @@ import { teacherTransactionRouter, adminPaymentRouter } from './routes/transacti
 const app = express();
 
 app.use(helmet());
-app.use(cors({ origin: env.CLIENT_URL, credentials: true }));
+
+// In development allow any localhost origin so port variations (3000, 3001…) never trigger CORS blocks
+const allowedOrigin =
+  env.NODE_ENV === 'development'
+    ? (origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => {
+        if (!origin || /^https?:\/\/localhost(:\d+)?$/.test(origin)) {
+          cb(null, true);
+        } else {
+          cb(new Error(`CORS: origin ${origin} not allowed`));
+        }
+      }
+    : env.CLIENT_URL;
+
+app.use(cors({ origin: allowedOrigin, credentials: true }));
 app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

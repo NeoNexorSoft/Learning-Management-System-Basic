@@ -14,13 +14,13 @@ import api from "@/lib/axios"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Lecture  = { id: string; title: string; type: "video" | "text" | "document"; duration: string }
+type Lecture  = { id: string; title: string; type: "video" | "text" | "document"; duration: string; file_url?: string }
 type QOption  = [string, string, string, string]
 type QItem    = { id: string; question: string; options: QOption; correctIndex: number }
 type Quiz     = { id: string; title: string; questions: QItem[] }
 type Section  = { id: string; title: string; outcome: string; lectures: Lecture[]; quizzes: Quiz[]; collapsed: boolean }
 
-type Category = { id: string; name: string }
+type Category = { id: string; name: string; children?: { id: string; name: string }[] }
 
 type Wizard = {
   step: number
@@ -29,6 +29,7 @@ type Wizard = {
   sections: Section[]
   subtitle: string; description: string; language: string; level: string
   category: string; categoryId: string
+  subcategory: string; subcategoryId: string
   price: string; thumbnail: string | null; thumbnailFile: File | null; hasCertificate: boolean
   welcomeMessage: string; congratsMessage: string
 }
@@ -50,6 +51,7 @@ const initWizard: Wizard = {
   sections: [],
   subtitle: "", description: "", language: "English", level: "Beginner",
   category: "", categoryId: "",
+  subcategory: "", subcategoryId: "",
   price: "", thumbnail: null, thumbnailFile: null, hasCertificate: false,
   welcomeMessage: "", congratsMessage: "",
 }
@@ -224,6 +226,7 @@ function PreviewModal({ w, onClose }: { w: Wizard; onClose: () => void }) {
             <div className="flex gap-2 mb-3 flex-wrap">
               {w.level && <span className="text-[11px] font-bold bg-white/20 px-2.5 py-1 rounded-full">{w.level}</span>}
               {w.category && <span className="text-[11px] font-bold bg-white/20 px-2.5 py-1 rounded-full">{w.category}</span>}
+              {w.subcategory && <span className="text-[11px] font-bold bg-white/20 px-2.5 py-1 rounded-full">{w.subcategory}</span>}
               {w.language && <span className="text-[11px] font-bold bg-white/20 px-2.5 py-1 rounded-full">{w.language}</span>}
             </div>
             <h1 className="text-2xl font-extrabold mb-2">{w.title || "Course Title"}</h1>
@@ -352,6 +355,34 @@ function LectureForm({ lecture, onChange, onDelete }: {
   onChange: (l: Lecture) => void
   onDelete: () => void
 }) {
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState("")
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    setUploadError("")
+    try {
+      const fd = new FormData()
+      const isVideo = lecture.type === "video"
+      fd.append(isVideo ? "video" : "document", file)
+      const { data } = await api.post(isVideo ? "/api/upload/video" : "/api/upload/document", fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+      onChange({ ...lecture, file_url: data.data.url })
+    } catch (err: any) {
+      setUploadError(err.response?.data?.message ?? "Upload failed. Check file type/size.")
+    } finally {
+      setUploading(false)
+      if (fileRef.current) fileRef.current.value = ""
+    }
+  }
+
+  const needsFile = lecture.type === "video" || lecture.type === "document"
+  const accept = lecture.type === "video" ? "video/mp4,video/webm,.mkv" : ".pdf,.doc,.docx,.zip"
+
   return (
     <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
       <div className="flex items-center justify-between">
@@ -367,7 +398,7 @@ function LectureForm({ lecture, onChange, onDelete }: {
       <div className="grid grid-cols-2 gap-3">
         <select
           value={lecture.type}
-          onChange={e => onChange({ ...lecture, type: e.target.value as Lecture["type"] })}
+          onChange={e => onChange({ ...lecture, type: e.target.value as Lecture["type"], file_url: undefined })}
           className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm bg-white text-slate-700 focus:border-indigo-300 outline-none"
         >
           <option value="video">Video</option>
@@ -376,6 +407,39 @@ function LectureForm({ lecture, onChange, onDelete }: {
         </select>
         <Input value={lecture.duration} onChange={e => onChange({ ...lecture, duration: e.target.value })} placeholder="Duration (e.g. 12 min)" />
       </div>
+
+      {needsFile && (
+        <div>
+          <input ref={fileRef} type="file" accept={accept} className="hidden" onChange={handleFileUpload} />
+          {lecture.file_url ? (
+            <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+              <Check className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate flex-1">File uploaded successfully</span>
+              <button
+                type="button"
+                onClick={() => onChange({ ...lecture, file_url: undefined })}
+                className="text-slate-400 hover:text-red-500 flex-shrink-0"
+                title="Remove file"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              className="flex items-center justify-center gap-2 w-full px-3 py-2.5 border-2 border-dashed border-slate-300 hover:border-indigo-400 rounded-lg text-xs font-medium text-slate-500 hover:text-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {uploading
+                ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Uploading…</>
+                : <><Upload className="w-3.5 h-3.5" /> {lecture.type === "video" ? "Upload Video (.mp4, .webm, .mkv)" : "Upload Document (.pdf, .doc, .zip)"}</>
+              }
+            </button>
+          )}
+          {uploadError && <p className="text-xs text-red-500 mt-1">{uploadError}</p>}
+        </div>
+      )}
     </div>
   )
 }
@@ -617,14 +681,14 @@ function Step3({ w, set, categories }: { w: Wizard; set: (p: Partial<Wizard>) =>
           <p className="text-xs text-slate-400 mt-1.5">A compelling subtitle helps with discoverability.</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <Label>Category</Label>
+            <Label>Category *</Label>
             <select
               value={w.categoryId}
               onChange={e => {
                 const cat = categories.find(c => c.id === e.target.value)
-                set({ categoryId: e.target.value, category: cat?.name ?? "" })
+                set({ categoryId: e.target.value, category: cat?.name ?? "", subcategoryId: "", subcategory: "" })
               }}
               className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm bg-white text-slate-700 focus:border-indigo-300 outline-none transition-all"
             >
@@ -632,6 +696,26 @@ function Step3({ w, set, categories }: { w: Wizard; set: (p: Partial<Wizard>) =>
               {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
+          <div>
+            <Label>Subcategory</Label>
+            <select
+              value={w.subcategoryId}
+              onChange={e => {
+                const subs = categories.find(c => c.id === w.categoryId)?.children ?? []
+                const sub = subs.find(s => s.id === e.target.value)
+                set({ subcategoryId: e.target.value, subcategory: sub?.name ?? "" })
+              }}
+              disabled={!w.categoryId}
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm bg-white text-slate-700 focus:border-indigo-300 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <option value="">{w.categoryId ? "Select subcategory (optional)" : "Select a category first"}</option>
+              {(categories.find(c => c.id === w.categoryId)?.children ?? []).map(s => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Label>Level</Label>
             <select value={w.level} onChange={e => set({ level: e.target.value })} className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm bg-white text-slate-700 focus:border-indigo-300 outline-none transition-all">
@@ -730,12 +814,13 @@ function Step4({ w, set }: { w: Wizard; set: (p: Partial<Wizard>) => void }) {
         <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 space-y-2">
           <p className="text-xs font-bold text-indigo-700 uppercase tracking-wide mb-3">Course Summary</p>
           {[
-            ["Title",    w.title    || "—"],
-            ["Level",    w.level    || "—"],
-            ["Category", w.category || "—"],
-            ["Language", w.language || "—"],
-            ["Sections", `${w.sections.length} section${w.sections.length !== 1 ? "s" : ""}`],
-            ["Price",    w.price ? `৳${parseInt(w.price).toLocaleString()} BDT` : "Free"],
+            ["Title",       w.title       || "—"],
+            ["Level",       w.level       || "—"],
+            ["Category",    w.category    || "—"],
+            ["Subcategory", w.subcategory || "—"],
+            ["Language",    w.language    || "—"],
+            ["Sections",    `${w.sections.length} section${w.sections.length !== 1 ? "s" : ""}`],
+            ["Price",       w.price ? `৳${parseInt(w.price).toLocaleString()} BDT` : "Free"],
           ].map(([label, value]) => (
             <div key={label} className="flex items-center justify-between text-sm">
               <span className="text-slate-500">{label}</span>
@@ -811,7 +896,11 @@ export default function CreateCoursePage() {
     api.get("/api/categories")
       .then(({ data }) => {
         const cats: any[] = data.data?.categories ?? data.data ?? []
-        setCategories(cats.filter((c: any) => !c.parent_id).map((c: any) => ({ id: c.id, name: c.name })))
+        setCategories(cats.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          children: (c.children ?? []).map((ch: any) => ({ id: ch.id, name: ch.name })),
+        })))
       })
       .catch(() => {})
   }, [])
@@ -829,7 +918,7 @@ export default function CreateCoursePage() {
     try {
       const { data: createData } = await api.post("/api/courses", {
         title:       w.title.trim(),
-        category_id: w.categoryId,
+        category_id: w.subcategoryId || w.categoryId,
         level:       w.level.toUpperCase(),
       })
       const courseId = createData.data.course.id
@@ -870,10 +959,12 @@ export default function CreateCoursePage() {
           const lec = sec.lectures[li]
           if (!lec.title.trim()) continue
           await api.post(`/api/sections/${sectionId}/lessons`, {
-            title:    lec.title,
-            type:     lec.type.toUpperCase(),
-            duration: lec.duration ? parseInt(lec.duration) : undefined,
-            order:    li + 1,
+            title:     lec.title,
+            type:      lec.type.toUpperCase(),
+            duration:  lec.duration ? parseInt(lec.duration) : undefined,
+            order:     li + 1,
+            video_url: lec.type === "video"    ? lec.file_url : undefined,
+            file_url:  lec.type === "document" ? lec.file_url : undefined,
           })
         }
       }

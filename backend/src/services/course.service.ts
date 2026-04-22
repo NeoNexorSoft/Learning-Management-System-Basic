@@ -45,8 +45,9 @@ interface CreateCourseInput {
   title: string;
   subtitle?: string;
   description?: string;
-  category_id: string;
-  level: CourseLevel;
+  category_id?: string;
+  level?: CourseLevel;
+  language?: string;
   price?: number;
   discount_price?: number;
   discount_type?: string;
@@ -296,30 +297,33 @@ export const courseService = {
   },
 
   async createCourse(teacherId: string, input: CreateCourseInput) {
-    const category = await prisma.category.findUnique({ where: { id: input.category_id } });
-    if (!category) throw Object.assign(new Error('Category not found'), { statusCode: 404 });
+    if (input.category_id) {
+      const category = await prisma.category.findUnique({ where: { id: input.category_id } });
+      if (!category) throw Object.assign(new Error('Category not found'), { statusCode: 404 });
+    }
 
     const slug = await generateSlug(input.title);
 
     return prisma.course.create({
       data: {
-        id:              uuidv4(),
-        teacher_id:      teacherId,
-        category_id:     input.category_id,
-        title:           input.title,
+        id:               uuidv4(),
+        teacher_id:       teacherId,
+        category_id:      input.category_id ?? null,
+        title:            input.title,
         slug,
-        subtitle:        input.subtitle,
-        description:     input.description,
-        level:           input.level,
-        price:           input.price ?? 0,
-        discount_price:  input.discount_price,
-        discount_type:   input.discount_type,
+        subtitle:         input.subtitle,
+        description:      input.description,
+        language:         input.language,
+        level:            input.level,
+        price:            input.price ?? 0,
+        discount_price:   input.discount_price,
+        discount_type:    input.discount_type,
         discount_ends_at: input.discount_ends_at,
-        thumbnail:       input.thumbnail,
-        intro_video:     input.intro_video,
-        welcome_message: input.welcome_message,
+        thumbnail:        input.thumbnail,
+        intro_video:      input.intro_video,
+        welcome_message:  input.welcome_message,
         congrats_message: input.congrats_message,
-        status:          CourseStatus.DRAFT,
+        status:           CourseStatus.DRAFT,
       },
       include: { category: { select: { id: true, name: true, slug: true } } },
     });
@@ -330,9 +334,30 @@ export const courseService = {
     if (!course) throw Object.assign(new Error('Course not found'), { statusCode: 404 });
     if (course.teacher_id !== teacherId) throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
 
+    // Build an explicit whitelist so unknown request-body fields never reach Prisma
+    const update: Prisma.CourseUpdateInput = {};
+    if (data.title            !== undefined) update.title            = data.title;
+    if (data.subtitle         !== undefined) update.subtitle         = data.subtitle;
+    if (data.description      !== undefined) update.description      = data.description;
+    if (data.language         !== undefined) update.language         = data.language;
+    if (data.level            !== undefined) update.level            = data.level;
+    if (data.price            !== undefined) update.price            = data.price;
+    if (data.discount_price   !== undefined) update.discount_price   = data.discount_price;
+    if (data.discount_type    !== undefined) update.discount_type    = data.discount_type;
+    if (data.discount_ends_at !== undefined) update.discount_ends_at = data.discount_ends_at;
+    if (data.thumbnail        !== undefined) update.thumbnail        = data.thumbnail;
+    if (data.intro_video      !== undefined) update.intro_video      = data.intro_video;
+    if (data.welcome_message  !== undefined) update.welcome_message  = data.welcome_message;
+    if (data.congrats_message !== undefined) update.congrats_message = data.congrats_message;
+    if (data.category_id !== undefined) {
+      update.category = data.category_id
+        ? { connect: { id: data.category_id } }
+        : { disconnect: true };
+    }
+
     return prisma.course.update({
       where: { id: courseId },
-      data,
+      data:  update,
       include: { category: { select: { id: true, name: true, slug: true } } },
     });
   },
@@ -435,7 +460,7 @@ export const courseService = {
   async createLesson(
     sectionId: string,
     teacherId: string,
-    data: { title: string; type: LessonType; content?: string; video_url?: string; duration?: number; order?: number },
+    data: { title: string; type: LessonType; content?: string; video_url?: string; file_url?: string; duration?: number; order?: number },
   ) {
     const section = await prisma.section.findUnique({
       where:   { id: sectionId },
@@ -454,6 +479,7 @@ export const courseService = {
         type:       data.type,
         content:    data.content,
         video_url:  data.video_url,
+        file_url:   data.file_url,
         duration:   data.duration ?? 0,
         order:      data.order ?? (last ? last.order + 1 : 0),
       },
@@ -463,7 +489,7 @@ export const courseService = {
   async updateLesson(
     lessonId: string,
     teacherId: string,
-    data: { title?: string; type?: LessonType; content?: string; video_url?: string; duration?: number; order?: number },
+    data: { title?: string; type?: LessonType; content?: string; video_url?: string; file_url?: string; duration?: number; order?: number },
   ) {
     const lesson = await prisma.lesson.findUnique({
       where:   { id: lessonId },
@@ -472,7 +498,16 @@ export const courseService = {
     if (!lesson) throw Object.assign(new Error('Lesson not found'), { statusCode: 404 });
     if (lesson.section.course.teacher_id !== teacherId) throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
 
-    return prisma.lesson.update({ where: { id: lessonId }, data });
+    const lessonUpdate: Prisma.LessonUpdateInput = {};
+    if (data.title    !== undefined) lessonUpdate.title    = data.title;
+    if (data.type     !== undefined) lessonUpdate.type     = data.type;
+    if (data.content  !== undefined) lessonUpdate.content  = data.content;
+    if (data.video_url !== undefined) lessonUpdate.video_url = data.video_url;
+    if (data.file_url  !== undefined) lessonUpdate.file_url  = data.file_url;
+    if (data.duration !== undefined) lessonUpdate.duration = data.duration;
+    if (data.order    !== undefined) lessonUpdate.order    = data.order;
+
+    return prisma.lesson.update({ where: { id: lessonId }, data: lessonUpdate });
   },
 
   async deleteLesson(lessonId: string, teacherId: string) {

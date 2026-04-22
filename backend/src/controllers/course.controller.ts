@@ -73,11 +73,11 @@ export const courseController = {
     try {
       const { title, category_id, level } = req.body;
 
-      if (!title || !category_id || !level) {
-        res.status(400).json({ status: 'error', message: 'title, category_id and level are required' });
+      if (!title || !category_id) {
+        res.status(400).json({ status: 'error', message: 'title and category_id are required' });
         return;
       }
-      if (!Object.values(CourseLevel).includes(level)) {
+      if (level && !Object.values(CourseLevel).includes(level)) {
         res.status(400).json({ status: 'error', message: 'Invalid level value' });
         return;
       }
