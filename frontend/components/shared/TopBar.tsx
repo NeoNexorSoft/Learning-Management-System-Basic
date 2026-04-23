@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useSearchParams, useRouter } from "next/navigation"
 import { Bell, Search, LogOut, User, ShieldCheck } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
 import api from "@/lib/axios"
@@ -22,17 +22,21 @@ export default function TopBar({
 }: {
   placeholder?: string
 }) {
-  const pathname  = usePathname()
+  const pathname     = usePathname()
+  const searchParams = useSearchParams()
+  const router       = useRouter()
   const { user, logout } = useAuth()
   const isTeacher = pathname.startsWith("/teacher")
 
-  const [profileOpen, setProfileOpen] = useState(false)
-  const [bellOpen, setBellOpen]       = useState(false)
-  const [notifs, setNotifs]           = useState<NotifItem[]>([])
+  const [profileOpen,  setProfileOpen]  = useState(false)
+  const [bellOpen,     setBellOpen]     = useState(false)
+  const [notifs,       setNotifs]       = useState<NotifItem[]>([])
   const [notifsLoaded, setNotifsLoaded] = useState(false)
+  const [inputValue,   setInputValue]   = useState(searchParams.get("search") ?? "")
 
   const profileRef = useRef<HTMLDivElement>(null)
   const bellRef    = useRef<HTMLDivElement>(null)
+  const timerRef   = useRef<ReturnType<typeof setTimeout>>()
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -51,6 +55,23 @@ export default function TopBar({
       .catch(() => setNotifs([]))
       .finally(() => setNotifsLoaded(true))
   }, [])
+
+  // Sync input with URL on page navigation
+  useEffect(() => {
+    setInputValue(searchParams.get("search") ?? "")
+  }, [searchParams])
+
+  function handleSearch(value: string) {
+    setInputValue(value)
+    clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString())
+      if (value.trim()) params.set("search", value.trim())
+      else params.delete("search")
+      params.delete("page")
+      router.push(`${pathname}?${params.toString()}`)
+    }, 500)
+  }
 
   function markAllRead() {
     api.patch("/api/notifications/read-all").catch(() => {})
@@ -73,6 +94,8 @@ export default function TopBar({
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
         <input
           type="text"
+          value={inputValue}
+          onChange={(e) => handleSearch(e.target.value)}
           placeholder={placeholder}
           className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 transition-all"
         />

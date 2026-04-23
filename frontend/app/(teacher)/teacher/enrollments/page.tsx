@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import { CheckCircle2, Clock, Loader2 } from "lucide-react"
 import TopBar from "@/components/shared/TopBar"
 import api from "@/lib/axios"
@@ -40,7 +41,10 @@ function EnrollmentRow({ enrollment }: { enrollment: any }) {
   )
 }
 
-export default function EnrollmentsPage() {
+function EnrollmentsPage() {
+  const searchParams = useSearchParams()
+  const search = (searchParams.get("search") ?? "").toLowerCase()
+
   const [enrollments, setEnrollments] = useState<any[]>([])
   const [loading, setLoading]         = useState(true)
 
@@ -75,6 +79,14 @@ export default function EnrollmentsPage() {
   const active    = enrollments.filter((e) => e.status !== "COMPLETED").length
   const completed = enrollments.filter((e) => e.status === "COMPLETED").length
 
+  const filtered = search
+    ? enrollments.filter((e) =>
+        (e.student?.name  ?? "").toLowerCase().includes(search) ||
+        (e.student?.email ?? "").toLowerCase().includes(search) ||
+        (e.course?.title  ?? "").toLowerCase().includes(search)
+      )
+    : enrollments
+
   if (loading) {
     return (
       <div className="flex flex-col flex-1">
@@ -92,7 +104,10 @@ export default function EnrollmentsPage() {
       <main className="flex-1 p-6 overflow-y-auto">
         <div className="mb-8">
           <h1 className="text-2xl font-extrabold text-slate-900">Enrollments</h1>
-          <p className="text-slate-500 mt-1">{enrollments.length} total — {active} active, {completed} completed</p>
+          <p className="text-slate-500 mt-1">
+            {enrollments.length} total — {active} active, {completed} completed
+            {search && <span className="text-indigo-600"> · {filtered.length} match "{searchParams.get("search")}"</span>}
+          </p>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
@@ -107,15 +122,27 @@ export default function EnrollmentsPage() {
               </tr>
             </thead>
             <tbody>
-              {enrollments.length === 0 ? (
-                <tr><td colSpan={5} className="py-12 text-center text-slate-400 text-sm">No enrollments yet.</td></tr>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-12 text-center text-slate-400 text-sm">
+                    {search ? `No enrollments match "${searchParams.get("search")}".` : "No enrollments yet."}
+                  </td>
+                </tr>
               ) : (
-                enrollments.map((e, i) => <EnrollmentRow key={`${e.id}-${i}`} enrollment={e} />)
+                filtered.map((e, i) => <EnrollmentRow key={`${e.id}-${i}`} enrollment={e} />)
               )}
             </tbody>
           </table>
         </div>
       </main>
     </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <EnrollmentsPage />
+    </Suspense>
   )
 }

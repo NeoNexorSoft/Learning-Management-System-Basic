@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import type { Assignment } from "@/types/index"
 import { CheckCircle2, Clock, AlertCircle, ClipboardList, Loader2 } from "lucide-react"
 import TopBar from "@/components/shared/TopBar"
@@ -14,9 +15,9 @@ const statusConfig = {
 }
 
 function AssignmentRow({ assignment }: { assignment: Assignment }) {
-  const cfg       = statusConfig[assignment.status]
+  const cfg        = statusConfig[assignment.status]
   const StatusIcon = cfg.Icon
-  const isOverdue = assignment.status === "pending" && new Date(assignment.dueDate) < new Date()
+  const isOverdue  = assignment.status === "pending" && new Date(assignment.dueDate) < new Date()
 
   return (
     <tr className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
@@ -45,7 +46,10 @@ function AssignmentRow({ assignment }: { assignment: Assignment }) {
   )
 }
 
-export default function StudentAssignmentsPage() {
+function StudentAssignmentsPage() {
+  const searchParams = useSearchParams()
+  const search = (searchParams.get("search") ?? "").toLowerCase()
+
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState<string | null>(null)
@@ -73,6 +77,13 @@ export default function StudentAssignmentsPage() {
 
   const pending = assignments.filter((a) => a.status === "pending").length
 
+  const filtered = search
+    ? assignments.filter((a) =>
+        a.title.toLowerCase().includes(search) ||
+        a.course.toLowerCase().includes(search)
+      )
+    : assignments
+
   if (loading) {
     return (
       <div className="flex flex-col flex-1">
@@ -90,13 +101,20 @@ export default function StudentAssignmentsPage() {
       <main className="flex-1 p-6 overflow-y-auto">
         <PageHeader
           title="Assignments"
-          subtitle={error ?? `${assignments.length} total — ${pending} pending`}
+          subtitle={
+            error ?? (search
+              ? `${filtered.length} result${filtered.length !== 1 ? "s" : ""} for "${searchParams.get("search")}"`
+              : `${assignments.length} total — ${pending} pending`
+            )
+          }
         />
 
-        {assignments.length === 0 ? (
+        {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <ClipboardList className="w-12 h-12 text-slate-300 mb-4" />
-            <p className="text-slate-500 font-medium">No assignments yet.</p>
+            <p className="text-slate-500 font-medium">
+              {search ? `No assignments match "${searchParams.get("search")}".` : "No assignments yet."}
+            </p>
           </div>
         ) : (
           <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
@@ -111,12 +129,20 @@ export default function StudentAssignmentsPage() {
                 </tr>
               </thead>
               <tbody>
-                {assignments.map((a) => <AssignmentRow key={a.id} assignment={a} />)}
+                {filtered.map((a) => <AssignmentRow key={a.id} assignment={a} />)}
               </tbody>
             </table>
           </div>
         )}
       </main>
     </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <StudentAssignmentsPage />
+    </Suspense>
   )
 }

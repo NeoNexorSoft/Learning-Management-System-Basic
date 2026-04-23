@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Star, Users, TrendingUp, PlusCircle, Pencil, Trash2, BookOpen, Calendar, Loader2 } from "lucide-react"
 import TopBar from "@/components/shared/TopBar"
@@ -127,7 +128,10 @@ function CourseCard({ course, onDelete }: { course: any; onDelete: () => void })
   )
 }
 
-export default function TeacherCoursesPage() {
+function TeacherCoursesPage() {
+  const searchParams = useSearchParams()
+  const search = (searchParams.get("search") ?? "").toLowerCase()
+
   const [courses, setCourses]           = useState<any[]>([])
   const [loading, setLoading]           = useState(true)
   const [deletingCourse, setDeletingCourse] = useState<any | null>(null)
@@ -155,6 +159,13 @@ export default function TeacherCoursesPage() {
   const pending  = courses.filter((c) => c.status === "PENDING").length
   const draft    = courses.filter((c) => c.status === "DRAFT").length
 
+  const filtered = search
+    ? courses.filter((c) =>
+        (c.title ?? "").toLowerCase().includes(search) ||
+        (c.category?.name ?? "").toLowerCase().includes(search)
+      )
+    : courses
+
   if (loading) {
     return (
       <div className="flex flex-col flex-1">
@@ -177,6 +188,7 @@ export default function TeacherCoursesPage() {
               <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">{approved} Approved</span>
               <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">{pending} Pending</span>
               <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{draft} Draft</span>
+              {search && <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">{filtered.length} result{filtered.length !== 1 ? "s" : ""} for "{searchParams.get("search")}"</span>}
             </div>
           </div>
           <Link href="/teacher/courses/create" className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-500/20">
@@ -184,20 +196,29 @@ export default function TeacherCoursesPage() {
           </Link>
         </div>
 
-        {courses.length === 0 ? (
+        {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
               <BookOpen className="w-8 h-8 text-slate-400" />
             </div>
-            <p className="text-lg font-bold text-slate-700 mb-1">No courses yet</p>
-            <p className="text-slate-400 text-sm mb-6">Create your first course and start teaching.</p>
-            <Link href="/teacher/courses/create" className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors">
-              Create First Course
-            </Link>
+            {search ? (
+              <>
+                <p className="text-lg font-bold text-slate-700 mb-1">No courses match "{searchParams.get("search")}"</p>
+                <p className="text-slate-400 text-sm">Try a different search term.</p>
+              </>
+            ) : (
+              <>
+                <p className="text-lg font-bold text-slate-700 mb-1">No courses yet</p>
+                <p className="text-slate-400 text-sm mb-6">Create your first course and start teaching.</p>
+                <Link href="/teacher/courses/create" className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors">
+                  Create First Course
+                </Link>
+              </>
+            )}
           </div>
         ) : (
           <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
-            {courses.map((course) => (
+            {filtered.map((course) => (
               <CourseCard key={course.id} course={course} onDelete={() => setDeletingCourse(course)} />
             ))}
           </div>
@@ -208,5 +229,13 @@ export default function TeacherCoursesPage() {
         <DeleteModal course={deletingCourse} onClose={() => setDeletingCourse(null)} onConfirm={confirmDelete} />
       )}
     </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <TeacherCoursesPage />
+    </Suspense>
   )
 }

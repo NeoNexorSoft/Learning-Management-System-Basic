@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import type { Result } from "@/types/index"
 import { Trophy, Loader2 } from "lucide-react"
 import TopBar from "@/components/shared/TopBar"
@@ -49,7 +50,10 @@ function ResultRow({ result }: { result: Result }) {
   )
 }
 
-export default function StudentResultsPage() {
+function StudentResultsPage() {
+  const searchParams = useSearchParams()
+  const search = (searchParams.get("search") ?? "").toLowerCase()
+
   const [results, setResults] = useState<Result[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState<string | null>(null)
@@ -84,6 +88,13 @@ export default function StudentResultsPage() {
     ? Math.round(results.reduce((s, r) => s + (r.marks / r.totalMarks) * 100, 0) / results.length)
     : 0
 
+  const filtered = search
+    ? results.filter((r) =>
+        r.assignment.toLowerCase().includes(search) ||
+        r.course.toLowerCase().includes(search)
+      )
+    : results
+
   if (loading) {
     return (
       <div className="flex flex-col flex-1">
@@ -101,13 +112,20 @@ export default function StudentResultsPage() {
       <main className="flex-1 p-6 overflow-y-auto">
         <PageHeader
           title="Results"
-          subtitle={error ?? `${results.length} graded assignment${results.length !== 1 ? "s" : ""} — avg score ${avgScore}%`}
+          subtitle={
+            error ?? (search
+              ? `${filtered.length} result${filtered.length !== 1 ? "s" : ""} for "${searchParams.get("search")}"`
+              : `${results.length} graded assignment${results.length !== 1 ? "s" : ""} — avg score ${avgScore}%`
+            )
+          }
         />
 
-        {results.length === 0 ? (
+        {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <Trophy className="w-12 h-12 text-slate-300 mb-4" />
-            <p className="text-slate-500 font-medium">No graded results yet.</p>
+            <p className="text-slate-500 font-medium">
+              {search ? `No results match "${searchParams.get("search")}".` : "No graded results yet."}
+            </p>
           </div>
         ) : (
           <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
@@ -122,12 +140,20 @@ export default function StudentResultsPage() {
                 </tr>
               </thead>
               <tbody>
-                {results.map((r) => <ResultRow key={r.id} result={r} />)}
+                {filtered.map((r) => <ResultRow key={r.id} result={r} />)}
               </tbody>
             </table>
           </div>
         )}
       </main>
     </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <StudentResultsPage />
+    </Suspense>
   )
 }

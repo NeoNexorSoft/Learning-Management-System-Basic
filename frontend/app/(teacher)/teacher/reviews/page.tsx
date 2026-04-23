@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import { Star, Loader2 } from "lucide-react"
 import TopBar from "@/components/shared/TopBar"
 import api from "@/lib/axios"
@@ -42,7 +43,10 @@ function ReviewCard({ review }: { review: any }) {
   )
 }
 
-export default function ReviewsPage() {
+function ReviewsPage() {
+  const searchParams = useSearchParams()
+  const search = (searchParams.get("search") ?? "").toLowerCase()
+
   const [reviews, setReviews]   = useState<any[]>([])
   const [courses, setCourses]   = useState<any[]>([])
   const [loading, setLoading]   = useState(true)
@@ -83,6 +87,14 @@ export default function ReviewsPage() {
     count: reviews.filter((r) => r.rating === star).length,
   }))
 
+  const filtered = search
+    ? reviews.filter((r) =>
+        (r.student?.name  ?? "").toLowerCase().includes(search) ||
+        (r.course?.title  ?? "").toLowerCase().includes(search) ||
+        (r.comment        ?? "").toLowerCase().includes(search)
+      )
+    : reviews
+
   if (loading) {
     return (
       <div className="flex flex-col flex-1">
@@ -100,18 +112,23 @@ export default function ReviewsPage() {
       <main className="flex-1 p-6 overflow-y-auto">
         <div className="mb-8">
           <h1 className="text-2xl font-extrabold text-slate-900">Reviews</h1>
-          <p className="text-slate-500 mt-1">{totalReviews} review{totalReviews !== 1 ? "s" : ""} across all courses</p>
+          <p className="text-slate-500 mt-1">
+            {totalReviews} review{totalReviews !== 1 ? "s" : ""} across all courses
+            {search && <span className="text-indigo-600"> · {filtered.length} match "{searchParams.get("search")}"</span>}
+          </p>
         </div>
 
         <div className="grid xl:grid-cols-3 gap-6">
           <div className="xl:col-span-2 space-y-4">
-            {reviews.length === 0 ? (
+            {filtered.length === 0 ? (
               <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center">
                 <Star className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                <p className="text-slate-500 text-sm">No reviews yet.</p>
+                <p className="text-slate-500 text-sm">
+                  {search ? `No reviews match "${searchParams.get("search")}".` : "No reviews yet."}
+                </p>
               </div>
             ) : (
-              reviews.map((r, i) => <ReviewCard key={`${r.id}-${i}`} review={r} />)
+              filtered.map((r, i) => <ReviewCard key={`${r.id}-${i}`} review={r} />)
             )}
           </div>
 
@@ -155,5 +172,13 @@ export default function ReviewsPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <ReviewsPage />
+    </Suspense>
   )
 }

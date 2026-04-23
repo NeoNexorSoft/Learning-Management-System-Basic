@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { usePathname, useSearchParams, useRouter } from "next/navigation"
 import { Bell, Search, LogOut, User, ShieldCheck } from "lucide-react"
 
 const MOCK_ADMIN_NOTIFS = [
@@ -11,12 +11,18 @@ const MOCK_ADMIN_NOTIFS = [
 ]
 
 export default function AdminTopBar({ adminName, adminEmail }: { adminName: string; adminEmail: string }) {
-  const router = useRouter()
+  const pathname     = usePathname()
+  const searchParams = useSearchParams()
+  const router       = useRouter()
+
   const [profileOpen, setProfileOpen] = useState(false)
   const [bellOpen, setBellOpen]       = useState(false)
   const [notifs, setNotifs]           = useState(MOCK_ADMIN_NOTIFS)
+  const [inputValue, setInputValue]   = useState(searchParams.get("search") ?? "")
+
   const profileRef = useRef<HTMLDivElement>(null)
   const bellRef    = useRef<HTMLDivElement>(null)
+  const timerRef   = useRef<ReturnType<typeof setTimeout>>()
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -26,6 +32,23 @@ export default function AdminTopBar({ adminName, adminEmail }: { adminName: stri
     document.addEventListener("mousedown", handleClick)
     return () => document.removeEventListener("mousedown", handleClick)
   }, [])
+
+  // Sync input with URL on page navigation
+  useEffect(() => {
+    setInputValue(searchParams.get("search") ?? "")
+  }, [searchParams])
+
+  function handleSearch(value: string) {
+    setInputValue(value)
+    clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString())
+      if (value.trim()) params.set("search", value.trim())
+      else params.delete("search")
+      params.delete("page")
+      router.push(`${pathname}?${params.toString()}`)
+    }, 500)
+  }
 
   function handleLogout() {
     localStorage.removeItem("admin_token")
@@ -47,12 +70,14 @@ export default function AdminTopBar({ adminName, adminEmail }: { adminName: stri
   return (
     <header className="sticky top-0 z-10 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between gap-4 flex-shrink-0">
       <div className="flex-1 max-w-md relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+       {/* <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
         <input
           type="text"
+          value={inputValue}
+          onChange={(e) => handleSearch(e.target.value)}
           placeholder="Search users, courses, categories…"
           className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 transition-all"
-        />
+        />*/}
       </div>
 
       <div className="flex items-center gap-2">

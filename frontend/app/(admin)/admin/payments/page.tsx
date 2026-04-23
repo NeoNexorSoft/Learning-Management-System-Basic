@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
-import { useSearchParams } from "next/navigation"
+import { useState, useEffect, useCallback, Suspense } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import api from "@/lib/axios"
 import type { PaymentRow } from "@/types/admin"
 import DataTable, { Column } from "@/components/admin/DataTable"
@@ -16,27 +16,45 @@ function formatDate(s: string) {
   return new Date(s).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
 }
 
-export default function AdminPaymentsPage() {
+function AdminPaymentsPage() {
+  const router       = useRouter()
   const searchParams = useSearchParams()
 
-  const [tab,        setTab]        = useState<StatusTab>((searchParams.get("tab") as StatusTab) ?? "ALL")
-  const [search,     setSearch]     = useState("")
-  const [dateFrom,   setDateFrom]   = useState("")
-  const [dateTo,     setDateTo]     = useState("")
+  const tab      = (searchParams.get("tab")?.toUpperCase() as StatusTab) ?? "ALL"
+  const search   = searchParams.get("search") ?? ""
+  const dateFrom = searchParams.get("date_from") ?? ""
+  const dateTo   = searchParams.get("date_to") ?? ""
+
   const [page,       setPage]       = useState(1)
   const [payments,   setPayments]   = useState<PaymentRow[]>([])
   const [total,      setTotal]      = useState(0)
   const [totalPages, setTotalPages] = useState(1)
   const [loading,    setLoading]    = useState(true)
 
+  function setParam(key: string, value: string | null) {
+    const params = new URLSearchParams(searchParams.toString())
+    if (value) params.set(key, value)
+    else params.delete(key)
+    params.delete("page")
+    router.push(`/admin/payments?${params.toString()}`)
+  }
+
+  function clearDates() {
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete("date_from")
+    params.delete("date_to")
+    params.delete("page")
+    router.push(`/admin/payments?${params.toString()}`)
+  }
+
   const fetchPayments = useCallback(async () => {
     setLoading(true)
     try {
       const params: Record<string, string | number> = { page, limit: 10 }
-      if (search)         params.search   = search
-      if (tab !== "ALL")  params.status   = tab
-      if (dateFrom)       params.date_from = dateFrom
-      if (dateTo)         params.date_to   = dateTo
+      if (search)        params.search    = search
+      if (tab !== "ALL") params.status    = tab
+      if (dateFrom)      params.date_from = dateFrom
+      if (dateTo)        params.date_to   = dateTo
       const { data } = await api.get("/api/admin/payments", { params })
       setPayments(data.data?.data ?? [])
       setTotal(data.data?.total ?? 0)
@@ -86,7 +104,7 @@ export default function AdminPaymentsPage() {
         {TABS.map((t) => (
           <button
             key={t}
-            onClick={() => setTab(t)}
+            onClick={() => setParam("tab", t === "ALL" ? null : t)}
             className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
               tab === t ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
             }`}
@@ -101,27 +119,31 @@ export default function AdminPaymentsPage() {
         <div className="p-4 border-b border-slate-100 flex flex-wrap items-center gap-3">
           <SearchInput
             value={search}
-            onChange={setSearch}
+            onChange={(val) => setParam("search", val || null)}
             placeholder="Search by username or TRX ID…"
             className="max-w-xs flex-1"
           />
           <div className="flex items-center gap-2">
             <label className="text-xs font-semibold text-slate-500 flex-shrink-0">From</label>
             <input
-              type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setParam("date_from", e.target.value || null)}
               className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 transition-all"
             />
           </div>
           <div className="flex items-center gap-2">
             <label className="text-xs font-semibold text-slate-500 flex-shrink-0">To</label>
             <input
-              type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
+              type="date"
+              value={dateTo}
+              onChange={(e) => setParam("date_to", e.target.value || null)}
               className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 transition-all"
             />
           </div>
           {(dateFrom || dateTo) && (
             <button
-              onClick={() => { setDateFrom(""); setDateTo("") }}
+              onClick={clearDates}
               className="text-xs text-red-500 hover:text-red-700 font-medium transition-colors"
             >
               Clear dates
@@ -140,5 +162,13 @@ export default function AdminPaymentsPage() {
         )}
       </div>
     </main>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <AdminPaymentsPage />
+    </Suspense>
   )
 }

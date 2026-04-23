@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, Suspense } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import Image from "next/image"
 import { Eye, CheckCircle, XCircle, Trash2, BookOpen } from "lucide-react"
 import api from "@/lib/axios"
@@ -22,10 +22,12 @@ function formatDate(s: string) {
 type DialogAction = "approve" | "reject" | "delete" | null
 
 function AdminCoursesPage() {
+  const router       = useRouter()
   const searchParams = useSearchParams()
 
-  const [tab,        setTab]        = useState<StatusTab>((searchParams.get("tab") as StatusTab) ?? "ALL")
-  const [search,     setSearch]     = useState("")
+  const tab    = (searchParams.get("tab")?.toUpperCase() as StatusTab) ?? "ALL"
+  const search = searchParams.get("search") ?? ""
+
   const [page,       setPage]       = useState(1)
   const [courses,    setCourses]    = useState<CourseRow[]>([])
   const [total,      setTotal]      = useState(0)
@@ -36,6 +38,14 @@ function AdminCoursesPage() {
   const [targetCourse,  setTargetCourse]  = useState<CourseRow | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
   const [rejectReason,  setRejectReason]  = useState("")
+
+  function setParam(key: string, value: string | null) {
+    const params = new URLSearchParams(searchParams.toString())
+    if (value) params.set(key, value)
+    else params.delete(key)
+    params.delete("page")
+    router.push(`/admin/courses?${params.toString()}`)
+  }
 
   const fetchCourses = useCallback(async () => {
     setLoading(true)
@@ -185,7 +195,7 @@ function AdminCoursesPage() {
         {TABS.map((t) => (
           <button
             key={t}
-            onClick={() => setTab(t)}
+            onClick={() => setParam("tab", t === "ALL" ? null : t)}
             className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
               tab === t ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
             }`}
@@ -199,7 +209,7 @@ function AdminCoursesPage() {
         <div className="p-4 border-b border-slate-100 flex items-center justify-between gap-4">
           <SearchInput
             value={search}
-            onChange={setSearch}
+            onChange={(val) => setParam("search", val || null)}
             placeholder="Search by title…"
             className="max-w-sm flex-1"
           />

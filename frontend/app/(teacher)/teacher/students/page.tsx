@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import { GraduationCap, Loader2 } from "lucide-react"
 import TopBar from "@/components/shared/TopBar"
 import api from "@/lib/axios"
@@ -53,7 +54,10 @@ function StudentRowComp({ student }: { student: StudentRow }) {
   )
 }
 
-export default function StudentsOverviewPage() {
+function StudentsOverviewPage() {
+  const searchParams = useSearchParams()
+  const search = (searchParams.get("search") ?? "").toLowerCase()
+
   const [students, setStudents] = useState<StudentRow[]>([])
   const [loading, setLoading]   = useState(true)
 
@@ -102,6 +106,13 @@ export default function StudentsOverviewPage() {
     load()
   }, [])
 
+  const filtered = search
+    ? students.filter((s) =>
+        s.name.toLowerCase().includes(search) ||
+        s.email.toLowerCase().includes(search)
+      )
+    : students
+
   if (loading) {
     return (
       <div className="flex flex-col flex-1">
@@ -119,7 +130,10 @@ export default function StudentsOverviewPage() {
       <main className="flex-1 p-6 overflow-y-auto">
         <div className="mb-8">
           <h1 className="text-2xl font-extrabold text-slate-900">Students Overview</h1>
-          <p className="text-slate-500 mt-1">{students.length} student{students.length !== 1 ? "s" : ""} enrolled in your courses</p>
+          <p className="text-slate-500 mt-1">
+            {students.length} student{students.length !== 1 ? "s" : ""} enrolled in your courses
+            {search && <span className="text-indigo-600"> · {filtered.length} match "{searchParams.get("search")}"</span>}
+          </p>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
@@ -133,15 +147,27 @@ export default function StudentsOverviewPage() {
               </tr>
             </thead>
             <tbody>
-              {students.length === 0 ? (
-                <tr><td colSpan={4} className="py-12 text-center text-slate-400 text-sm">No students enrolled yet.</td></tr>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="py-12 text-center text-slate-400 text-sm">
+                    {search ? `No students match "${searchParams.get("search")}".` : "No students enrolled yet."}
+                  </td>
+                </tr>
               ) : (
-                students.map((s) => <StudentRowComp key={s.id} student={s} />)
+                filtered.map((s) => <StudentRowComp key={s.id} student={s} />)
               )}
             </tbody>
           </table>
         </div>
       </main>
     </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <StudentsOverviewPage />
+    </Suspense>
   )
 }

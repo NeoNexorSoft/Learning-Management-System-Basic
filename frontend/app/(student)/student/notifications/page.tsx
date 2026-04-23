@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import TopBar from "@/components/shared/TopBar"
 import PageHeader from "@/components/shared/PageHeader"
 import { Bell, ShieldCheck, Loader2, CheckCheck } from "lucide-react"
@@ -25,7 +26,10 @@ function formatDateTime(timestamp: string): string {
   )
 }
 
-export default function NotificationsPage() {
+function NotificationsPage() {
+  const searchParams = useSearchParams()
+  const search = (searchParams.get("search") ?? "").toLowerCase()
+
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading]             = useState(true)
 
@@ -50,6 +54,13 @@ export default function NotificationsPage() {
 
   const unreadCount = notifications.filter((n) => !n.read).length
 
+  const filtered = search
+    ? notifications.filter((n) =>
+        n.title.toLowerCase().includes(search) ||
+        n.message.toLowerCase().includes(search)
+      )
+    : notifications
+
   if (loading) {
     return (
       <div className="flex flex-col min-h-screen">
@@ -69,9 +80,12 @@ export default function NotificationsPage() {
         <div className="flex items-start justify-between mb-6">
           <PageHeader
             title="Notifications"
-            subtitle={`${unreadCount} unread · ${notifications.length} total`}
+            subtitle={search
+              ? `${filtered.length} result${filtered.length !== 1 ? "s" : ""} for "${searchParams.get("search")}"`
+              : `${unreadCount} unread · ${notifications.length} total`
+            }
           />
-          {unreadCount > 0 && (
+          {unreadCount > 0 && !search && (
             <button
               onClick={markAllRead}
               className="flex items-center gap-1.5 text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors mt-1"
@@ -82,15 +96,21 @@ export default function NotificationsPage() {
           )}
         </div>
 
-        {notifications.length === 0 ? (
+        {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <Bell className="w-12 h-12 text-slate-300 mb-4" />
-            <p className="text-slate-500 font-medium">No notifications yet.</p>
-            <p className="text-slate-400 text-sm mt-1">You will be notified about course updates and assignments here.</p>
+            {search ? (
+              <p className="text-slate-500 font-medium">No notifications match "{searchParams.get("search")}".</p>
+            ) : (
+              <>
+                <p className="text-slate-500 font-medium">No notifications yet.</p>
+                <p className="text-slate-400 text-sm mt-1">You will be notified about course updates and assignments here.</p>
+              </>
+            )}
           </div>
         ) : (
           <div className="space-y-3">
-            {notifications.map((n) => (
+            {filtered.map((n) => (
               <div
                 key={n.id}
                 className={`bg-white border rounded-2xl p-5 flex gap-4 transition-all ${
@@ -142,5 +162,13 @@ export default function NotificationsPage() {
         )}
       </main>
     </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <NotificationsPage />
+    </Suspense>
   )
 }

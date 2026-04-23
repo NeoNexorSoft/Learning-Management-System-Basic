@@ -123,10 +123,10 @@ export default function AdminDashboardPage() {
         <SectionTitle title="Users" sub="Registered students and overall activity" />
         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           <StatCard icon={Users}     label="Total Users"           value={fmt(stats.totalUsers)}    sub="All registered users"        iconBg="bg-indigo-50"  iconColor="text-indigo-600" onClick={() => router.push("/admin/users")} />
-          <StatCard icon={UserCheck} label="Active Users"          value={fmt(stats.activeUsers)}   sub="Non-banned accounts"         iconBg="bg-emerald-50" iconColor="text-emerald-600" onClick={() => router.push("/admin/users?tab=active")} />
-          <StatCard icon={Mail}      label="Email Verified"        value={fmt(stats.emailVerified)} sub="Confirmed email addresses"   iconBg="bg-sky-50"     iconColor="text-sky-600" onClick={() => router.push("/admin/users?tab=verified")} />
+          <StatCard icon={UserCheck} label="Active Users"          value={fmt(stats.activeUsers)}   sub="Non-banned accounts"         iconBg="bg-emerald-50" iconColor="text-emerald-600" onClick={() => router.push("/admin/users?tab=ACTIVE")} />
+          <StatCard icon={Mail}      label="Email Verified"        value={fmt(stats.emailVerified)} sub="Confirmed email addresses"   iconBg="bg-sky-50"     iconColor="text-sky-600" onClick={() => router.push("/admin/users?tab=VERIFIED")} />
           <StatCard icon={GraduationCap} label="Total Teachers"   value={fmt(stats.totalTeachers)} sub="Registered instructors"      iconBg="bg-violet-50"  iconColor="text-violet-600" onClick={() => router.push("/admin/teachers")} />
-          <StatCard icon={UserCheck} label="Active Teachers"       value={fmt(stats.activeTeachers)} sub="Unbanned instructors"       iconBg="bg-teal-50"    iconColor="text-teal-600" onClick={() => router.push("/admin/teachers?tab=active")} />
+          <StatCard icon={UserCheck} label="Active Teachers"       value={fmt(stats.activeTeachers)} sub="Unbanned instructors"       iconBg="bg-teal-50"    iconColor="text-teal-600" onClick={() => router.push("/admin/teachers?tab=ACTIVE")} />
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import { CheckCircle2, Loader2, TrendingUp, CreditCard } from "lucide-react"
 import TopBar from "@/components/shared/TopBar"
 import PageHeader from "@/components/shared/PageHeader"
@@ -14,10 +15,13 @@ const statusStyles: Record<string, string> = {
   REJECTED:  "bg-red-100    text-red-700",
 }
 
-export default function TransactionsPage() {
-  const [stats, setStats]             = useState<any>(null)
-  const [transactions, setTxns]       = useState<any[]>([])
-  const [loading, setLoading]         = useState(true)
+function TransactionsPage() {
+  const searchParams = useSearchParams()
+  const search = (searchParams.get("search") ?? "").toLowerCase()
+
+  const [stats, setStats]       = useState<any>(null)
+  const [transactions, setTxns] = useState<any[]>([])
+  const [loading, setLoading]   = useState(true)
 
   useEffect(() => {
     Promise.all([
@@ -31,6 +35,14 @@ export default function TransactionsPage() {
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
+
+  const filtered = search
+    ? transactions.filter((t) =>
+        (t.user?.name    ?? "").toLowerCase().includes(search) ||
+        (t.course?.title ?? "").toLowerCase().includes(search) ||
+        (t.trx_id        ?? "").toLowerCase().includes(search)
+      )
+    : transactions
 
   if (loading) {
     return (
@@ -47,7 +59,13 @@ export default function TransactionsPage() {
     <div className="flex flex-col flex-1">
       <TopBar placeholder="Search transactions…" />
       <main className="flex-1 p-6 overflow-y-auto">
-        <PageHeader title="Transactions" subtitle="Earnings history from course purchases" />
+        <PageHeader
+          title="Transactions"
+          subtitle={search
+            ? `${filtered.length} result${filtered.length !== 1 ? "s" : ""} for "${searchParams.get("search")}"`
+            : "Earnings history from course purchases"
+          }
+        />
 
         <div className="grid sm:grid-cols-3 gap-5 mb-8">
           {[
@@ -71,11 +89,13 @@ export default function TransactionsPage() {
             <h2 className="text-base font-bold text-slate-900">Transaction History</h2>
           </div>
 
-          {transactions.length === 0 ? (
+          {filtered.length === 0 ? (
             <div className="py-16 text-center">
               <CheckCircle2 className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-500 text-sm font-medium">No transactions yet.</p>
-              <p className="text-slate-400 text-xs mt-1">Course purchase revenue will appear here.</p>
+              <p className="text-slate-500 text-sm font-medium">
+                {search ? `No transactions match "${searchParams.get("search")}".` : "No transactions yet."}
+              </p>
+              {!search && <p className="text-slate-400 text-xs mt-1">Course purchase revenue will appear here.</p>}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -91,7 +111,7 @@ export default function TransactionsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {transactions.map((t: any) => (
+                  {filtered.map((t: any) => (
                     <tr key={t.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4 font-mono text-xs text-slate-600">{t.trx_id?.slice(0, 14)}…</td>
                       <td className="px-6 py-4 text-slate-800 hidden sm:table-cell">{t.user?.name ?? "—"}</td>
@@ -114,5 +134,13 @@ export default function TransactionsPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <TransactionsPage />
+    </Suspense>
   )
 }

@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import { BookOpen, Loader2 } from "lucide-react"
 import TopBar from "@/components/shared/TopBar"
 import PageHeader from "@/components/shared/PageHeader"
@@ -71,7 +72,10 @@ function CourseCard({ course }: { course: CourseItem }) {
   )
 }
 
-export default function StudentCoursesPage() {
+function StudentCoursesPage() {
+  const searchParams = useSearchParams()
+  const search = (searchParams.get("search") ?? "").toLowerCase()
+
   const [courses, setCourses] = useState<CourseItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState<string | null>(null)
@@ -80,22 +84,17 @@ export default function StudentCoursesPage() {
     api.get("/api/enrollments/my")
       .then(({ data }) => {
         const enrollments: any[] = data.data.enrollments ?? []
-        const mapped: CourseItem[] = enrollments.map((e: any) => {
-          const progress         = Number(e.progress ?? 0)
-          const totalLessons     = 0
-          const completedLessons = 0
-          return {
-            id:               e.id,
-            title:            e.course?.title ?? "Untitled",
-            teacher:          e.course?.teacher?.name ?? "Unknown",
-            progress,
-            category:         e.course?.category?.name ?? "General",
-            status:           e.status === "COMPLETED" ? "completed" : "in-progress",
-            thumbnail:        e.course?.thumbnail ?? "",
-            totalLessons,
-            completedLessons,
-          }
-        })
+        const mapped: CourseItem[] = enrollments.map((e: any) => ({
+          id:               e.id,
+          title:            e.course?.title ?? "Untitled",
+          teacher:          e.course?.teacher?.name ?? "Unknown",
+          progress:         Number(e.progress ?? 0),
+          category:         e.course?.category?.name ?? "General",
+          status:           e.status === "COMPLETED" ? "completed" : "in-progress",
+          thumbnail:        e.course?.thumbnail ?? "",
+          totalLessons:     0,
+          completedLessons: 0,
+        }))
         setCourses(mapped)
       })
       .catch(() => setError("Failed to load courses."))
@@ -104,6 +103,14 @@ export default function StudentCoursesPage() {
 
   const inProgress = courses.filter((c) => c.status !== "completed").length
   const completed  = courses.filter((c) => c.status === "completed").length
+
+  const filtered = search
+    ? courses.filter((c) =>
+        c.title.toLowerCase().includes(search)    ||
+        c.teacher.toLowerCase().includes(search)  ||
+        c.category.toLowerCase().includes(search)
+      )
+    : courses
 
   if (loading) {
     return (
@@ -122,21 +129,40 @@ export default function StudentCoursesPage() {
       <main className="flex-1 p-6 overflow-y-auto">
         <PageHeader
           title="My Courses"
-          subtitle={error ?? `${courses.length} enrolled — ${inProgress} in progress, ${completed} completed`}
+          subtitle={
+            error ?? (search
+              ? `${filtered.length} result${filtered.length !== 1 ? "s" : ""} for "${searchParams.get("search")}"`
+              : `${courses.length} enrolled — ${inProgress} in progress, ${completed} completed`
+            )
+          }
         />
 
-        {courses.length === 0 ? (
+        {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <BookOpen className="w-12 h-12 text-slate-300 mb-4" />
-            <p className="text-slate-500 font-medium">No courses yet.</p>
-            <p className="text-slate-400 text-sm mt-1">Browse the course catalogue to get started.</p>
+            {search ? (
+              <p className="text-slate-500 font-medium">No courses match "{searchParams.get("search")}".</p>
+            ) : (
+              <>
+                <p className="text-slate-500 font-medium">No courses yet.</p>
+                <p className="text-slate-400 text-sm mt-1">Browse the course catalogue to get started.</p>
+              </>
+            )}
           </div>
         ) : (
           <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
-            {courses.map((course) => <CourseCard key={course.id} course={course} />)}
+            {filtered.map((course) => <CourseCard key={course.id} course={course} />)}
           </div>
         )}
       </main>
     </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <StudentCoursesPage />
+    </Suspense>
   )
 }

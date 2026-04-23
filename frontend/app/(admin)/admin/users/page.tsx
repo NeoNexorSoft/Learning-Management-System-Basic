@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Eye, Ban, CheckCircle } from "lucide-react"
 import api from "@/lib/axios"
@@ -18,28 +18,37 @@ function formatDate(s: string) {
   return new Date(s).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
 }
 
-export default function AdminUsersPage() {
+function AdminUsersPage() {
   const router       = useRouter()
   const searchParams = useSearchParams()
 
-  const [tab,        setTab]        = useState<Tab>((searchParams.get("tab") as Tab) ?? "ALL")
-  const [search,     setSearch]     = useState("")
+  const tab    = (searchParams.get("tab")?.toUpperCase() as Tab) ?? "ALL"
+  const search = searchParams.get("search") ?? ""
+
   const [page,       setPage]       = useState(1)
   const [users,      setUsers]      = useState<UserRow[]>([])
   const [total,      setTotal]      = useState(0)
   const [totalPages, setTotalPages] = useState(1)
   const [loading,    setLoading]    = useState(true)
 
-  const [confirmOpen, setConfirmOpen] = useState(false)
-  const [targetUser,  setTargetUser]  = useState<UserRow | null>(null)
+  const [confirmOpen,   setConfirmOpen]   = useState(false)
+  const [targetUser,    setTargetUser]    = useState<UserRow | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
+
+  function setParam(key: string, value: string | null) {
+    const params = new URLSearchParams(searchParams.toString())
+    if (value) params.set(key, value)
+    else params.delete(key)
+    params.delete("page")
+    router.push(`/admin/users?${params.toString()}`)
+  }
 
   const fetchUsers = useCallback(async () => {
     setLoading(true)
     try {
       const params: Record<string, string | number> = {
         page, limit: 10, role: "STUDENT",
-        ...(search  && { search }),
+        ...(search && { search }),
         ...(tab === "ACTIVE"   && { is_banned: "false" }),
         ...(tab === "BANNED"   && { is_banned: "true"  }),
         ...(tab === "VERIFIED" && { email_verified: "true" }),
@@ -140,7 +149,7 @@ export default function AdminUsersPage() {
         {TABS.map((t) => (
           <button
             key={t}
-            onClick={() => setTab(t)}
+            onClick={() => setParam("tab", t === "ALL" ? null : t)}
             className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
               tab === t ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
             }`}
@@ -155,7 +164,7 @@ export default function AdminUsersPage() {
         <div className="p-4 border-b border-slate-100 flex items-center justify-between gap-4">
           <SearchInput
             value={search}
-            onChange={setSearch}
+            onChange={(val) => setParam("search", val || null)}
             placeholder="Search by name or email…"
             className="max-w-sm flex-1"
           />
@@ -187,5 +196,13 @@ export default function AdminUsersPage() {
         danger={!targetUser?.is_banned}
       />
     </main>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <AdminUsersPage />
+    </Suspense>
   )
 }

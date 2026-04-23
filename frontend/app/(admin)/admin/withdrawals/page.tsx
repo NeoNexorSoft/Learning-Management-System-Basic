@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
-import { useSearchParams } from "next/navigation"
+import { useState, useEffect, useCallback, Suspense } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import { CheckCircle, XCircle } from "lucide-react"
 import api from "@/lib/axios"
 import type { WithdrawalRow } from "@/types/admin"
@@ -19,19 +19,29 @@ function formatDate(s: string) {
 
 type DialogAction = "approve" | "reject" | null
 
-export default function AdminWithdrawalsPage() {
+function AdminWithdrawalsPage() {
+  const router       = useRouter()
   const searchParams = useSearchParams()
 
-  const [tab,          setTab]          = useState<StatusTab>((searchParams.get("tab") as StatusTab) ?? "ALL")
-  const [page,         setPage]         = useState(1)
-  const [withdrawals,  setWithdrawals]  = useState<WithdrawalRow[]>([])
-  const [total,        setTotal]        = useState(0)
-  const [totalPages,   setTotalPages]   = useState(1)
-  const [loading,      setLoading]      = useState(true)
+  const tab = (searchParams.get("tab")?.toUpperCase() as StatusTab) ?? "ALL"
+
+  const [page,        setPage]        = useState(1)
+  const [withdrawals, setWithdrawals] = useState<WithdrawalRow[]>([])
+  const [total,       setTotal]       = useState(0)
+  const [totalPages,  setTotalPages]  = useState(1)
+  const [loading,     setLoading]     = useState(true)
 
   const [dialog,        setDialog]        = useState<DialogAction>(null)
   const [targetW,       setTargetW]       = useState<WithdrawalRow | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
+
+  function setParam(key: string, value: string | null) {
+    const params = new URLSearchParams(searchParams.toString())
+    if (value) params.set(key, value)
+    else params.delete(key)
+    params.delete("page")
+    router.push(`/admin/withdrawals?${params.toString()}`)
+  }
 
   const fetchWithdrawals = useCallback(async () => {
     setLoading(true)
@@ -79,9 +89,9 @@ export default function AdminWithdrawalsPage() {
       header: "Amount",
       render: (w) => <span className="font-bold text-slate-800">৳ {parseFloat(w.amount).toFixed(2)}</span>,
     },
-    { header: "Method",     render: (w) => <span className="capitalize text-slate-600 text-sm">{w.method}</span> },
-    { header: "Status",     render: (w) => <Badge label={w.status} /> },
-    { header: "Requested",  render: (w) => <span className="text-slate-500 text-xs">{formatDate(w.requested_at)}</span> },
+    { header: "Method",    render: (w) => <span className="capitalize text-slate-600 text-sm">{w.method}</span> },
+    { header: "Status",    render: (w) => <Badge label={w.status} /> },
+    { header: "Requested", render: (w) => <span className="text-slate-500 text-xs">{formatDate(w.requested_at)}</span> },
     {
       header: "Action",
       render: (w) => (
@@ -128,7 +138,7 @@ export default function AdminWithdrawalsPage() {
         {TABS.map((t) => (
           <button
             key={t}
-            onClick={() => setTab(t)}
+            onClick={() => setParam("tab", t === "ALL" ? null : t)}
             className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
               tab === t ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
             }`}
@@ -166,5 +176,13 @@ export default function AdminWithdrawalsPage() {
         />
       )}
     </main>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <AdminWithdrawalsPage />
+    </Suspense>
   )
 }

@@ -12,8 +12,8 @@ import { BrandIcon, BRAND_NAME, BRAND_ICON_BG, BRAND_ICON_COLOR } from "@/lib/br
 type NavItem = { icon: LucideIcon; label: string; href: string }
 
 const navItems: NavItem[] = [
-  { icon: LayoutDashboard, label: "Dashboard",   href: "/admin/dashboard" },
-  { icon: Users,           label: "Students",        href: "/admin/users" },
+  { icon: LayoutDashboard, label: "Dashboard",    href: "/admin/dashboard" },
+  { icon: Users,           label: "Students",     href: "/admin/users" },
   { icon: GraduationCap,   label: "Teachers",     href: "/admin/teachers" },
   { icon: BookOpen,        label: "Courses",      href: "/admin/courses" },
   { icon: Tag,             label: "Categories",   href: "/admin/categories" },
