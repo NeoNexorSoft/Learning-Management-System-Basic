@@ -84,7 +84,7 @@ function AdminTeachersPage() {
 
   const columns: Column<UserRow>[] = [
     {
-      header: "Teacher",
+      header: "Name",
       render: (u) => (
         <div>
           <p className="font-semibold text-slate-800">{u.name}</p>
@@ -143,7 +143,7 @@ function AdminTeachersPage() {
     <main className="flex-1 p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-extrabold text-slate-900">Teachers</h1>
-        <p className="text-sm text-slate-500 mt-1">Manage instructors on the platform — {total.toLocaleString()} total</p>
+        <p className="text-sm text-slate-500 mt-1">Manage teachers on the platform — {total.toLocaleString()} total</p>
       </div>
 
       {/* Tabs */}

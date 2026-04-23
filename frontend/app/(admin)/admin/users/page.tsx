@@ -85,7 +85,7 @@ function AdminUsersPage() {
 
   const columns: Column<UserRow>[] = [
     {
-      header: "User",
+      header: "Name",
       render: (u) => (
         <div>
           <p className="font-semibold text-slate-800">{u.name}</p>
@@ -140,7 +140,7 @@ function AdminUsersPage() {
   return (
     <main className="flex-1 p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-extrabold text-slate-900">Users</h1>
+        <h1 className="text-2xl font-extrabold text-slate-900">Students</h1>
         <p className="text-sm text-slate-500 mt-1">Manage registered students — {total.toLocaleString()} total</p>
       </div>
 

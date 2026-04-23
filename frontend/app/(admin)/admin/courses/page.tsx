@@ -121,7 +121,7 @@ function AdminCoursesPage() {
       ),
     },
     {
-      header: "Instructor",
+      header: "Teacher",
       render: (c) => (
         <div>
           <p className="text-sm font-medium text-slate-700">{c.instructor.name}</p>
