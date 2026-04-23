@@ -13,7 +13,7 @@ type NavItem = { icon: LucideIcon; label: string; href: string }
 
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard",   href: "/admin/dashboard" },
-  { icon: Users,           label: "Users",        href: "/admin/users" },
+  { icon: Users,           label: "Students",        href: "/admin/users" },
   { icon: GraduationCap,   label: "Teachers",     href: "/admin/teachers" },
   { icon: BookOpen,        label: "Courses",      href: "/admin/courses" },
   { icon: Tag,             label: "Categories",   href: "/admin/categories" },
