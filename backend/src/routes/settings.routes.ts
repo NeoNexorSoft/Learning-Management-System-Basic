@@ -1,18 +1,24 @@
-router.get("/social-language", authenticate, async (req, res) => {
+import { Router } from "express";
+import { authenticate } from "../middlewares/auth.middleware";
+
+const router = Router();
+
+// GET settings
+router.get("/general", authenticate, async (req, res) => {
   res.json({
-    google_enabled: false,
-    google_client_id: "",
-    google_client_secret: "",
-    facebook_enabled: false,
-    facebook_client_id: "",
-    facebook_client_secret: "",
-    language: "en",
+    site_name: "NeoNexor LMS",
+    email: "admin@neonexor.com",
+    contact_number: "123456",
+    address: "Dhaka",
   });
 });
 
-router.put("/social-language", authenticate, async (req, res) => {
+// UPDATE settings
+router.put("/general", authenticate, async (req, res) => {
   res.json({
-    message: "Saved successfully",
+    message: "Settings updated successfully",
     data: req.body,
   });
 });
+
+export default router;
