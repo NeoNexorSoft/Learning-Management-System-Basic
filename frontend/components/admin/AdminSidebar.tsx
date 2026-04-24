@@ -14,7 +14,7 @@ import {
   FileWarning,
   ChevronRight,
   LogOut,
-  ShieldCheck,
+  ShieldCheck, Settings,
 } from "lucide-react";
 
 import {
@@ -34,6 +34,7 @@ const navItems: NavItem[] = [
   { icon: Tag, label: "Categories", href: "/admin/categories" },
   { icon: CreditCard, label: "Payments", href: "/admin/payments" },
   { icon: Wallet, label: "Withdrawals", href: "/admin/withdrawals" },
+  { icon: Settings, label: "Settings", href: "/admin/settings" },
   { icon: FileWarning, label: "Reports", href: "/admin/reports" }, //new adding
 ];
 
