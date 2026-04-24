@@ -7,6 +7,7 @@ import api from "@/lib/axios"
 import type { WithdrawalRow } from "@/types/admin"
 import DataTable, { Column } from "@/components/admin/DataTable"
 import Pagination from "@/components/admin/Pagination"
+import SearchInput from "@/components/admin/SearchInput"
 import ConfirmDialog from "@/components/admin/ConfirmDialog"
 import Badge from "@/components/admin/Badge"
 
@@ -23,7 +24,8 @@ function AdminWithdrawalsPage() {
   const router       = useRouter()
   const searchParams = useSearchParams()
 
-  const tab = (searchParams.get("tab")?.toUpperCase() as StatusTab) ?? "ALL"
+  const tab    = (searchParams.get("tab")?.toUpperCase() as StatusTab) ?? "ALL"
+  const search = searchParams.get("search") ?? ""
 
   const [page,        setPage]        = useState(1)
   const [withdrawals, setWithdrawals] = useState<WithdrawalRow[]>([])
@@ -48,6 +50,7 @@ function AdminWithdrawalsPage() {
     try {
       const params: Record<string, string | number> = { page, limit: 10 }
       if (tab !== "ALL") params.status = tab
+      if (search)        params.search = search
       const { data } = await api.get("/api/admin/withdrawals", { params })
       setWithdrawals(data.data?.data ?? [])
       setTotal(data.data?.total ?? 0)
@@ -57,10 +60,10 @@ function AdminWithdrawalsPage() {
     } finally {
       setLoading(false)
     }
-  }, [tab, page])
+  }, [tab, search, page])
 
   useEffect(() => { fetchWithdrawals() }, [fetchWithdrawals])
-  useEffect(() => { setPage(1) }, [tab])
+  useEffect(() => { setPage(1) }, [tab, search])
 
   async function handleAction() {
     if (!targetW || !dialog) return
@@ -79,10 +82,10 @@ function AdminWithdrawalsPage() {
     {
       header: "Teacher",
       render: (w) => (
-        <div>
-          <p className="font-semibold text-slate-800 text-sm">{w.teacher.name}</p>
-          <p className="text-xs text-slate-400">{w.teacher.email}</p>
-        </div>
+          <div>
+            <p className="font-semibold text-slate-800 text-sm">{w.teacher.name}</p>
+            <p className="text-xs text-slate-400">{w.teacher.email}</p>
+          </div>
       ),
     },
     {
@@ -95,26 +98,24 @@ function AdminWithdrawalsPage() {
     {
       header: "Action",
       render: (w) => (
-        w.status === "PENDING" ? (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => { setTargetW(w); setDialog("approve") }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-lg transition-colors"
-            >
-              <CheckCircle className="w-3.5 h-3.5" />
-              Approve
-            </button>
-            <button
-              onClick={() => { setTargetW(w); setDialog("reject") }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold rounded-lg transition-colors"
-            >
-              <XCircle className="w-3.5 h-3.5" />
-              Reject
-            </button>
-          </div>
-        ) : (
-          <span className="text-slate-400 text-xs">—</span>
-        )
+          w.status === "PENDING" ? (
+              <div className="flex items-center gap-2">
+                <button
+                    onClick={() => { setTargetW(w); setDialog("approve") }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-lg transition-colors"
+                >
+                  <CheckCircle className="w-3.5 h-3.5" /> Approve
+                </button>
+                <button
+                    onClick={() => { setTargetW(w); setDialog("reject") }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold rounded-lg transition-colors"
+                >
+                  <XCircle className="w-3.5 h-3.5" /> Reject
+                </button>
+              </div>
+          ) : (
+              <span className="text-slate-400 text-xs">—</span>
+          )
       ),
     },
   ]
@@ -127,62 +128,69 @@ function AdminWithdrawalsPage() {
   const dc = dialog ? dialogConfig[dialog] : null
 
   return (
-    <main className="flex-1 p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold text-slate-900">Withdrawals</h1>
-        <p className="text-sm text-slate-500 mt-1">Review and process teacher withdrawal requests — {total.toLocaleString()} total</p>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit">
-        {TABS.map((t) => (
-          <button
-            key={t}
-            onClick={() => setParam("tab", t === "ALL" ? null : t)}
-            className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
-              tab === t ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            {t.charAt(0) + t.slice(1).toLowerCase()}
-          </button>
-        ))}
-      </div>
-
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-        <div className="p-4 border-b border-slate-100 flex items-center justify-end">
-          <span className="text-sm text-slate-400">{total} result{total !== 1 ? "s" : ""}</span>
+      <main className="flex-1 p-6 space-y-6">
+        <div>
+          <h1 className="text-2xl font-extrabold text-slate-900">Withdrawals</h1>
+          <p className="text-sm text-slate-500 mt-1">Review and process teacher withdrawal requests — {total.toLocaleString()} total</p>
         </div>
 
-        <DataTable columns={columns} data={withdrawals} loading={loading} keyFn={(w) => w.id} emptyMessage="No withdrawal requests found." />
+        {/* Tabs */}
+        <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit">
+          {TABS.map((t) => (
+              <button
+                  key={t}
+                  onClick={() => setParam("tab", t === "ALL" ? null : t)}
+                  className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                      tab === t ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                  }`}
+              >
+                {t.charAt(0) + t.slice(1).toLowerCase()}
+              </button>
+          ))}
+        </div>
 
-        {totalPages > 1 && (
-          <div className="p-4 border-t border-slate-100 flex items-center justify-between">
-            <p className="text-sm text-slate-400">Page {page} of {totalPages}</p>
-            <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+          {/* Search bar */}
+          <div className="p-4 border-b border-slate-100 flex items-center justify-between gap-4">
+            <SearchInput
+                value={search}
+                onChange={(val) => setParam("search", val || null)}
+                placeholder="Search by teacher name or email…"
+                className="max-w-sm flex-1"
+            />
+            <span className="text-sm text-slate-400 flex-shrink-0">{total} result{total !== 1 ? "s" : ""}</span>
           </div>
-        )}
-      </div>
 
-      {dc && (
-        <ConfirmDialog
-          isOpen={!!dialog}
-          onClose={() => { setDialog(null); setTargetW(null) }}
-          onConfirm={handleAction}
-          loading={actionLoading}
-          title={dc.title}
-          message={dc.message}
-          confirmLabel={dc.label}
-          danger={dc.danger}
-        />
-      )}
-    </main>
+          <DataTable columns={columns} data={withdrawals} loading={loading} keyFn={(w) => w.id} emptyMessage="No withdrawal requests found." />
+
+          {totalPages > 1 && (
+              <div className="p-4 border-t border-slate-100 flex items-center justify-between">
+                <p className="text-sm text-slate-400">Page {page} of {totalPages}</p>
+                <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+              </div>
+          )}
+        </div>
+
+        {dc && (
+            <ConfirmDialog
+                isOpen={!!dialog}
+                onClose={() => { setDialog(null); setTargetW(null) }}
+                onConfirm={handleAction}
+                loading={actionLoading}
+                title={dc.title}
+                message={dc.message}
+                confirmLabel={dc.label}
+                danger={dc.danger}
+            />
+        )}
+      </main>
   )
 }
 
 export default function Page() {
   return (
-    <Suspense>
-      <AdminWithdrawalsPage />
-    </Suspense>
+      <Suspense>
+        <AdminWithdrawalsPage />
+      </Suspense>
   )
 }

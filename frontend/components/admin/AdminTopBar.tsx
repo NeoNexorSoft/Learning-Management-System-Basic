@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { Bell, LogOut, User, ShieldCheck } from "lucide-react"
+import { usePathname, useSearchParams, useRouter } from "next/navigation"
+import { Bell, Search, LogOut, User, ShieldCheck } from "lucide-react"
 import api from "@/lib/axios"
 
 const MOCK_ADMIN_NOTIFS = [
@@ -14,26 +14,28 @@ const MOCK_ADMIN_NOTIFS = [
 export default function AdminTopBar({
                                       adminName,
                                       adminEmail,
-                                      adminAvatar,
                                     }: {
   adminName?: string
   adminEmail?: string
-  adminAvatar?: string
 }) {
-  const router = useRouter()
+  const pathname     = usePathname()
+  const searchParams = useSearchParams()
+  const router       = useRouter()
 
   const [profileOpen, setProfileOpen] = useState(false)
   const [bellOpen, setBellOpen]       = useState(false)
   const [notifs, setNotifs]           = useState(MOCK_ADMIN_NOTIFS)
+  const [inputValue, setInputValue]   = useState(searchParams.get("search") ?? "")
 
-  const [name,   setName]   = useState(adminName   ?? "")
-  const [email,  setEmail]  = useState(adminEmail  ?? "")
-  const [avatar, setAvatar] = useState(adminAvatar ?? "")
+  const [name,   setName]   = useState(adminName  ?? "")
+  const [email,  setEmail]  = useState(adminEmail ?? "")
+  const [avatar, setAvatar] = useState("")
 
   const profileRef = useRef<HTMLDivElement>(null)
   const bellRef    = useRef<HTMLDivElement>(null)
+  const timerRef   = useRef<ReturnType<typeof setTimeout>>()
 
-  // Always fetch latest user data from server
+  // Fetch latest user data on mount
   useEffect(() => {
     api.get("/api/auth/me")
         .then(({ data }) => {
@@ -54,6 +56,23 @@ export default function AdminTopBar({
     return () => document.removeEventListener("mousedown", handleClick)
   }, [])
 
+  // Sync input with URL on page navigation
+  useEffect(() => {
+    setInputValue(searchParams.get("search") ?? "")
+  }, [searchParams])
+
+  function handleSearch(value: string) {
+    setInputValue(value)
+    clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString())
+      if (value.trim()) params.set("search", value.trim())
+      else params.delete("search")
+      params.delete("page")
+      router.push(`${pathname}?${params.toString()}`)
+    }, 500)
+  }
+
   function handleLogout() {
     localStorage.removeItem("admin_token")
     localStorage.removeItem("admin_user")
@@ -73,7 +92,18 @@ export default function AdminTopBar({
 
   return (
       <header className="sticky top-0 z-10 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between gap-4 flex-shrink-0">
-        <div className="flex-1 max-w-md relative" />
+
+        {/* Search */}
+        <div className="flex-1 max-w-md relative">
+          {/*<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+              type="text"
+              value={inputValue}
+              onChange={(e) => handleSearch(e.target.value)}
+              placeholder="Search students, courses, categories…"
+              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 transition-all"
+          />*/}
+        </div>
 
         <div className="flex items-center gap-2">
 
@@ -107,10 +137,7 @@ export default function AdminTopBar({
                   </div>
                   <div className="max-h-64 overflow-y-auto">
                     {notifs.map((n) => (
-                        <div
-                            key={n.id}
-                            className={`px-4 py-3 border-b border-slate-50 last:border-0 ${!n.read ? "bg-indigo-50/60" : ""}`}
-                        >
+                        <div key={n.id} className={`px-4 py-3 border-b border-slate-50 last:border-0 ${!n.read ? "bg-indigo-50/60" : ""}`}>
                           <div className="flex items-start justify-between gap-2 mb-0.5">
                             <p className="text-xs font-semibold text-slate-900">{n.title}</p>
                             {!n.read && <span className="w-2 h-2 rounded-full bg-indigo-500 mt-1 flex-shrink-0" />}
