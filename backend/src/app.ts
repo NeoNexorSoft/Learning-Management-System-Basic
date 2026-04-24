@@ -41,7 +41,6 @@ const app = express();
 
 app.use(helmet());
 
-// In development allow any localhost origin so port variations (3000, 3001…) never trigger CORS blocks
 const allowedOrigin =
   env.NODE_ENV === "development"
     ? (
@@ -61,7 +60,6 @@ app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ─── Routes ───────────────────────────────────────────────────────────────────
 app.get("/api/health", (_req: Request, res: Response) => {
   res.json({ status: "ok" });
 });
@@ -70,35 +68,31 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/courses", courseRouter);
 app.use("/api/teacher", teacherRouter);
-app.use("/api/teacher", teacherTransactionRouter); // GET /api/teacher/transactions
+app.use("/api/teacher", teacherTransactionRouter);
 
-// Admin routes
 app.use("/api/admin/settings", settingsRoutes);
-app.use("/api/admin/withdrawals", adminWithdrawalRouter); // GET/PUT /api/admin/withdrawals/:id
+app.use("/api/admin/withdrawals", adminWithdrawalRouter);
 app.use("/api/admin", adminRouter);
-app.use("/api/admin", adminPaymentRouter); // GET /api/admin/payments
+app.use("/api/admin", adminPaymentRouter);
 
 app.use("/api/categories", categoryRouter);
 app.use("/api/sections", sectionRouter);
 
-// /api/lessons — three routers share this prefix (no method/path conflicts)
 app.use("/api/lessons", lessonRouter);
 app.use("/api/lessons", lessonProgressRouter);
 app.use("/api/lessons", lessonAssignmentRouter);
 
-// /api/courses — additional routers share this prefix (two-segment paths, no collision with /:slug)
 app.use("/api/courses", enrolledStudentsRouter);
 app.use("/api/courses", reviewRouter);
 
 app.use("/api/enrollments", enrollmentRouter);
 app.use("/api/assignments", assignmentRouter);
 app.use("/api/submissions", submissionRouter);
-app.use("/api/withdrawals", withdrawalRouter); // POST /api/withdrawals, GET /api/withdrawals/my
+app.use("/api/withdrawals", withdrawalRouter);
 app.use("/api/certificates", certificateRouter);
-app.use("/api/notifications", notificationRouter); // GET /my, PATCH /read-all, PATCH /:id/read
+app.use("/api/notifications", notificationRouter);
 app.use("/api/upload", uploadRoutes);
 
-// ─── Global Error Handler ─────────────────────────────────────────────────────
 app.use(
   (
     err: Error & { statusCode?: number },
