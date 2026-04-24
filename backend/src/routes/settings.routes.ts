@@ -1,24 +1,16 @@
 import { Router } from "express";
 import { authenticate } from "../middlewares/auth.middleware";
+import { settingsController } from "../controllers/settings.controller";
 
 const router = Router();
 
-// GET settings
-router.get("/general", authenticate, async (req, res) => {
-  res.json({
-    site_name: "NeoNexor LMS",
-    email: "admin@neonexor.com",
-    contact_number: "123456",
-    address: "Dhaka",
-  });
-});
+router.get("/", authenticate, settingsController.getSettings);
+router.put("/", authenticate, settingsController.updateSettings);
 
-// UPDATE settings
-router.put("/general", authenticate, async (req, res) => {
-  res.json({
-    message: "Settings updated successfully",
-    data: req.body,
-  });
-});
+router.get("/general", authenticate, settingsController.getSettings);
+router.put("/general", authenticate, settingsController.updateSettings);
+
+router.get("/social-language", authenticate, settingsController.getSettings);
+router.put("/social-language", authenticate, settingsController.updateSettings);
 
 export default router;

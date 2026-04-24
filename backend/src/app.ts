@@ -60,7 +60,6 @@ app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ─── Routes ───────────────────────────────────────────────────────────────────
 app.get("/api/health", (_req: Request, res: Response) => {
   res.json({ status: "ok" });
 });
@@ -94,7 +93,6 @@ app.use("/api/certificates", certificateRouter);
 app.use("/api/notifications", notificationRouter);
 app.use("/api/upload", uploadRoutes);
 
-// ─── Global Error Handler ─────────────────────────────────────────────────────
 app.use(
   (
     err: Error & { statusCode?: number },
