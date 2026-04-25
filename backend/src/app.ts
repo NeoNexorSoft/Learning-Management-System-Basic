@@ -7,6 +7,7 @@ import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
 import settingsRoutes from "./routes/settings.routes";
 import reportsRoutes from "./routes/reports.routes";
+import blogRoutes from "./routes/blogRoutes";
 import {
   courseRouter,
   teacherRouter,
@@ -68,6 +69,7 @@ app.get("/api/health", (_req: Request, res: Response) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/courses", courseRouter);
+app.use("/api/blogs", blogRoutes);
 app.use("/api/teacher", teacherRouter);
 app.use("/api/teacher", teacherTransactionRouter);
 
