@@ -184,8 +184,9 @@ function CourseCard({ course }: { course: EnrolledCourse }) {
           className="h-28 w-full object-cover"
         />
       ) : (
+        // ✅ FIXED: bg-gradient-to-br → bg-linear-to-br (Tailwind v4)
         <div
-          className={`bg-gradient-to-br ${gradient} h-28 flex items-center justify-center`}
+          className={`bg-linear-to-br ${gradient} h-28 flex items-center justify-center`}
         >
           <span className="text-5xl">{emoji}</span>
         </div>
@@ -265,7 +266,8 @@ function AssignmentRow({ assignment }: { assignment: Assignment }) {
       <td className="py-3.5 px-4">
         <div className="flex items-center gap-2">
           {isOverdue && (
-            <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+            // ✅ FIXED: flex-shrink-0 → shrink-0 (Tailwind v4)
+            <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
           )}
           <span className="font-medium text-slate-800 text-sm">
             {assignment.title}
@@ -330,7 +332,8 @@ function ResultCard({ result }: { result: Result }) {
         <p className="text-xs text-slate-500 truncate">{result.course}</p>
       </div>
 
-      <div className="flex items-center gap-3 flex-shrink-0">
+      <div className="flex items-center gap-3 shrink-0">
+        {/* ✅ FIXED: flex-shrink-0 → shrink-0 (Tailwind v4) */}
         <div className="text-right">
           <p className="text-sm font-bold text-slate-900">
             {result.marks}/{result.totalMarks}
@@ -355,8 +358,9 @@ function ActivityItemRow({ item }: { item: ActivityFeedItem }) {
   const content = (
     <div className="flex items-start gap-3 py-3 border-b border-slate-100 last:border-0">
       <div
-        className={`w-9 h-9 rounded-xl ${config.iconBg} flex items-center justify-center flex-shrink-0`}
+        className={`w-9 h-9 rounded-xl ${config.iconBg} flex items-center justify-center shrink-0`}
       >
+        {/* ✅ FIXED: flex-shrink-0 → shrink-0 (Tailwind v4) */}
         <Icon className={`w-4 h-4 ${config.iconColor}`} />
       </div>
 
@@ -365,7 +369,8 @@ function ActivityItemRow({ item }: { item: ActivityFeedItem }) {
           <p className="font-semibold text-slate-900 text-sm truncate">
             {item.title}
           </p>
-          <span className="text-xs text-slate-400 flex-shrink-0">
+          <span className="text-xs text-slate-400 shrink-0">
+            {/* ✅ FIXED: flex-shrink-0 → shrink-0 (Tailwind v4) */}
             {formatRelativeTime(item.timestamp)}
           </span>
         </div>
@@ -406,7 +411,8 @@ function AnnouncementRow({
       onClick={() => onMarkRead(announcement.id)}
       className="w-full text-left flex items-start gap-3 py-3 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors rounded-xl px-2 -mx-2"
     >
-      <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
+      <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
+        {/* ✅ FIXED: flex-shrink-0 → shrink-0 (Tailwind v4) */}
         <Megaphone className="w-4 h-4 text-indigo-600" />
       </div>
 
@@ -737,8 +743,6 @@ export default function StudentDashboardPage() {
           ) / results.length,
         )
       : 0;
-
-  const activeFeed = feedTab === "activity" ? activities : announcements;
 
   return (
     <div className="flex flex-col flex-1">

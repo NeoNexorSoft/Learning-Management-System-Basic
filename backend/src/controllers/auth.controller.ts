@@ -2,6 +2,13 @@ import { Request, Response, NextFunction } from 'express';
 import { Role } from '@prisma/client';
 import { authService } from '../services/auth.service';
 
+interface AuthenticatedRequest extends Request {
+  user?: {
+    userId: string;
+    role: Role;
+  };
+}
+
 const parseUserAgent = (req: Request) => {
   const ua = req.headers['user-agent'] ?? '';
   const browserMatch = ua.match(/(Chrome|Firefox|Safari|Edge|Opera|MSIE)[\/\s](\d+)/);
@@ -68,7 +75,7 @@ export const authController = {
     }
   },
 
-  async getMe(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getMe(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const user = await authService.getMe(req.user!.userId);
       res.json({ status: 'success', data: { user } });
@@ -81,7 +88,7 @@ export const authController = {
     res.json({ status: 'success', message: 'Logged out successfully' });
   },
 
-  async changePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async changePassword(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const { currentPassword, newPassword } = req.body;
 
