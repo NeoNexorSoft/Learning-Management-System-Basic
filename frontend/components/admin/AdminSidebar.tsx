@@ -14,7 +14,9 @@ import {
   FileWarning,
   ChevronRight,
   LogOut,
-  ShieldCheck, Settings,
+  ShieldCheck,
+  Settings,
+  SlidersHorizontal,
 } from "lucide-react";
 
 import {
@@ -35,6 +37,11 @@ const navItems: NavItem[] = [
   { icon: CreditCard, label: "Payments", href: "/admin/payments" },
   { icon: Wallet, label: "Withdrawals", href: "/admin/withdrawals" },
   { icon: Settings, label: "Settings", href: "/admin/settings" },
+  {
+    icon: SlidersHorizontal,
+    label: "System Config",
+    href: "/admin/system-config",
+  }, // adding new section
   { icon: FileWarning, label: "Reports", href: "/admin/reports" }, //new adding
 ];
 
