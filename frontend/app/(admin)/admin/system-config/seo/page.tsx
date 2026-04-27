@@ -35,7 +35,7 @@ export default function SeoSettingsPage() {
     async function fetchSettings() {
       try {
         const token = localStorage.getItem("admin_token");
-        // ✅ FIX 1: নতুন endpoint
+        // ✅ FIX 1: New endpoint
         const res = await fetch(`${API}/api/system-config?group=seo`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -63,7 +63,7 @@ export default function SeoSettingsPage() {
     setMessage("");
     try {
       const token = localStorage.getItem("admin_token");
-      // ✅ FIX 3: PUT → PATCH, নতুন endpoint
+      // ✅ FIX 3: PUT → PATCH, new endpoint
       const res = await fetch(`${API}/api/system-config`, {
         method: "PATCH",
         headers: {
