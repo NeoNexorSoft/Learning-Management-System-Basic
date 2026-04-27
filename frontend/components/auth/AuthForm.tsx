@@ -61,7 +61,7 @@ export default function AuthForm({ role, mode }: Props) {
         })
         setSuccess(t.auth.registrationSuccess)
         setLoading(false)
-        setTimeout(() => router.push(`/auth/login/${role}`), 1500)
+        setTimeout(() => router.push(`/auth/verify-email`), 1500)
       }
     } catch (err: unknown) {
       const msg =
