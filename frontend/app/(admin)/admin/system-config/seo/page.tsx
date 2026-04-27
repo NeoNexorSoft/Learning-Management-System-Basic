@@ -35,12 +35,14 @@ export default function SeoSettingsPage() {
     async function fetchSettings() {
       try {
         const token = localStorage.getItem("admin_token");
-        const res = await fetch(`${API}/api/admin/settings?group=seo`, {
+        // ✅ FIX 1: নতুন endpoint
+        const res = await fetch(`${API}/api/system-config?group=seo`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        if (data.success) {
-          setForm((prev) => ({ ...prev, ...data.data }));
+        // ✅ FIX 2: data.success + data.data → data.seo
+        if (data.seo) {
+          setForm((prev) => ({ ...prev, ...data.seo }));
         }
       } finally {
         setLoading(false);
@@ -61,8 +63,9 @@ export default function SeoSettingsPage() {
     setMessage("");
     try {
       const token = localStorage.getItem("admin_token");
-      const res = await fetch(`${API}/api/admin/settings`, {
-        method: "PUT",
+      // ✅ FIX 3: PUT → PATCH, নতুন endpoint
+      const res = await fetch(`${API}/api/system-config`, {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -70,7 +73,7 @@ export default function SeoSettingsPage() {
         body: JSON.stringify({ group: "seo", settings: form }),
       });
       const data = await res.json();
-      setMessage(data.success ? "✓ Settings saved!" : "✗ Failed to save.");
+      setMessage(data.seo ? "✓ Settings saved!" : "✗ Failed to save.");
     } finally {
       setSaving(false);
     }

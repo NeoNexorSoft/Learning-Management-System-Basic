@@ -49,12 +49,14 @@ export default function FrontendManagementPage() {
     async function fetchSettings() {
       try {
         const token = localStorage.getItem("admin_token");
-        const res = await fetch(`${API}/api/admin/settings?group=frontend`, {
+        // ✅ FIX 1: নতুন endpoint
+        const res = await fetch(`${API}/api/system-config?group=frontend`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        if (data.success) {
-          setForm((prev) => ({ ...prev, ...data.data }));
+        // ✅ FIX 2: data.success + data.data → data.frontend
+        if (data.frontend) {
+          setForm((prev) => ({ ...prev, ...data.frontend }));
         }
       } finally {
         setLoading(false);
@@ -63,11 +65,9 @@ export default function FrontendManagementPage() {
     fetchSettings();
   }, []);
 
-  function handleChange(
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >,
-  ) {
+ function handleChange(
+  e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
+) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
@@ -77,8 +77,9 @@ export default function FrontendManagementPage() {
     setMessage("");
     try {
       const token = localStorage.getItem("admin_token");
-      const res = await fetch(`${API}/api/admin/settings`, {
-        method: "PUT",
+      // ✅ FIX 3: PUT → PATCH, নতুন endpoint
+      const res = await fetch(`${API}/api/system-config`, {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -86,7 +87,7 @@ export default function FrontendManagementPage() {
         body: JSON.stringify({ group: "frontend", settings: form }),
       });
       const data = await res.json();
-      setMessage(data.success ? "✓ Settings saved!" : "✗ Failed to save.");
+      setMessage(data.frontend ? "✓ Settings saved!" : "✗ Failed to save.");
     } finally {
       setSaving(false);
     }

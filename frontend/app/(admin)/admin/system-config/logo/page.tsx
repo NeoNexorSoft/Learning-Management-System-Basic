@@ -14,18 +14,17 @@ export default function LogoFaviconPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
-  // Existing logo/favicon load
   useEffect(() => {
     async function fetchSettings() {
       try {
         const token = localStorage.getItem("admin_token");
-        const res = await fetch(`${API}/api/admin/settings?group=branding`, {
+        const res = await fetch(`${API}/api/system-config?group=appearance`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        if (data.success) {
-          if (data.data.site_logo) setLogoPreview(data.data.site_logo);
-          if (data.data.site_favicon) setFaviconPreview(data.data.site_favicon);
+        if (data.appearance) {
+          if (data.appearance.logo_url) setLogoPreview(data.appearance.logo_url);
+          if (data.appearance.favicon_url) setFaviconPreview(data.appearance.favicon_url);
         }
       } finally {
         setLoading(false);
@@ -55,15 +54,49 @@ export default function LogoFaviconPage() {
 
     try {
       const token = localStorage.getItem("admin_token");
-      const formData = new FormData();
-      formData.append("group", "branding");
-      if (logoFile) formData.append("logo", logoFile);
-      if (faviconFile) formData.append("favicon", faviconFile);
 
-      const res = await fetch(`${API}/api/admin/settings/branding`, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
+      // File upload to get URLs (via existing upload endpoint)
+      let logo_url = logoPreview;
+      let favicon_url = faviconPreview;
+
+      if (logoFile) {
+        const formData = new FormData();
+        formData.append("file", logoFile);
+        const uploadRes = await fetch(`${API}/api/upload`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
+        const uploadData = await uploadRes.json();
+        if (uploadData.url) logo_url = uploadData.url;
+      }
+
+      if (faviconFile) {
+        const formData = new FormData();
+        formData.append("file", faviconFile);
+        const uploadRes = await fetch(`${API}/api/upload`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
+        const uploadData = await uploadRes.json();
+        if (uploadData.url) favicon_url = uploadData.url;
+      }
+
+      // Save URLs to system config
+      const res = await fetch(`${API}/api/system-config`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          group: "appearance",
+          settings: {
+            logo_url,
+            favicon_url,
+          },
+        }),
       });
       const data = await res.json();
       setMessage(data.success ? "✓ Saved successfully!" : "✗ Failed to save.");
@@ -82,7 +115,6 @@ export default function LogoFaviconPage() {
 
   return (
     <div className="p-6 max-w-2xl">
-      {/* Header */}
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-slate-800">Logo & Favicon</h1>
         <p className="text-sm text-slate-500 mt-1">
@@ -121,9 +153,7 @@ export default function LogoFaviconPage() {
           ) : (
             <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition-all">
               <Upload className="w-6 h-6 text-slate-400 mb-2" />
-              <span className="text-sm text-slate-500">
-                Click to upload logo
-              </span>
+              <span className="text-sm text-slate-500">Click to upload logo</span>
               <input
                 type="file"
                 accept=".jpg,.jpeg,.png,.svg,.webp"
@@ -181,7 +211,7 @@ export default function LogoFaviconPage() {
         <div className="flex items-center gap-4">
           <button
             type="submit"
-            disabled={saving || (!logoFile && !faviconFile)}
+            disabled={saving || (!logoFile && !faviconFile && !logoPreview && !faviconPreview)}
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition disabled:opacity-60"
           >
             {saving ? (
