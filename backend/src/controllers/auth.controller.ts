@@ -100,4 +100,19 @@ export const authController = {
       next(err);
     }
   },
+  async verifyEmail(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { token } = req.body;
+
+      if (!token) {
+        res.status(400).json({ status: 'error', message: 'Token is required' });
+        return;
+      }
+
+      const result = await authService.verifyEmail(token);
+      res.json({ status: 'success', data: result });
+    } catch (err) {
+      next(err);
+    }
+  }
 };
