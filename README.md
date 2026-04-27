@@ -59,6 +59,13 @@ npm run seed
 npm run dev
 ```
 
+### 7. Start the worker in dev and prod
+
+```bash
+ts-node src/workers/email.worker.ts // dev
+node dist/workers/email.worker.js // prod
+```
+
 The backend will be running at `http://localhost:5000`
 
 ### Build for production
