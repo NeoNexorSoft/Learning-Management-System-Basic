@@ -1,8 +1,12 @@
 import { Role } from '@prisma/client';
 import { prisma } from '../config/db';
 import { hashPassword, comparePassword } from '../utils/password';
-import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt';
+import { signAccessToken, signRefreshToken, verifyRefreshToken, signEmailVerificationToken, verifyEmailVerificationToken } from '../utils/jwt';
 import { v4 as uuidv4 } from 'uuid';
+import { sendEmail } from '../utils/sendEmail';
+import { verifyEmailTemplate } from '../templates/verifyEmailTemplate';
+import { emailQueue } from '../queues/emailQueue';
+import QueueConfig from '../config/queue';
 
 interface RegisterInput {
   name: string;
@@ -61,12 +65,22 @@ export const authService = {
     const username = await generateUsername(input.name);
     const password_hash = await hashPassword(input.password);
 
-    const user = await prisma.user.create({
-      data: { id: uuidv4(), name: input.name, username, email: input.email, password_hash, role: input.role },
-      select: SAFE_USER_SELECT,
-    });
+    // create vefirification token and send email here, user will be created after they click the link in email
+    // create token with name, email, password_hash, role and other info, and set a short expiration time (e.g. 15 minutes)
+    const tokenPayload = { name: input.name, email: input.email, password: password_hash, role: input.role };
+    const token = signEmailVerificationToken(tokenPayload);
 
-    return { user, ...issueTokens(user.id, user.role) };
+    // send email with link to frontend, frontend will call verify email api with the token, and then we will create the user in that api
+    const verificationLink = `${process.env.CLIENT_URL}/auth/verify-email?token=${token}`;
+
+    await emailQueue.add("send-email", {
+      to: input.email,
+      subject: "Verify your email",
+      html: verifyEmailTemplate(verificationLink)
+    }, QueueConfig);
+    
+    // send response to frontend that a verification link has been sent to their email, and they need to click the link to complete registration
+    return { message: 'Verification email sent. Please check your inbox and click the link to complete registration.' };
   },
 
   async login(input: LoginInput) {
@@ -116,5 +130,22 @@ export const authService = {
 
     const password_hash = await hashPassword(newPassword);
     await prisma.user.update({ where: { id: userId }, data: { password_hash } });
+  },
+
+  async verifyEmail(token: string) {
+    const payload = verifyEmailVerificationToken(token);
+    if (!payload) throw Object.assign(new Error('Invalid or expired token'), { statusCode: 400 });
+
+    const existing = await prisma.user.findUnique({ where: { email: payload.email } });
+    if (existing) throw Object.assign(new Error('Email already in use'), { statusCode: 409 });
+
+    // this user create part will be moved to verify email api
+    const username = await generateUsername(payload.name);
+    const user = await prisma.user.create({
+      data: { id: uuidv4(), name: payload.name, username: username, email: payload.email, password_hash: payload.password, role: payload.role === 'teacher' ? Role.TEACHER : Role.STUDENT, email_verified: true },
+      select: SAFE_USER_SELECT,
+    });
+
+    return { user, ...issueTokens(user.id, user.role) };
   },
 };
