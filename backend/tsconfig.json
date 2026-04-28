@@ -1,6 +1,8 @@
 {
   "compilerOptions": {
+    // "types": ["node"],  ← removed to avoid conflicts with frontend types
     "target": "ES2020",
+    "typeRoots": ["./src/types", "./node_modules/@types"],
     "module": "commonjs",
     "lib": ["ES2020"],
     "outDir": "./dist",
@@ -12,8 +14,7 @@
     "resolveJsonModule": true,
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true,
-    "typeRoots": ["./src/types", "./node_modules/@types"]
+    "sourceMap": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

@@ -99,7 +99,6 @@ model User {
   created_at     DateTime @default(now())
   updated_at     DateTime @updatedAt
 
-  // Relations
   courses           Course[]
   enrollments       Enrollment[]
   submissions       Submission[]
@@ -245,10 +244,10 @@ model Enrollment {
   enrolled_at  DateTime         @default(now())
   completed_at DateTime?
 
-  student      User             @relation(fields: [student_id], references: [id])
-  course       Course           @relation(fields: [course_id], references: [id])
+  student        User             @relation(fields: [student_id], references: [id])
+  course         Course           @relation(fields: [course_id], references: [id])
   lessonProgress LessonProgress[]
-  certificate  Certificate?
+  certificate    Certificate?
 
   @@unique([student_id, course_id])
   @@map("enrollments")
@@ -370,10 +369,11 @@ model Coupon {
   name          String
   code          String       @unique
   discount_type DiscountType
-  value         Decimal      @db.Decimal(10, 2)
+  value         Float
   is_active     Boolean      @default(true)
-  expires_at    DateTime?
+  expires_at    DateTime
   created_at    DateTime     @default(now())
+  updated_at    DateTime     @updatedAt
 
   @@map("coupons")
 }

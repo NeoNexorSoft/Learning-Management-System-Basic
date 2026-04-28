@@ -9,6 +9,7 @@ import {
   GraduationCap,
   BookOpen,
   Tag,
+  Ticket,
   CreditCard,
   Wallet,
   FileWarning,
@@ -34,6 +35,7 @@ const navItems: NavItem[] = [
   { icon: GraduationCap, label: "Teachers", href: "/admin/teachers" },
   { icon: BookOpen, label: "Courses", href: "/admin/courses" },
   { icon: Tag, label: "Categories", href: "/admin/categories" },
+  { icon: Ticket, label: "Coupons", href: "/admin/coupons" },
   { icon: CreditCard, label: "Payments", href: "/admin/payments" },
   { icon: Wallet, label: "Withdrawals", href: "/admin/withdrawals" },
   { icon: Settings, label: "Settings", href: "/admin/settings" },
@@ -65,7 +67,7 @@ function NavLink({
           : "text-slate-400 hover:text-white hover:bg-slate-800"
       }`}
     >
-      <Icon className="w-5 h-5 flex-shrink-0" />
+      <Icon className="w-5 h-5 shrink-0" />
       <span className="flex-1">{label}</span>
       {active && <ChevronRight className="w-4 h-4 opacity-70" />}
     </Link>
