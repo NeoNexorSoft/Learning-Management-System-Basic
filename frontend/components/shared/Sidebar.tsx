@@ -25,6 +25,8 @@ import {
   Award,
 } from "lucide-react"
 import { BrandIcon, BRAND_NAME, BRAND_ICON_BG, BRAND_ICON_COLOR } from "@/lib/brand"
+import { useNotifications } from "@/hooks/useNotifications"
+import { useAuth } from "@/hooks/useAuth"
 
 
 // ─── Nav item types ──────────────────────────────────────────────────────────
@@ -71,7 +73,7 @@ const teacherBottomNav: NavItem[] = [
 ]
 
 function NavLink({
-  href, icon: Icon, label, active, sub = false, variant = "teacher",
+  href, icon: Icon, label, active, sub = false, variant = "teacher", unreadCount = 0,
 }: {
   href: string
   icon: LucideIcon
@@ -79,6 +81,7 @@ function NavLink({
   active: boolean
   sub?: boolean
   variant?: "student" | "teacher"
+  unreadCount?: number
 }) {
   if (variant === "student") {
     return (
@@ -139,6 +142,7 @@ export default function Sidebar({ role }: { role: "student" | "teacher" }) {
 
   // Safe — NotificationProvider wraps both student and teacher layouts
   const { unreadCount, isLoaded } = useNotifications();
+  const { user: authUser } = useAuth();
 
   const displayName =
     authUser?.name ?? (role === "student" ? "Student" : "Teacher");
@@ -193,6 +197,7 @@ export default function Sidebar({ role }: { role: "student" | "teacher" }) {
               label={label}
               active={pathname === href}
               variant="student"
+              unreadCount={href === "/student/notifications" ? unreadCount : 0}
             />
           ))}
         </nav>

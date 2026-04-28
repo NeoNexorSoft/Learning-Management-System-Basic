@@ -175,32 +175,6 @@ function CourseCard({ course }: { course: EnrolledCourse }) {
           </span>
         </div>
       </div>
-    <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-lg hover:border-indigo-200 transition-all group">
-      {course.thumbnail ? (
-        <img
-          src={course.thumbnail}
-          alt={course.title}
-          className="h-28 w-full object-cover"
-        />
-      ) : (
-        // ✅ FIXED: bg-gradient-to-br → bg-linear-to-br (Tailwind v4)
-        <div
-          className={`bg-linear-to-br ${gradient} h-28 flex items-center justify-center`}
-        >
-          <span className="text-5xl">{emoji}</span>
-        </div>
-      )}
-
-      <div className="p-4">
-        <span
-          className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-full mb-2 ${
-            course.status === "completed"
-              ? "bg-emerald-100 text-emerald-700"
-              : "bg-blue-100 text-blue-700"
-          }`}
-        >
-          {course.status === "completed" ? "Completed" : "In Progress"}
-        </span>
 
       <div className="p-4">
         <p className="text-sm font-bold text-slate-900 line-clamp-2 mb-1">
