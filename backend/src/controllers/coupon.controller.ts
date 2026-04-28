@@ -122,7 +122,7 @@ export const updateCoupon = async (req: Request, res: Response) => {
     const resolvedDiscountValue =
       discountValue !== undefined ? Number(discountValue) : existing.value;
 
-    if (isNaN(resolvedDiscountValue) || resolvedDiscountValue <= 0) {
+    if (isNaN(Number(resolvedDiscountValue)) || Number(resolvedDiscountValue) <= 0) {
       return res
         .status(400)
         .json({ success: false, message: "Discount value must be a positive number" });
@@ -130,7 +130,7 @@ export const updateCoupon = async (req: Request, res: Response) => {
 
     if (
       resolvedDiscountType === DiscountType.PERCENTAGE &&
-      resolvedDiscountValue > 100
+      Number(resolvedDiscountValue) > 100
     ) {
       return res
         .status(400)
@@ -251,7 +251,7 @@ export const validateCoupon = async (req: Request, res: Response) => {
         .json({ success: false, message: "This coupon is no longer active" });
     }
 
-    if (new Date(coupon.expires_at) <= new Date()) {
+    if (coupon.expires_at && new Date(coupon.expires_at) <= new Date()) {
       return res
         .status(400)
         .json({ success: false, message: "This coupon has expired" });
@@ -261,10 +261,10 @@ export const validateCoupon = async (req: Request, res: Response) => {
     let discountAmount = 0;
 
     if (coupon.discount_type === DiscountType.PERCENTAGE) {
-      discountAmount = (total * coupon.value) / 100;
+      discountAmount = (total * Number(coupon.value)) / 100;
     } else {
       // FLAT discount
-      discountAmount = Math.min(coupon.value, total);
+    discountAmount = Math.min(Number(coupon.value), total);
     }
 
     const finalTotal = Math.max(0, total - discountAmount);
