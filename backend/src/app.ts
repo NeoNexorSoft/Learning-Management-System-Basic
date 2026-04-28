@@ -7,6 +7,7 @@ import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
 import settingsRoutes from "./routes/settings.routes";
 import reportsRoutes from "./routes/reports.routes";
+import systemConfigRoutes from "./routes/systemConfig.routes";
 import blogRoutes from "./routes/blogRoutes";
 import {
   courseRouter,
@@ -74,6 +75,7 @@ app.use("/api/teacher", teacherRouter);
 app.use("/api/teacher", teacherTransactionRouter);
 
 app.use("/api/admin/settings", settingsRoutes);
+app.use("/api/system-config", systemConfigRoutes);
 app.use("/api/admin/reports", reportsRoutes);
 app.use("/api/admin/withdrawals", adminWithdrawalRouter);
 app.use("/api/admin", adminRouter);

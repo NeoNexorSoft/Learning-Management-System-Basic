@@ -45,12 +45,13 @@ export default function GeneralSettingsPage() {
     async function fetchSettings() {
       try {
         const token = localStorage.getItem("admin_token");
-        const res = await fetch(`${API}/api/admin/settings?group=general`, {
+        const res = await fetch(`${API}/api/system-config?group=general`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        if (data.success) {
-          setForm((prev) => ({ ...prev, ...data.data }));
+        // data.general = { site_name: "...", site_email: "..." ... }
+        if (data.general) {
+          setForm((prev) => ({ ...prev, ...data.general }));
         }
       } finally {
         setLoading(false);
@@ -73,8 +74,8 @@ export default function GeneralSettingsPage() {
     setMessage("");
     try {
       const token = localStorage.getItem("admin_token");
-      const res = await fetch(`${API}/api/admin/settings`, {
-        method: "PUT",
+      const res = await fetch(`${API}/api/system-config`, {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
