@@ -77,7 +77,7 @@ export default function WithdrawalMethodsPage() {
         body: JSON.stringify({ group: "withdrawal", settings: form }),
       });
       const data = await res.json();
-      setMessage(data.withdrawal ? "✓ Settings saved!" : "✗ Failed to save.");
+      setMessage(data.success ? "✓ Settings saved!" : "✗ Failed to save.");
     } finally {
       setSaving(false);
     }
@@ -143,14 +143,21 @@ export default function WithdrawalMethodsPage() {
                 Fee Type
               </label>
               <select
-                name="withdrawal_fee_type"
-                value={form.withdrawal_fee_type}
-                onChange={handleChange}
-                className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="percentage">Percentage (%)</option>
-                <option value="fixed">Fixed Amount (৳)</option>
-              </select>
+            name="withdrawal_fee_type"
+     value={form.withdrawal_fee_type}
+  onChange={(e) => {
+    const type = e.target.value;
+    setForm((prev) => ({
+      ...prev,
+      withdrawal_fee_type: type,
+      withdrawal_fee_value: type === "percentage" ? "10" : "500",
+    }));
+  }}
+  className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+>
+  <option value="percentage">Percentage (%)</option>
+  <option value="fixed">Fixed Amount (৳)</option>
+</select>
             </div>
             <div className="flex-1">
               <label className="text-sm font-medium text-slate-700">
