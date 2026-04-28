@@ -39,12 +39,14 @@ export default function WithdrawalMethodsPage() {
     async function fetchSettings() {
       try {
         const token = localStorage.getItem("admin_token");
-        const res = await fetch(`${API}/api/admin/settings?group=withdrawal`, {
+        // ✅ FIX 1: new//  endpoint
+        const res = await fetch(`${API}/api/system-config?group=withdrawal`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        if (data.success) {
-          setForm((prev) => ({ ...prev, ...data.data }));
+        // ✅ FIX 2: data.success + data.data → data.withdrawal
+        if (data.withdrawal) {
+          setForm((prev) => ({ ...prev, ...data.withdrawal }));
         }
       } finally {
         setLoading(false);
@@ -54,10 +56,8 @@ export default function WithdrawalMethodsPage() {
   }, []);
 
   function handleChange(
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >,
-  ) {
+  e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
+) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
@@ -67,8 +67,9 @@ export default function WithdrawalMethodsPage() {
     setMessage("");
     try {
       const token = localStorage.getItem("admin_token");
-      const res = await fetch(`${API}/api/admin/settings`, {
-        method: "PUT",
+      // ✅ FIX 3: PUT → PATCH, new endpoint
+      const res = await fetch(`${API}/api/system-config`, {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -76,7 +77,7 @@ export default function WithdrawalMethodsPage() {
         body: JSON.stringify({ group: "withdrawal", settings: form }),
       });
       const data = await res.json();
-      setMessage(data.success ? "✓ Settings saved!" : "✗ Failed to save.");
+      setMessage(data.withdrawal ? "✓ Settings saved!" : "✗ Failed to save.");
     } finally {
       setSaving(false);
     }

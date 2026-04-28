@@ -8,7 +8,7 @@ const API = process.env.NEXT_PUBLIC_API_URL;
 type CertificateForm = {
   certificate_title: string;
   certificate_subtitle: string;
-  certificate_description: string;
+  certificate_desc: string;
   signatory_name: string;
   signatory_title: string;
   verify_url: string;
@@ -20,7 +20,7 @@ export default function CertificateSetupPage() {
   const [form, setForm] = useState<CertificateForm>({
     certificate_title: "Certificate of Completion",
     certificate_subtitle: "This is to certify that",
-    certificate_description: "has successfully completed the course",
+    certificate_desc: "has successfully completed the course",
     signatory_name: "",
     signatory_title: "",
     verify_url: "",
@@ -35,12 +35,12 @@ export default function CertificateSetupPage() {
     async function fetchSettings() {
       try {
         const token = localStorage.getItem("admin_token");
-        const res = await fetch(`${API}/api/admin/settings?group=certificate`, {
+        const res = await fetch(`${API}/api/system-config?group=certificate`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        if (data.success) {
-          setForm((prev) => ({ ...prev, ...data.data }));
+        if (data.certificate) {
+          setForm((prev) => ({ ...prev, ...data.certificate }));
         }
       } finally {
         setLoading(false);
@@ -63,8 +63,8 @@ export default function CertificateSetupPage() {
     setMessage("");
     try {
       const token = localStorage.getItem("admin_token");
-      const res = await fetch(`${API}/api/admin/settings`, {
-        method: "PUT",
+      const res = await fetch(`${API}/api/system-config`, {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -88,7 +88,6 @@ export default function CertificateSetupPage() {
 
   return (
     <div className="p-6 max-w-2xl">
-      {/* Header */}
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-slate-800">
           Certificate Setup
@@ -134,8 +133,8 @@ export default function CertificateSetupPage() {
               Description
             </label>
             <textarea
-              name="certificate_description"
-              value={form.certificate_description}
+              name="certificate_desc"
+              value={form.certificate_desc}
               onChange={handleChange}
               rows={2}
               className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
