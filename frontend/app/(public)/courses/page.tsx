@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { Search, Filter, Users, Star, Loader2, X } from "lucide-react"
+import { Search, Users, Star, Loader2 } from "lucide-react"
 import api from "@/lib/axios"
 
 const gradients: Record<string, string> = {
@@ -22,25 +22,18 @@ const emojis: Record<string, string> = {
   Business: "📊", Marketing: "📣",
 }
 
-interface Category { id: string; name: string; slug: string }
-
 export default function CoursesPage() {
   const searchParams = useSearchParams()
   const router       = useRouter()
 
-  const [courses, setCourses]       = useState<any[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
-  const [loading, setLoading]       = useState(true)
-  const [search, setSearch]         = useState(searchParams.get("q") ?? "")
-  const [activeCategory, setActiveCategory] = useState(searchParams.get("category") ?? "")
-  const [activeLevel, setActiveLevel]       = useState(searchParams.get("level") ?? "")
+  const [courses, setCourses] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch]   = useState(searchParams.get("q") ?? "")
 
-  const fetchCourses = useCallback((q: string, category: string, level: string) => {
+  const fetchCourses = useCallback((q: string) => {
     setLoading(true)
     const params = new URLSearchParams({ limit: "24" })
-    if (q)        params.set("search",   q)
-    if (category) params.set("category", category)
-    if (level)    params.set("level",    level.toUpperCase())
+    if (q) params.set("search", q)
     api.get(`/api/courses?${params}`)
       .then(({ data }) => {
         const result = data.data
@@ -51,55 +44,16 @@ export default function CoursesPage() {
   }, [])
 
   useEffect(() => {
-    api.get("/api/categories")
-      .then(({ data }) => {
-        const cats: any[] = data.data?.categories ?? data.data ?? []
-        setCategories(cats.filter((c: any) => !c.parent_id))
-      })
-      .catch(() => {})
-  }, [])
-
-  useEffect(() => {
-    fetchCourses(search, activeCategory, activeLevel)
-  }, [activeCategory, activeLevel, fetchCourses]) // eslint-disable-line react-hooks/exhaustive-deps
+    fetchCourses(search)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
-    fetchCourses(search, activeCategory, activeLevel)
-    const p = new URLSearchParams()
-    if (search)         p.set("q",        search)
-    if (activeCategory) p.set("category", activeCategory)
-    if (activeLevel)    p.set("level",    activeLevel)
-    router.replace(`/courses?${p}`, { scroll: false })
-  }
-
-  function selectCategory(slug: string) {
-    const next = activeCategory === slug ? "" : slug
-    setActiveCategory(next)
+    fetchCourses(search)
     const p = new URLSearchParams()
     if (search) p.set("q", search)
-    if (next)   p.set("category", next)
-    if (activeLevel) p.set("level", activeLevel)
-    router.replace(`/courses?${p}`, { scroll: false })
+    router.replace(search ? `/courses?${p}` : "/courses", { scroll: false })
   }
-
-  function selectLevel(level: string) {
-    const next = activeLevel === level ? "" : level
-    setActiveLevel(next)
-    const p = new URLSearchParams()
-    if (search)         p.set("q", search)
-    if (activeCategory) p.set("category", activeCategory)
-    if (next)           p.set("level", next)
-    router.replace(`/courses?${p}`, { scroll: false })
-  }
-
-  function clearAll() {
-    setSearch(""); setActiveCategory(""); setActiveLevel("")
-    fetchCourses("", "", "")
-    router.replace("/courses", { scroll: false })
-  }
-
-  const hasFilters = !!search || !!activeCategory || !!activeLevel
 
   return (
     <main className="pt-16">
@@ -128,53 +82,6 @@ export default function CoursesPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        {/* Filters bar */}
-        <div className="flex flex-wrap items-center gap-3 mb-8">
-          <div className="flex items-center gap-2 text-sm font-semibold text-slate-600">
-            <Filter className="w-4 h-4" /> Filter:
-          </div>
-
-          {/* Categories */}
-          <div className="flex flex-wrap gap-2">
-            {categories.map(cat => (
-              <button
-                key={cat.id}
-                onClick={() => selectCategory(cat.slug)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
-                  activeCategory === cat.slug
-                    ? "bg-indigo-600 text-white border-indigo-600"
-                    : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
-                }`}
-              >
-                {cat.name}
-              </button>
-            ))}
-          </div>
-
-          {/* Levels */}
-          <div className="flex gap-2 ml-auto">
-            {["BEGINNER", "INTERMEDIATE", "ADVANCED"].map(level => (
-              <button
-                key={level}
-                onClick={() => selectLevel(level)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
-                  activeLevel === level
-                    ? "bg-slate-800 text-white border-slate-800"
-                    : "bg-white text-slate-600 border-slate-200 hover:border-slate-400"
-                }`}
-              >
-                {level.charAt(0) + level.slice(1).toLowerCase()}
-              </button>
-            ))}
-          </div>
-
-          {hasFilters && (
-            <button onClick={clearAll} className="flex items-center gap-1 text-xs font-semibold text-red-500 hover:text-red-700 transition-colors">
-              <X className="w-3.5 h-3.5" /> Clear all
-            </button>
-          )}
-        </div>
-
         {/* Results */}
         {loading ? (
           <div className="flex justify-center py-20">
@@ -183,35 +90,44 @@ export default function CoursesPage() {
         ) : courses.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-slate-500 text-lg font-medium mb-2">No courses found</p>
-            <p className="text-slate-400 text-sm mb-6">Try adjusting your filters or search terms.</p>
-            <button onClick={clearAll} className="text-indigo-600 font-semibold hover:underline text-sm">Clear all filters</button>
+            <p className="text-slate-400 text-sm">Try a different search term.</p>
           </div>
         ) : (
           <>
             <p className="text-sm text-slate-500 mb-5">{courses.length} course{courses.length !== 1 ? "s" : ""} found</p>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {courses.map((course: any) => {
-                const categoryName = course.category?.name ?? "General"
-                const gradient     = gradients[categoryName] ?? "from-slate-400 to-slate-600"
-                const emoji        = emojis[categoryName]    ?? "📚"
-                const students     = Number(course.totalStudents ?? course._count?.enrollments ?? 0)
-                const rating       = Number(course.avgRating ?? 0)
-                const price        = Number(course.price ?? 0)
-                const teacherName  = course.teacher?.name ?? "Instructor"
+                const subcategoryName = course.category?.name ?? ""
+                const categoryName    = course.category?.parent?.name ?? subcategoryName
+                const displayGradient = gradients[categoryName] ?? gradients[subcategoryName] ?? "from-slate-400 to-slate-600"
+                const displayEmoji    = emojis[categoryName]    ?? emojis[subcategoryName]    ?? "📚"
+                const students        = Number(course.totalStudents ?? course._count?.enrollments ?? 0)
+                const rating          = Number(course.avgRating ?? 0)
+                const price           = Number(course.price ?? 0)
+                const teacherName     = course.teacher?.name ?? "Instructor"
 
                 return (
                   <div key={course.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-lg hover:border-indigo-200 transition-all group">
                     {course.thumbnail ? (
                       <img src={course.thumbnail} alt={course.title} className="h-36 w-full object-cover" />
                     ) : (
-                      <div className={`bg-gradient-to-br ${gradient} h-36 flex items-center justify-center`}>
-                        <span className="text-5xl">{emoji}</span>
+                      <div className={`bg-gradient-to-br ${displayGradient} h-36 flex items-center justify-center`}>
+                        <span className="text-5xl">{displayEmoji}</span>
                       </div>
                     )}
                     <div className="p-5">
-                      <span className="inline-block text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full mb-2">
-                        {categoryName}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                        {categoryName && (
+                          <span className="inline-block text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
+                            {categoryName}
+                          </span>
+                        )}
+                        {subcategoryName && subcategoryName !== categoryName && (
+                          <span className="inline-block text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">
+                            {subcategoryName}
+                          </span>
+                        )}
+                      </div>
                       <h3 className="font-bold text-slate-900 mb-1 line-clamp-2 group-hover:text-indigo-600 transition-colors text-sm">
                         {course.title}
                       </h3>

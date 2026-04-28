@@ -47,3 +47,30 @@
     "हिन्दी"
   ]
 }
+    "indigo",
+    "tailwind",
+    "lucide",
+    "zod",
+    "axios",
+    "tanstack",
+    "nextjs",
+    "nextauth",
+    "prisma",
+    "middleware",
+    "useauth",
+    "hookform",
+    "clsx",
+    "shadcn",
+    "recharts",
+    "zustand",
+    "useState",
+    "useEffect",
+    "useMemo",
+    "useCallback",
+    "stringify",
+    "enroll",
+    "enrollments",
+    "graded",
+    "unread"
+  ]
+}

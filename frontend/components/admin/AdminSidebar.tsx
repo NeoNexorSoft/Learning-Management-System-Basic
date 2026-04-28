@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import api from "@/lib/axios";
 import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
@@ -9,6 +11,7 @@ import {
   GraduationCap,
   BookOpen,
   Tag,
+  Ticket,
   CreditCard,
   Wallet,
   FileWarning,
@@ -34,6 +37,7 @@ const navItems: NavItem[] = [
   { icon: GraduationCap, label: "Teachers", href: "/admin/teachers" },
   { icon: BookOpen, label: "Courses", href: "/admin/courses" },
   { icon: Tag, label: "Categories", href: "/admin/categories" },
+  { icon: Ticket, label: "Coupons", href: "/admin/coupons" },
   { icon: CreditCard, label: "Payments", href: "/admin/payments" },
   { icon: Wallet, label: "Withdrawals", href: "/admin/withdrawals" },
   { icon: Settings, label: "Settings", href: "/admin/settings" },
@@ -50,11 +54,13 @@ function NavLink({
   icon: Icon,
   label,
   active,
+  badge,
 }: {
   href: string;
   icon: LucideIcon;
   label: string;
   active: boolean;
+  badge?: number;
 }) {
   return (
     <Link
@@ -65,9 +71,15 @@ function NavLink({
           : "text-slate-400 hover:text-white hover:bg-slate-800"
       }`}
     >
-      <Icon className="w-5 h-5 flex-shrink-0" />
+      <Icon className="w-5 h-5 shrink-0" />
       <span className="flex-1">{label}</span>
-      {active && <ChevronRight className="w-4 h-4 opacity-70" />}
+      {badge && badge > 0 ? (
+        <span className="ml-auto w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+          {badge > 9 ? "9+" : badge}
+        </span>
+      ) : active ? (
+        <ChevronRight className="w-4 h-4 opacity-70" />
+      ) : null}
     </Link>
   );
 }
@@ -81,6 +93,18 @@ export default function AdminSidebar({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [pendingCount, setPendingCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    function fetchPending() {
+      api.get("/api/admin/courses?status=PENDING&limit=1")
+        .then(({ data }) => setPendingCount(data.total ?? 0))
+        .catch(() => setPendingCount(0))
+    }
+    fetchPending()
+    window.addEventListener("pendingCountChanged", fetchPending)
+    return () => window.removeEventListener("pendingCountChanged", fetchPending)
+  }, []);
 
   function handleLogout() {
     localStorage.removeItem("admin_token");
@@ -123,15 +147,55 @@ export default function AdminSidebar({
 
       {/* Nav */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        {navItems.map(({ icon, label, href }) => (
-          <NavLink
-            key={href}
-            href={href}
-            icon={icon}
-            label={label}
-            active={pathname.startsWith(href)}
-          />
-        ))}
+        {navItems.map(({ icon: Icon, label, href }) => {
+          const active = pathname.startsWith(href);
+          if (href === "/admin/courses") {
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  active
+                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
+                    : "text-slate-400 hover:text-white hover:bg-slate-800"
+                }`}
+              >
+                <Icon className="w-5 h-5 flex-shrink-0" />
+                <span className="flex items-start gap-0.5">
+                  Courses
+                  {pendingCount !== null && pendingCount > 0 && (
+                    <span style={{
+                      fontSize: "9px",
+                      fontWeight: "bold",
+                      backgroundColor: "#ef4444",
+                      color: "white",
+                      borderRadius: "9999px",
+                      minWidth: "14px",
+                      height: "14px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "0 3px",
+                      marginTop: "-4px",
+                      marginLeft: "2px",
+                    }}>
+                      {pendingCount > 9 ? "9+" : pendingCount}
+                    </span>
+                  )}
+                </span>
+              </Link>
+            );
+          }
+          return (
+            <NavLink
+              key={href}
+              href={href}
+              icon={Icon}
+              label={label}
+              active={active}
+            />
+          );
+        })}
       </nav>
     </aside>
   );

@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import type { Result } from "@/types/index"
 import { Trophy, Loader2 } from "lucide-react"
-import TopBar from "@/components/shared/TopBar"
+
 import PageHeader from "@/components/shared/PageHeader"
 import api from "@/lib/axios"
 
@@ -98,7 +98,7 @@ function StudentResultsPage() {
   if (loading) {
     return (
       <div className="flex flex-col flex-1">
-        <TopBar placeholder="Search results…" />
+
         <main className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
         </main>
@@ -108,7 +108,7 @@ function StudentResultsPage() {
 
   return (
     <div className="flex flex-col flex-1">
-      <TopBar placeholder="Search results…" />
+
       <main className="flex-1 p-6 overflow-y-auto">
         <PageHeader
           title="Results"

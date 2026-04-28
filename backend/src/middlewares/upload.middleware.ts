@@ -2,6 +2,7 @@ import multer, { FileFilterCallback } from 'multer';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import { Request } from 'express';
 import cloudinary from '../config/cloudinary';
+import { uploadConfig } from '../config/upload.config';
 
 function makeStorage(folder: string, params: Record<string, unknown>) {
   return new CloudinaryStorage({
@@ -16,51 +17,59 @@ function fileFilter(allowed: string[]) {
     if (allowed.includes(ext)) {
       cb(null, true);
     } else {
-      cb(new Error(`Invalid file type. Allowed types: ${allowed.join(', ')}`));
+      cb(new Error(`Invalid file type. Allowed: ${allowed.join(', ')}`));
     }
   };
 }
 
 export const uploadAvatar = multer({
   storage: makeStorage('neonexor/avatars', {
-    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+    allowed_formats: uploadConfig.image.allowedFormats,
     transformation: [{ width: 200, height: 200, crop: 'fill', quality: 80 }],
   }),
-  limits: { fileSize: 2 * 1024 * 1024 },
-  fileFilter: fileFilter(['jpg', 'jpeg', 'png', 'webp']),
+  limits: { fileSize: uploadConfig.image.maxSizeBytes },
+  fileFilter: fileFilter(uploadConfig.image.allowedFormats),
 });
 
 export const uploadThumbnail = multer({
   storage: makeStorage('neonexor/thumbnails', {
-    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+    allowed_formats: uploadConfig.thumbnail.allowedFormats,
     transformation: [{ width: 1280, height: 720, crop: 'fill', quality: 85 }],
   }),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: fileFilter(['jpg', 'jpeg', 'png', 'webp']),
+  limits: { fileSize: uploadConfig.thumbnail.maxSizeBytes },
+  fileFilter: fileFilter(uploadConfig.thumbnail.allowedFormats),
 });
 
 export const uploadVideo = multer({
   storage: makeStorage('neonexor/videos', {
     resource_type: 'video',
-    allowed_formats: ['mp4', 'mkv', 'webm'],
+    allowed_formats: uploadConfig.video.allowedFormats,
   }),
-  limits: { fileSize: 500 * 1024 * 1024 },
-  fileFilter: fileFilter(['mp4', 'mkv', 'webm']),
+  limits: { fileSize: uploadConfig.video.maxSizeBytes },
+  fileFilter: fileFilter(uploadConfig.video.allowedFormats),
 });
 
 export const uploadDocument = multer({
   storage: makeStorage('neonexor/documents', {
     resource_type: 'raw',
-    allowed_formats: ['pdf', 'doc', 'docx', 'zip'],
   }),
-  limits: { fileSize: 20 * 1024 * 1024 },
-  fileFilter: fileFilter(['pdf', 'doc', 'docx', 'zip']),
+  limits: { fileSize: uploadConfig.document.maxSizeBytes },
+  fileFilter: (_req, _file, cb) => cb(null, true),
+});
+
+export const uploadIntroVideo = multer({
+  storage: makeStorage('neonexor/intro-videos', {
+    resource_type: 'video',
+    allowed_formats: uploadConfig.introVideo.allowedFormats,
+  }),
+  limits: { fileSize: uploadConfig.introVideo.maxSizeBytes },
+  fileFilter: fileFilter(uploadConfig.introVideo.allowedFormats),
 });
 
 export const uploadLogo = multer({
   storage: makeStorage('neonexor/system', {
-    allowed_formats: ['jpg', 'jpeg', 'png', 'svg', 'webp'],
+    allowed_formats: uploadConfig.image.allowedFormats,
   }),
-  limits: { fileSize: 2 * 1024 * 1024 },
-  fileFilter: fileFilter(['jpg', 'jpeg', 'png', 'svg', 'webp']),
+  limits: { fileSize: uploadConfig.image.maxSizeBytes },
+  fileFilter: fileFilter(uploadConfig.image.allowedFormats),
 });

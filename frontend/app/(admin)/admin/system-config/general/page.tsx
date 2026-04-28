@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Save, Loader2 } from "lucide-react";
+import { CURRENCY_LIST, getCurrencyByCode } from "@/lib/currencyList";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -24,7 +25,6 @@ const TIMEZONES = [
   "Europe/London",
 ];
 const DATE_FORMATS = ["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"];
-const CURRENCIES = ["BDT", "USD", "EUR", "GBP", "INR"];
 
 export default function GeneralSettingsPage() {
   const [form, setForm] = useState<GeneralForm>({
@@ -49,7 +49,6 @@ export default function GeneralSettingsPage() {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        // data.general = { site_name: "...", site_email: "..." ... }
         if (data.general) {
           setForm((prev) => ({ ...prev, ...data.general }));
         }
@@ -60,11 +59,9 @@ export default function GeneralSettingsPage() {
     fetchSettings();
   }, []);
 
-  function handleChange(
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >,
-  ) {
+ function handleChange(
+  e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
+) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
@@ -115,9 +112,7 @@ export default function GeneralSettingsPage() {
             Site Information
           </h2>
           <div>
-            <label className="text-sm font-medium text-slate-700">
-              Site Name
-            </label>
+            <label className="text-sm font-medium text-slate-700">Site Name</label>
             <input
               name="site_name"
               value={form.site_name}
@@ -126,9 +121,7 @@ export default function GeneralSettingsPage() {
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-slate-700">
-              Contact Email
-            </label>
+            <label className="text-sm font-medium text-slate-700">Contact Email</label>
             <input
               name="site_email"
               type="email"
@@ -138,9 +131,7 @@ export default function GeneralSettingsPage() {
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-slate-700">
-              Phone Number
-            </label>
+            <label className="text-sm font-medium text-slate-700">Phone Number</label>
             <input
               name="site_phone"
               value={form.site_phone}
@@ -149,9 +140,7 @@ export default function GeneralSettingsPage() {
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-slate-700">
-              Address
-            </label>
+            <label className="text-sm font-medium text-slate-700">Address</label>
             <textarea
               name="site_address"
               value={form.site_address}
@@ -167,9 +156,7 @@ export default function GeneralSettingsPage() {
             Regional
           </h2>
           <div>
-            <label className="text-sm font-medium text-slate-700">
-              Timezone
-            </label>
+            <label className="text-sm font-medium text-slate-700">Timezone</label>
             <select
               name="timezone"
               value={form.timezone}
@@ -182,9 +169,7 @@ export default function GeneralSettingsPage() {
             </select>
           </div>
           <div>
-            <label className="text-sm font-medium text-slate-700">
-              Date Format
-            </label>
+            <label className="text-sm font-medium text-slate-700">Date Format</label>
             <select
               name="date_format"
               value={form.date_format}
@@ -196,32 +181,35 @@ export default function GeneralSettingsPage() {
               ))}
             </select>
           </div>
+
           <div className="flex gap-4">
             <div className="flex-1">
-              <label className="text-sm font-medium text-slate-700">
-                Currency
-              </label>
+              <label className="text-sm font-medium text-slate-700">Currency</label>
               <select
                 name="currency"
                 value={form.currency}
-                onChange={handleChange}
+                onChange={(e) => {
+                  const selected = getCurrencyByCode(e.target.value);
+                  setForm((prev) => ({
+                    ...prev,
+                    currency: selected.code,
+                    currency_symbol: selected.symbol,
+                  }));
+                }}
                 className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
-                {CURRENCIES.map((c) => (
-                  <option key={c}>{c}</option>
+                {CURRENCY_LIST.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.code} — {c.label}
+                  </option>
                 ))}
               </select>
             </div>
             <div className="w-32">
-              <label className="text-sm font-medium text-slate-700">
-                Symbol
-              </label>
-              <input
-                name="currency_symbol"
-                value={form.currency_symbol}
-                onChange={handleChange}
-                className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
+              <label className="text-sm font-medium text-slate-700">Symbol (Auto)</label>
+              <div className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-slate-50 text-slate-700 text-center font-medium">
+                {form.currency_symbol}
+              </div>
             </div>
           </div>
         </div>

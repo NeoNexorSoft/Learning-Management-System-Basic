@@ -39,6 +39,9 @@ import {
   teacherTransactionRouter,
   adminPaymentRouter,
 } from "./routes/transaction.routes";
+import quizRouter from "./routes/quiz.routes";
+import paymentRouter from "./routes/payment.routes";
+import couponRoutes from "./routes/coupon.routes";
 
 const app = express();
 
@@ -78,6 +81,7 @@ app.use("/api/admin/settings", settingsRoutes);
 app.use("/api/system-config", systemConfigRoutes);
 app.use("/api/admin/reports", reportsRoutes);
 app.use("/api/admin/withdrawals", adminWithdrawalRouter);
+app.use("/api/admin/coupons", couponRoutes);
 app.use("/api/admin", adminRouter);
 app.use("/api/admin", adminPaymentRouter);
 
@@ -98,6 +102,8 @@ app.use("/api/withdrawals", withdrawalRouter);
 app.use("/api/certificates", certificateRouter);
 app.use("/api/notifications", notificationRouter);
 app.use("/api/upload", uploadRoutes);
+app.use("/api", quizRouter);
+app.use("/api", paymentRouter);
 
 app.use(
   (

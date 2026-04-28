@@ -10,7 +10,7 @@ import {
   Loader2,
   MessageSquareText,
 } from "lucide-react";
-import TopBar from "@/components/shared/TopBar";
+
 import PageHeader from "@/components/shared/PageHeader";
 import api from "@/lib/axios";
 
@@ -264,7 +264,7 @@ function StudentAssignmentsPage() {
   if (loading) {
     return (
       <div className="flex flex-col flex-1">
-        <TopBar placeholder="Search assignments…" />
+
         <main className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
         </main>
@@ -274,7 +274,7 @@ function StudentAssignmentsPage() {
 
   return (
     <div className="flex flex-col flex-1">
-      <TopBar placeholder="Search assignments…" />
+
 
       <main className="flex-1 p-6 overflow-y-auto">
         <PageHeader
