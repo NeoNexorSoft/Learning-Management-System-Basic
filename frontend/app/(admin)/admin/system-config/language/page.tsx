@@ -25,6 +25,16 @@ const LANGUAGES = [
   { code: "es", label: "Español (Spanish)" },
   { code: "hi", label: "हिन्दी (Hindi)" },
   { code: "zh", label: "中文 (Chinese)" },
+  { code: "pt", label: "Protégées (Portuguese)" },
+  { code: "ru", label: "Русский (Russian)" },
+  { code: "ja", label: "日本語 (Japanese)" },
+  { code: "ko", label: "한국어 (Korean)" },
+  { code: "tr", label: "Türkçe (Turkish)" },
+  { code: "it", label: "Italiano (Italian)" },
+  { code: "ur", label: "اردو (Urdu)" },
+  { code: "ms", label: "Bahasa Melayu (Malay)" },
+  { code: "id", label: "Bahasa Indonesia (Indonesian)" },
+  { code: "nl", label: "Nederlands (Dutch)" },
 ];
 
 const DATE_LOCALES = [
@@ -58,7 +68,7 @@ export default function LanguageSettingsPage() {
     async function fetchSettings() {
       try {
         const token = localStorage.getItem("admin_token");
-        // ✅ FIX 1: নতুন endpoint
+        // ✅ FIX 1: new endpoint
         const res = await fetch(`${API}/api/system-config?group=language`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -86,7 +96,7 @@ export default function LanguageSettingsPage() {
     setMessage("");
     try {
       const token = localStorage.getItem("admin_token");
-      // ✅ FIX 3: PUT → PATCH, নতুন endpoint
+      // ✅ FIX 3: PUT → PATCH, new endpoint
       const res = await fetch(`${API}/api/system-config`, {
         method: "PATCH",
         headers: {
@@ -96,7 +106,7 @@ export default function LanguageSettingsPage() {
         body: JSON.stringify({ group: "language", settings: form }),
       });
       const data = await res.json();
-      setMessage(data.language ? "✓ Settings saved!" : "✗ Failed to save.");
+      setMessage(data.success ? "✓ Settings saved!" : "✗ Failed to save.");
     } finally {
       setSaving(false);
     }
@@ -132,11 +142,19 @@ export default function LanguageSettingsPage() {
               Default Language
             </label>
             <select
-              name="default_language"
-              value={form.default_language}
-              onChange={handleChange}
-              className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
+            name="default_language"
+            value={form.default_language}
+               onChange={(e) => {
+    const code = e.target.value;
+    const rtlLanguages = ["ar", "ur"];
+    setForm((prev) => ({
+      ...prev,
+      default_language: code,
+      default_direction: rtlLanguages.includes(code) ? "rtl" : "ltr",
+    }));
+  }}
+  className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+>
               {LANGUAGES.map((lang) => (
                 <option key={lang.code} value={lang.code}>
                   {lang.label}
