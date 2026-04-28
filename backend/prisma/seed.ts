@@ -1003,46 +1003,90 @@ async function main() {
 
   console.log("Created reviews.");
 
+  // ─── System Settings ────────────────────────────────────────────────────────
   const settings = [
-    { key: "site_name", value: "NeoNexor LMS", group: "general" },
-    { key: "site_email", value: "support@neonexor.com", group: "general" },
-    { key: "site_phone", value: "+1 (555) 000-1234", group: "general" },
-    { key: "timezone", value: "UTC", group: "general" },
-    {
-      key: "meta_title",
-      value: "NeoNexor LMS - Learn Without Limits",
-      group: "seo",
-    },
-    {
-      key: "meta_description",
-      value:
-        "NeoNexor is a modern learning management system offering expert-led courses in tech, data science, and more.",
-      group: "seo",
-    },
-    {
-      key: "meta_keywords",
-      value: "LMS, online courses, React, Node.js, Python, data science",
-      group: "seo",
-    },
+    // general
+    { key: "site_name",       value: "NeoNexor LMS",        group: "general" },
+    { key: "site_email",      value: "support@neonexor.com", group: "general" },
+    { key: "site_phone",      value: "+1 (555) 000-1234",    group: "general" },
+    { key: "site_address",    value: "",                     group: "general" },
+    { key: "timezone",        value: "UTC",                  group: "general" },
+    { key: "date_format",     value: "DD/MM/YYYY",           group: "general" },
+    { key: "currency",        value: "BDT",                  group: "general" },
+    { key: "currency_symbol", value: "৳",                    group: "general" },
+
+    // seo
+    { key: "meta_title",       value: "NeoNexor LMS - Learn Without Limits",                                                    group: "seo" },
+    { key: "meta_description", value: "NeoNexor is a modern learning management system offering expert-led courses in tech, data science, and more.", group: "seo" },
+    { key: "meta_keywords",    value: "LMS, online courses, React, Node.js, Python, data science",                               group: "seo" },
+    { key: "og_title",         value: "",                    group: "seo" },
+    { key: "og_description",   value: "",                    group: "seo" },
+    { key: "og_image_url",     value: "",                    group: "seo" },
+    { key: "ga_id",            value: "",                    group: "seo" },
+    { key: "search_console",   value: "",                    group: "seo" },
+
+    // appearance
+    { key: "logo_url",    value: "", group: "appearance" },
+    { key: "favicon_url", value: "", group: "appearance" },
+
+    // certificate
+    { key: "certificate_title",    value: "Certificate of Completion",       group: "certificate" },
+    { key: "certificate_subtitle", value: "This is to certify that",         group: "certificate" },
+    { key: "certificate_desc",     value: "has successfully completed the course", group: "certificate" },
+    { key: "signatory_name",       value: "",                                group: "certificate" },
+    { key: "signatory_title",      value: "",                                group: "certificate" },
+    { key: "verify_url",           value: "https://neonexor.com/verify",     group: "certificate" },
+    { key: "show_issue_date",      value: "true",                            group: "certificate" },
+    { key: "show_course_name",     value: "true",                            group: "certificate" },
+
+    // payment
+    { key: "stripe_enabled",          value: "false", group: "payment" },
+    { key: "paypal_enabled",          value: "false", group: "payment" },
+    { key: "manual_payment_enabled",  value: "false", group: "payment" },
+
+    // withdrawal
+    { key: "min_withdrawal",    value: "500",        group: "withdrawal" },
+    { key: "max_withdrawal",    value: "50000",       group: "withdrawal" },
+    { key: "fee_type",          value: "percentage",  group: "withdrawal" },
+    { key: "fee_value",         value: "5",           group: "withdrawal" },
+    { key: "bank_enabled",      value: "false",       group: "withdrawal" },
+    { key: "bkash_enabled",     value: "false",       group: "withdrawal" },
+    { key: "paypal_w_enabled",  value: "false",       group: "withdrawal" },
+
+    // frontend
+    { key: "announcement_bar",     value: "false",                                 group: "frontend" },
+    { key: "hero_banner",          value: "true",                                  group: "frontend" },
+    { key: "hero_title",           value: "Learn Without Limits",                  group: "frontend" },
+    { key: "hero_subtitle",        value: "Start, switch, or advance your career with courses from world-class instructors.", group: "frontend" },
+    { key: "banner_image_url",     value: "",                                      group: "frontend" },
+    { key: "featured_courses",     value: "true",                                  group: "frontend" },
+    { key: "featured_count",       value: "6",                                     group: "frontend" },
+    { key: "stats_section",        value: "true",                                  group: "frontend" },
+    { key: "total_students",       value: "10,000+",                               group: "frontend" },
+    { key: "total_courses",        value: "500+",                                  group: "frontend" },
+    { key: "total_instructors",    value: "200+",                                  group: "frontend" },
+    { key: "testimonials_section", value: "true",                                  group: "frontend" },
+    { key: "footer_text",          value: "© 2025 NeoNexor. All rights reserved.", group: "frontend" },
+
+    // language
+    { key: "default_language",    value: "English", group: "language" },
+    { key: "text_direction",      value: "LTR",     group: "language" },
+    { key: "date_locale",         value: "en-US",   group: "language" },
+    { key: "time_format",         value: "12h",     group: "language" },
+    { key: "week_starts_on",      value: "Sunday",  group: "language" },
+    { key: "number_format",       value: "1,000.00", group: "language" },
+    { key: "decimal_separator",   value: ".",        group: "language" },
+    { key: "thousands_separator", value: ",",        group: "language" },
+
+    // notification
     { key: "email_notifications", value: "true", group: "notification" },
-    {
-      key: "certificate_title",
-      value: "Certificate of Completion",
-      group: "certificate",
-    },
-    {
-      key: "verify_url",
-      value: "https://neonexor.com/verify",
-      group: "certificate",
-    },
   ];
 
   for (const setting of settings) {
-    await prisma.systemSetting.create({
-      data: {
-        id: uuidv4(),
-        ...setting,
-      },
+    await prisma.systemSetting.upsert({
+      where: { key: setting.key },
+      update: { value: setting.value },
+      create: { id: uuidv4(), ...setting },
     });
   }
 
