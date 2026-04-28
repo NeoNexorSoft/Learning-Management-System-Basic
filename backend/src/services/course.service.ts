@@ -67,6 +67,7 @@ interface ListPublicCoursesQuery {
   sort?: string;
   page?: number;
   limit?: number;
+  is_popular?: boolean;
 }
 
 // ─── Service ──────────────────────────────────────────────────────────────────
@@ -75,7 +76,7 @@ export const courseService = {
   // ─── Public ───────────────────────────────────────────────────────────────
 
   async listPublicCourses({
-    category, level, price_min, price_max, search, sort = 'newest', page = 1, limit = 12,
+    category, level, price_min, price_max, search, sort = 'newest', page = 1, limit = 12, is_popular,
   }: ListPublicCoursesQuery) {
     const skip = (page - 1) * limit;
 
@@ -89,6 +90,7 @@ export const courseService = {
       ...(category && { category: { slug: category } }),
       ...(level && { level }),
       ...(hasPriceFilter && { price: priceFilter }),
+      ...(is_popular && { is_popular: true }),
       ...(search && {
         OR: [
           { title: { contains: search, mode: 'insensitive' } },
@@ -209,6 +211,32 @@ export const courseService = {
     };
   },
 
+  async getCourseBySlugAdmin(slug: string) {
+    const course = await prisma.course.findUnique({
+      where: { slug },
+      include: {
+        teacher:    { select: { id: true, name: true, email: true, avatar: true, bio: true } },
+        category:   { select: { id: true, name: true, parent: { select: { name: true } } } },
+        objectives: { orderBy: { order: 'asc' } },
+        sections: {
+          orderBy: { order: 'asc' },
+          include: {
+            lessons: {
+              orderBy: { order: 'asc' },
+              select: {
+                id: true, title: true, type: true, duration: true, order: true,
+                content: true, video_url: true, file_url: true,
+              },
+            },
+          },
+        },
+        _count: { select: { enrollments: true } },
+      },
+    });
+    if (!course) throw Object.assign(new Error('Not found'), { statusCode: 404 });
+    return course;
+  },
+
   // ─── Categories ────────────────────────────────────────────────────────────
 
   async listCategories() {
@@ -253,7 +281,7 @@ export const courseService = {
     const skip = (page - 1) * limit;
 
     const [courses, total] = await Promise.all([
-      prisma.course.findMany({
+      /*prisma.course.findMany({
         where:   { teacher_id: teacherId },
         skip,
         take:    limit,
@@ -263,6 +291,16 @@ export const courseService = {
           price: true, level: true, status: true, created_at: true, updated_at: true,
           category: { select: { id: true, name: true, slug: true } },
           _count:   { select: { enrollments: true } },
+        },
+      }),*/
+      prisma.course.findMany({
+        where:   { teacher_id: teacherId },
+        skip,
+        take:    limit,
+        orderBy: { created_at: 'desc' },
+        include: {
+          category: { select: { id: true, name: true, slug: true } },
+          _count:   { select: { enrollments: true, sections: true } },
         },
       }),
       prisma.course.count({ where: { teacher_id: teacherId } }),
@@ -294,6 +332,23 @@ export const courseService = {
     }));
 
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+  },
+
+  async getTeacherCourseById(courseId: string, teacherId: string) {
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
+      include: {
+        category:   { select: { id: true, name: true, parent: { select: { id: true, name: true } } } },
+        objectives: { orderBy: { order: 'asc' } },
+        sections: {
+          orderBy: { order: 'asc' },
+          include: { lessons: { orderBy: { order: 'asc' } } },
+        },
+      },
+    });
+    if (!course) throw Object.assign(new Error('Not found'), { statusCode: 404 });
+    if (course.teacher_id !== teacherId) throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
+    return course;
   },
 
   async createCourse(teacherId: string, input: CreateCourseInput) {
@@ -360,16 +415,6 @@ export const courseService = {
       data:  update,
       include: { category: { select: { id: true, name: true, slug: true } } },
     });
-  },
-
-  async deleteCourse(courseId: string, teacherId: string) {
-    const course = await prisma.course.findUnique({ where: { id: courseId } });
-    if (!course) throw Object.assign(new Error('Course not found'), { statusCode: 404 });
-    if (course.teacher_id !== teacherId) throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
-    if (course.status !== CourseStatus.DRAFT) {
-      throw Object.assign(new Error('Only DRAFT courses can be deleted'), { statusCode: 400 });
-    }
-    await prisma.course.delete({ where: { id: courseId } });
   },
 
   async submitCourse(courseId: string, teacherId: string) {
@@ -523,6 +568,30 @@ export const courseService = {
 
   // ─── Admin ────────────────────────────────────────────────────────────────
 
+  async getAdminCourseById(courseId: string) {
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
+      include: {
+        teacher:    { select: { id: true, name: true, email: true, avatar: true, bio: true } },
+        category:   { select: { id: true, name: true, slug: true, parent: { select: { id: true, name: true } } } },
+        objectives: { orderBy: { order: 'asc' } },
+        sections: {
+          orderBy: { order: 'asc' },
+          include: {
+            lessons: {
+              orderBy: { order: 'asc' },
+              select: { id: true, title: true, type: true, duration: true, order: true },
+            },
+          },
+        },
+        _count: { select: { enrollments: true } },
+      },
+    });
+    if (!course) throw Object.assign(new Error('Course not found'), { statusCode: 404 });
+    const { _count, ...rest } = course;
+    return { ...rest, totalStudents: _count.enrollments };
+  },
+
   async listAllCourses({
     status, search, page = 1, limit = 20,
   }: { status?: CourseStatus; search?: string; page?: number; limit?: number }) {
@@ -546,9 +615,9 @@ export const courseService = {
         orderBy: { created_at: 'desc' },
         select: {
           id: true, title: true, slug: true, status: true, level: true,
-          price: true, thumbnail: true, published_at: true, created_at: true,
+          price: true, is_popular: true, thumbnail: true, published_at: true, created_at: true,
           teacher:  { select: { id: true, name: true, email: true, avatar: true } },
-          category: { select: { id: true, name: true } },
+          category: { select: { id: true, name: true, parent: { select: { name: true } } } },
           _count:   { select: { enrollments: true } },
         },
       }),
@@ -617,5 +686,62 @@ export const courseService = {
     const course = await prisma.course.findUnique({ where: { id: courseId } });
     if (!course) throw Object.assign(new Error('Course not found'), { statusCode: 404 });
     await prisma.course.delete({ where: { id: courseId } });
+  },
+
+  async togglePopular(courseId: string, is_popular: boolean) {
+    const course = await prisma.course.findUnique({ where: { id: courseId } });
+    if (!course) throw Object.assign(new Error('Not found'), { statusCode: 404 });
+    return prisma.course.update({
+      where:  { id: courseId },
+      data:   { is_popular },
+      select: { id: true, is_popular: true },
+    });
+  },
+
+  async getLearnCourse(courseId: string, studentId: string) {
+    const enrollment = await prisma.enrollment.findUnique({
+      where: {
+        student_id_course_id: {
+          student_id: studentId,
+          course_id:  courseId
+        }
+      }
+    })
+    if (!enrollment) throw Object.assign(
+      new Error("Not enrolled"), { statusCode: 403 }
+    )
+    return prisma.course.findUnique({
+      where: { id: courseId },
+      include: {
+        sections: {
+          orderBy: { order: "asc" },
+          include: {
+            lessons: {
+              orderBy: { order: "asc" },
+              select: {
+                id: true, title: true,
+                type: true, duration: true,
+                order: true, content: true,
+                video_url: true, file_url: true
+              }
+            }
+          }
+        }
+      }
+    })
+  },
+
+  async getCourseById(courseId: string) {
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
+      select: {
+        id: true, title: true, slug: true,
+        subtitle: true, thumbnail: true, price: true,
+      }
+    });
+    if (!course) throw Object.assign(
+      new Error("Course not found"), { statusCode: 404 }
+    );
+    return course;
   },
 };

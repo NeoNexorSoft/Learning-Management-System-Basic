@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Award, ExternalLink, Loader2, Download } from "lucide-react"
-import TopBar from "@/components/shared/TopBar"
+
 import api from "@/lib/axios"
 
 interface Certificate {
@@ -31,7 +31,7 @@ export default function CertificatesPage() {
   if (loading) {
     return (
       <div className="flex flex-col flex-1">
-        <TopBar placeholder="Search certificates…" />
+
         <main className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
         </main>
@@ -41,7 +41,7 @@ export default function CertificatesPage() {
 
   return (
     <div className="flex flex-col flex-1">
-      <TopBar placeholder="Search certificates…" />
+
       <main className="flex-1 p-6 overflow-y-auto">
         <div className="mb-8">
           <h1 className="text-2xl font-extrabold text-slate-900">My Certificates</h1>

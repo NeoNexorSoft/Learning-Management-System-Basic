@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import TopBar from "@/components/shared/TopBar"
+
 import PageHeader from "@/components/shared/PageHeader"
 import { CreditCard, Loader2 } from "lucide-react"
 import api from "@/lib/axios"
@@ -56,7 +56,7 @@ export default function DepositHistoryPage() {
   if (loading) {
     return (
       <div className="flex flex-col min-h-screen">
-        <TopBar placeholder="Search transactions…" />
+
         <main className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
         </main>
@@ -66,7 +66,7 @@ export default function DepositHistoryPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <TopBar placeholder="Search transactions…" />
+
 
       <main className="flex-1 p-6 space-y-6">
         <PageHeader

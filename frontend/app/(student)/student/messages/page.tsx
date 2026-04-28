@@ -1,11 +1,10 @@
 import { MessageSquare } from "lucide-react"
-import TopBar from "@/components/shared/TopBar"
 import PageHeader from "@/components/shared/PageHeader"
 
 export default function StudentMessagesPage() {
   return (
     <div className="flex flex-col flex-1">
-      <TopBar placeholder="Search messages…" />
+
       <main className="flex-1 p-6 overflow-y-auto">
         <PageHeader title="Messages" subtitle="Your conversations with instructors" />
         <div className="flex flex-col items-center justify-center py-24 text-center">

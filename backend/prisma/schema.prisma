@@ -110,6 +110,7 @@ model User {
   notifications     Notification[]    @relation("NotificationReceiver")
   sentNotifications Notification[]    @relation("NotificationSender")
   loginHistory      LoginHistory[]
+  quizAttempts      QuizAttempt[]
   blogs             Blog[]            @relation("BlogAuthor")
 
   @@map("users")
@@ -204,9 +205,10 @@ model Lesson {
   order      Int        @default(0)
   created_at DateTime   @default(now())
 
-  section     Section          @relation(fields: [section_id], references: [id], onDelete: Cascade)
+  section     Section            @relation(fields: [section_id], references: [id], onDelete: Cascade)
   progress    LessonProgress[]
   assignments Assignment[]
+  lessonQuizzes LessonQuiz[]
 
   @@map("lessons")
 }
@@ -246,7 +248,7 @@ model Enrollment {
   completed_at DateTime?
 
   student      User             @relation(fields: [student_id], references: [id])
-  course       Course           @relation(fields: [course_id], references: [id])
+  course       Course           @relation(fields: [course_id], references: [id], onDelete: Cascade)
   lessonProgress LessonProgress[]
   certificate  Certificate?
 
@@ -311,7 +313,7 @@ model Certificate {
 
   enrollment Enrollment @relation(fields: [enrollment_id], references: [id], onDelete: Cascade)
   student    User       @relation(fields: [student_id], references: [id])
-  course     Course     @relation(fields: [course_id], references: [id])
+  course     Course     @relation(fields: [course_id], references: [id], onDelete: Cascade)
 
   @@map("certificates")
 }
@@ -335,17 +337,19 @@ model Transaction {
   id               String            @id @default(uuid())
   user_id          String
   course_id        String?
-  trx_id           String            @unique
+  invoice_number   String            @unique
+  trx_id           String?           @unique
   gateway          String
   amount           Decimal           @db.Decimal(12, 2)
-  converted_amount Decimal           @db.Decimal(12, 2)
+  converted_amount Decimal?          @db.Decimal(12, 2)
   status           TransactionStatus @default(INITIATED)
   type             TransactionType
+  payment_method   String?
   initiated_at     DateTime          @default(now())
   completed_at     DateTime?
 
   user   User    @relation(fields: [user_id], references: [id])
-  course Course? @relation(fields: [course_id], references: [id])
+  course Course? @relation(fields: [course_id], references: [id], onDelete: SetNull)
 
   @@map("transactions")
 }
@@ -415,6 +419,50 @@ model SystemSetting {
   updated_at DateTime @updatedAt
 
   @@map("system_settings")
+}
+
+model LessonQuiz {
+  id         String   @id @default(uuid())
+  lesson_id  String
+  title      String
+  order      Int      @default(0)
+  created_at DateTime @default(now())
+
+  lesson    Lesson               @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
+  questions LessonQuizQuestion[]
+  attempts  QuizAttempt[]
+
+  @@map("lesson_quizzes")
+}
+
+model LessonQuizQuestion {
+  id             String @id @default(uuid())
+  quiz_id        String
+  type           String @default("MCQ")
+  question       String
+  options        Json
+  correct_answer String
+  order          Int    @default(0)
+
+  quiz LessonQuiz @relation(fields: [quiz_id], references: [id], onDelete: Cascade)
+
+  @@map("lesson_quiz_questions")
+}
+
+model QuizAttempt {
+  id           String   @id @default(uuid())
+  quiz_id      String
+  student_id   String
+  answers      Json
+  score        Decimal? @db.Decimal(5, 2)
+  feedback     String?
+  graded       Boolean  @default(false)
+  submitted_at DateTime @default(now())
+
+  quiz    LessonQuiz @relation(fields: [quiz_id], references: [id], onDelete: Cascade)
+  student User       @relation(fields: [student_id], references: [id])
+
+  @@map("quiz_attempts")
 }
 
 model Blog {

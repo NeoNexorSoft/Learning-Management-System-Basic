@@ -30,7 +30,7 @@ export default function CoursesSection() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    api.get("/api/courses?sort=popular&limit=6")
+    api.get("/api/courses?is_popular=true")
       .then(({ data }) => {
         const result = data.data
         setCourses(Array.isArray(result) ? result : (result.data ?? []))
