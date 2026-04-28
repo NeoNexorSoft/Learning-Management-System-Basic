@@ -20,8 +20,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import Link from "next/link";
-import TopBar from "@/components/shared/TopBar";
-import StatCard from "@/components/shared/StatCard";
+
 import AreaChart from "@/components/shared/AreaChart";
 import api from "@/lib/axios";
 import { useAuth } from "@/hooks/useAuth";
@@ -156,77 +155,40 @@ function getTimestamp(value: string | null | undefined) {
 }
 
 function CourseCard({ course }: { course: EnrolledCourse }) {
-  const gradients: Record<string, string> = {
-    "Web Development": "from-blue-400 to-indigo-600",
-    Programming: "from-blue-400 to-indigo-600",
-    Design: "from-pink-400 to-rose-600",
-    "Data Science": "from-cyan-400 to-blue-600",
-    CS: "from-purple-400 to-violet-600",
-  };
-
-  const emojis: Record<string, string> = {
-    "Web Development": "💻",
-    Programming: "💻",
-    Design: "🎨",
-    "Data Science": "📈",
-    CS: "🔬",
-  };
-
-  const gradient = gradients[course.category] ?? "from-slate-400 to-slate-600";
-  const emoji = emojis[course.category] ?? "📚";
-
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-lg hover:border-indigo-200 transition-all group">
-      {course.thumbnail ? (
-        <img
-          src={course.thumbnail}
-          alt={course.title}
-          className="h-28 w-full object-cover"
-        />
-      ) : (
-        <div
-          className={`bg-gradient-to-br ${gradient} h-28 flex items-center justify-center`}
-        >
-          <span className="text-5xl">{emoji}</span>
+    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden hover:shadow-md hover:border-indigo-200 transition-all group">
+      <div className="h-32 bg-gradient-to-br from-indigo-100 to-purple-100 relative overflow-hidden">
+        {course.thumbnail ? (
+          <img
+            src={course.thumbnail}
+            alt={course.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <BookOpen className="w-8 h-8 text-indigo-300" />
+          </div>
+        )}
+        <div className="absolute bottom-2 left-2">
+          <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-white/90 text-indigo-600">
+            {course.status === "completed" ? "Completed" : "In Progress"}
+          </span>
         </div>
-      )}
+      </div>
 
       <div className="p-4">
-        <span
-          className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-full mb-2 ${
-            course.status === "completed"
-              ? "bg-emerald-100 text-emerald-700"
-              : "bg-blue-100 text-blue-700"
-          }`}
-        >
-          {course.status === "completed" ? "Completed" : "In Progress"}
-        </span>
-
-        <h4 className="font-bold text-slate-900 text-sm mb-1 line-clamp-2 group-hover:text-indigo-600 transition-colors">
+        <p className="text-sm font-bold text-slate-900 line-clamp-2 mb-1">
           {course.title}
-        </h4>
-
+        </p>
         <p className="text-xs text-slate-500 mb-3">by {course.teacher}</p>
 
-        <div className="mb-1">
-          <div className="flex justify-between text-xs text-slate-500 mb-1">
-            <span>
-              {course.completedLessons}/{course.totalLessons} lessons
-            </span>
-            <span className="font-semibold text-slate-700">
-              {course.progress}%
-            </span>
-          </div>
-
-          <div className="w-full bg-slate-100 rounded-full h-1.5">
-            <div
-              className={`h-1.5 rounded-full ${
-                course.progress === 100 ? "bg-emerald-500" : "bg-indigo-500"
-              }`}
-              style={{ width: `${course.progress}%` }}
-            />
-          </div>
+        <div className="w-full bg-slate-100 rounded-full h-1.5 mb-1">
+          <div
+            className="bg-indigo-600 h-1.5 rounded-full transition-all"
+            style={{ width: `${course.progress}%` }}
+          />
         </div>
+        <p className="text-xs text-slate-400">{course.progress}% complete</p>
       </div>
     </div>
   );
@@ -707,7 +669,6 @@ export default function StudentDashboardPage() {
   if (loading) {
     return (
       <div className="flex flex-col flex-1">
-        <TopBar placeholder="Search courses, assignments…" />
         <main className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
         </main>
@@ -718,7 +679,6 @@ export default function StudentDashboardPage() {
   if (error) {
     return (
       <div className="flex flex-col flex-1">
-        <TopBar placeholder="Search courses, assignments…" />
         <main className="flex-1 flex items-center justify-center">
           <p className="text-red-500">{error}</p>
         </main>
@@ -738,21 +698,18 @@ export default function StudentDashboardPage() {
         )
       : 0;
 
-  const activeFeed = feedTab === "activity" ? activities : announcements;
-
   return (
     <div className="flex flex-col flex-1">
-      <TopBar placeholder="Search courses, assignments…" />
-
       <main className="flex-1 p-6 overflow-y-auto">
-        <div className="mb-8">
-          <h1 className="text-2xl font-extrabold text-slate-900">
+
+        {/* Welcome hero */}
+        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-6 mb-6 text-white">
+          <h1 className="text-2xl font-extrabold mb-1">
             Welcome back, {firstName}! 👋
           </h1>
-
-          <p className="text-slate-500 mt-1">
+          <p className="text-white/80 text-sm">
             You have{" "}
-            <span className="font-semibold text-indigo-600">
+            <span className="font-semibold text-white">
               {pendingAssignments} pending assignment
               {pendingAssignments !== 1 ? "s" : ""}
             </span>{" "}
@@ -760,62 +717,119 @@ export default function StudentDashboardPage() {
           </p>
         </div>
 
+        {/* Stat cards */}
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-          <StatCard
-            icon={BookOpen}
-            label="Enrolled Courses"
-            value={stats?.enrolledCourses ?? 0}
-            sub="Active learning paths"
-            iconBg="bg-indigo-50"
-            iconColor="text-indigo-600"
-          />
+          <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center">
+                <BookOpen className="w-5 h-5 text-indigo-600" />
+              </div>
+              <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
+                Active
+              </span>
+            </div>
+            <p className="text-2xl font-extrabold text-slate-900">
+              {stats?.enrolledCourses ?? 0}
+            </p>
+            <p className="text-sm font-semibold text-slate-700 mt-0.5">
+              Enrolled Courses
+            </p>
+            <p className="text-xs text-slate-400 mt-0.5">Active learning paths</p>
+          </div>
 
-          <StatCard
-            icon={CheckCircle2}
-            label="Completed"
-            value={stats?.completedCourses ?? 0}
-            sub="Courses finished"
-            iconBg="bg-emerald-50"
-            iconColor="text-emerald-600"
-          />
+          <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+              </div>
+              <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
+                Achieved
+              </span>
+            </div>
+            <p className="text-2xl font-extrabold text-slate-900">
+              {stats?.completedCourses ?? 0}
+            </p>
+            <p className="text-sm font-semibold text-slate-700 mt-0.5">
+              Completed
+            </p>
+            <p className="text-xs text-slate-400 mt-0.5">Courses finished</p>
+          </div>
 
-          <StatCard
-            icon={ClipboardList}
-            label="Pending Tasks"
-            value={pendingAssignments}
-            sub="Assignments due soon"
-            iconBg="bg-amber-50"
-            iconColor="text-amber-600"
-          />
+          <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
+                <ClipboardList className="w-5 h-5 text-amber-600" />
+              </div>
+              <span
+                className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                  pendingAssignments > 0
+                    ? "text-amber-600 bg-amber-50"
+                    : "text-emerald-600 bg-emerald-50"
+                }`}
+              >
+                {pendingAssignments > 0 ? "Due soon" : "All done"}
+              </span>
+            </div>
+            <p className="text-2xl font-extrabold text-slate-900">
+              {pendingAssignments}
+            </p>
+            <p className="text-sm font-semibold text-slate-700 mt-0.5">
+              Pending Tasks
+            </p>
+            <p className="text-xs text-slate-400 mt-0.5">Assignments due soon</p>
+          </div>
 
-          <StatCard
-            icon={TrendingUp}
-            label="Avg Score"
-            value={`${avgScore}%`}
-            sub="Across all assignments"
-            iconBg="bg-blue-50"
-            iconColor="text-blue-600"
-          />
+          <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-blue-600" />
+              </div>
+              <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                Overall
+              </span>
+            </div>
+            <p className="text-2xl font-extrabold text-slate-900">
+              {avgScore}%
+            </p>
+            <p className="text-sm font-semibold text-slate-700 mt-0.5">
+              Avg Score
+            </p>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Across all assignments
+            </p>
+          </div>
         </div>
 
+        {/* My Courses + Recent Results */}
         <div className="grid xl:grid-cols-3 gap-6 mb-6">
           <div className="xl:col-span-2">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-bold text-slate-900">My Courses</h2>
-
+              <div>
+                <h2 className="text-base font-extrabold text-slate-900">
+                  My Courses
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Your enrolled learning paths
+                </p>
+              </div>
               <Link
                 href="/student/courses"
-                className="flex items-center gap-1 text-sm text-indigo-600 font-semibold hover:text-indigo-700"
+                className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
               >
-                View all <ChevronRight className="w-4 h-4" />
+                View all <ChevronRight className="w-3.5 h-3.5" />
               </Link>
             </div>
 
             {courses.length === 0 ? (
-              <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center">
-                <BookOpen className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                <p className="text-slate-500 text-sm">
-                  No courses enrolled yet.
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-10 flex flex-col items-center justify-center text-center">
+                <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
+                  <BookOpen className="w-6 h-6 text-slate-300" />
+                </div>
+                <p className="text-sm font-semibold text-slate-500">
+                  No courses yet
+                </p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Browse the catalogue and enroll to get started
                 </p>
               </div>
             ) : (
@@ -829,57 +843,69 @@ export default function StudentDashboardPage() {
 
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-bold text-slate-900">
-                Recent Results
-              </h2>
-
+              <div>
+                <h2 className="text-base font-extrabold text-slate-900">
+                  Recent Results
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Your latest graded work
+                </p>
+              </div>
               <Link
                 href="/student/results"
-                className="flex items-center gap-1 text-sm text-indigo-600 font-semibold hover:text-indigo-700"
+                className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
               >
-                View all <ChevronRight className="w-4 h-4" />
+                View all <ChevronRight className="w-3.5 h-3.5" />
               </Link>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-2xl px-5 py-2">
+            <div className="bg-white border border-slate-100 rounded-2xl shadow-sm px-5 py-2">
               {results.length > 0 ? (
                 results.map((result) => (
                   <ResultCard key={result.id} result={result} />
                 ))
               ) : (
-                <div className="py-8 text-center text-slate-400 text-sm">
-                  No results yet.
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
+                    <Award className="w-6 h-6 text-slate-300" />
+                  </div>
+                  <p className="text-sm font-semibold text-slate-500">
+                    No results yet
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Results appear once assignments are graded
+                  </p>
                 </div>
               )}
             </div>
           </div>
         </div>
 
+        {/* Activity Feed + Chart */}
         <div className="grid xl:grid-cols-3 gap-6 mb-6">
           <div className="xl:col-span-2">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-base font-bold text-slate-900">
+                <h2 className="text-base font-extrabold text-slate-900">
                   Recent Activity
                 </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-slate-400 mt-0.5">
                   Latest learning updates and announcements
                 </p>
               </div>
-
               <Link
                 href={
                   feedTab === "activity"
                     ? "/student/assignments"
                     : "/student/notifications"
                 }
-                className="flex items-center gap-1 text-sm text-indigo-600 font-semibold hover:text-indigo-700"
+                className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
               >
-                View all <ChevronRight className="w-4 h-4" />
+                View all <ChevronRight className="w-3.5 h-3.5" />
               </Link>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+            <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
               <div className="flex items-center gap-2 border-b border-slate-100 p-3">
                 <button
                   type="button"
@@ -926,10 +952,15 @@ export default function StudentDashboardPage() {
                       <ActivityItemRow key={activity.id} item={activity} />
                     ))
                   ) : (
-                    <div className="py-10 text-center">
-                      <GraduationCap className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                      <p className="text-slate-400 text-sm">
-                        No recent activity yet.
+                    <div className="flex flex-col items-center justify-center py-10 text-center">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
+                        <GraduationCap className="w-6 h-6 text-slate-300" />
+                      </div>
+                      <p className="text-sm font-semibold text-slate-500">
+                        No activity yet
+                      </p>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Start a lesson to see your progress here
                       </p>
                     </div>
                   )
@@ -942,10 +973,15 @@ export default function StudentDashboardPage() {
                     />
                   ))
                 ) : (
-                  <div className="py-10 text-center">
-                    <Megaphone className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                    <p className="text-slate-400 text-sm">
-                      No announcements yet.
+                  <div className="flex flex-col items-center justify-center py-10 text-center">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
+                      <Megaphone className="w-6 h-6 text-slate-300" />
+                    </div>
+                    <p className="text-sm font-semibold text-slate-500">
+                      No announcements yet
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Teacher announcements will appear here
                     </p>
                   </div>
                 )}
@@ -966,25 +1002,30 @@ export default function StudentDashboardPage() {
           />
         </div>
 
+        {/* Assignments */}
         <div className="grid xl:grid-cols-3 gap-6">
           <div className="xl:col-span-2">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-bold text-slate-900">
-                Assignments
-              </h2>
-
+              <div>
+                <h2 className="text-base font-extrabold text-slate-900">
+                  Assignments
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Track your tasks and deadlines
+                </p>
+              </div>
               <Link
                 href="/student/assignments"
-                className="flex items-center gap-1 text-sm text-indigo-600 font-semibold hover:text-indigo-700"
+                className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
               >
-                View all <ChevronRight className="w-4 h-4" />
+                View all <ChevronRight className="w-3.5 h-3.5" />
               </Link>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+            <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200">
+                  <tr className="bg-slate-50 border-b border-slate-100">
                     <th className="py-3 px-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
                       Assignment
                     </th>
@@ -1006,11 +1047,18 @@ export default function StudentDashboardPage() {
                 <tbody>
                   {assignments.length === 0 ? (
                     <tr>
-                      <td
-                        colSpan={5}
-                        className="py-8 text-center text-slate-400 text-sm"
-                      >
-                        No assignments yet.
+                      <td colSpan={5}>
+                        <div className="flex flex-col items-center justify-center py-10 text-center">
+                          <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
+                            <ClipboardList className="w-6 h-6 text-slate-300" />
+                          </div>
+                          <p className="text-sm font-semibold text-slate-500">
+                            No assignments yet
+                          </p>
+                          <p className="text-xs text-slate-400 mt-1">
+                            Assignments from your courses will appear here
+                          </p>
+                        </div>
                       </td>
                     </tr>
                   ) : (
@@ -1026,6 +1074,7 @@ export default function StudentDashboardPage() {
             </div>
           </div>
         </div>
+
       </main>
     </div>
   );

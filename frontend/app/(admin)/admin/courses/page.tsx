@@ -1,261 +1,230 @@
 "use client"
 
-import { useState, useEffect, useCallback, Suspense } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
-import Image from "next/image"
-import { Eye, CheckCircle, XCircle, Trash2, BookOpen } from "lucide-react"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { Check, X, Eye, Search, Star } from "lucide-react"
 import api from "@/lib/axios"
-import type { CourseRow } from "@/types/admin"
-import DataTable, { Column } from "@/components/admin/DataTable"
-import Pagination from "@/components/admin/Pagination"
-import SearchInput from "@/components/admin/SearchInput"
-import ConfirmDialog from "@/components/admin/ConfirmDialog"
-import Badge from "@/components/admin/Badge"
 
-type StatusTab = "ALL" | "PENDING" | "APPROVED" | "REJECTED" | "POPULAR"
-const TABS: StatusTab[] = ["ALL", "PENDING", "APPROVED", "REJECTED", "POPULAR"]
-
-function formatDate(s: string) {
-  return new Date(s).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+type Course = {
+  id: string
+  title: string
+  slug: string
+  status: "DRAFT" | "PENDING" | "APPROVED" | "REJECTED"
+  price: number
+  is_popular: boolean
+  teacher: { name: string; email: string }
+  category?: { name: string; parent?: { name: string } }
+  created_at: string
+  submitted_at?: string
 }
 
-type DialogAction = "approve" | "reject" | "delete" | null
+type CoursePage = { data: Course[]; total: number; page: number; totalPages: number }
 
-function AdminCoursesPage() {
-  const router       = useRouter()
-  const searchParams = useSearchParams()
+const STATUS_STYLES = {
+  DRAFT:    "bg-slate-100 text-slate-600",
+  PENDING:  "bg-amber-100 text-amber-700",
+  APPROVED: "bg-emerald-100 text-emerald-700",
+  REJECTED: "bg-red-100 text-red-700",
+}
 
-  const tab    = (searchParams.get("tab")?.toUpperCase() as StatusTab) ?? "ALL"
-  const search = searchParams.get("search") ?? ""
+export default function AdminCoursesPage() {
+  const router = useRouter()
+  const [courses, setCourses]      = useState<CoursePage>({ data: [], total: 0, page: 1, totalPages: 0 })
+  const [loading, setLoading]      = useState(true)
+  const [search, setSearch]        = useState("")
+  const [statusFilter, setStatus]  = useState("")
+  const [rejectId, setRejectId]    = useState<string | null>(null)
+  const [rejectReason, setReason]  = useState("")
+  const [actionLoading, setAction] = useState(false)
+  const [error, setError]          = useState("")
 
-  const [page,       setPage]       = useState(1)
-  const [courses,    setCourses]    = useState<CourseRow[]>([])
-  const [total,      setTotal]      = useState(0)
-  const [totalPages, setTotalPages] = useState(1)
-  const [loading,    setLoading]    = useState(true)
-
-  const [dialog,        setDialog]        = useState<DialogAction>(null)
-  const [targetCourse,  setTargetCourse]  = useState<CourseRow | null>(null)
-  const [actionLoading, setActionLoading] = useState(false)
-  const [rejectReason,  setRejectReason]  = useState("")
-
-  function setParam(key: string, value: string | null) {
-    const params = new URLSearchParams(searchParams.toString())
-    if (value) params.set(key, value)
-    else params.delete(key)
-    params.delete("page")
-    router.push(`/admin/courses?${params.toString()}`)
-  }
-
-  const fetchCourses = useCallback(async () => {
+  async function load() {
     setLoading(true)
     try {
-      const params: Record<string, string | number> = { page, limit: 10 }
-      if (search)                                  params.search = search
-      if (tab !== "ALL" && tab !== "POPULAR")      params.status = tab
-      if (tab === "POPULAR")                       params.sort   = "popular"
+      const params: Record<string, string> = { limit: "50" }
+      if (statusFilter) params.status = statusFilter
+      if (search)       params.search = search
       const { data } = await api.get("/api/admin/courses", { params })
-      const result    = data.data
-      const rawList: any[] = Array.isArray(result) ? result : (result?.courses ?? result?.data ?? [])
-      const mapped = rawList.map((c: any) => ({
-        ...c,
-        instructor: c.instructor ?? { name: c.teacher?.name ?? "—", email: c.teacher?.email ?? "" },
-        price: String(c.price ?? "0"),
-        created_at: c.created_at ?? c.createdAt ?? new Date().toISOString(),
-      }))
-      setCourses(mapped)
-      const totalCount = (!Array.isArray(result) && result?.total) ? result.total : rawList.length
-      setTotal(totalCount)
-      setTotalPages((!Array.isArray(result) && result?.totalPages) ? result.totalPages : Math.ceil(totalCount / 10))
-    } catch {
-      setCourses([])
-    } finally {
-      setLoading(false)
-    }
-  }, [tab, search, page])
-
-  useEffect(() => { fetchCourses() }, [fetchCourses])
-  useEffect(() => { setPage(1) }, [tab, search])
-
-  function openDialog(action: DialogAction, course: CourseRow) {
-    setDialog(action)
-    setTargetCourse(course)
-    setRejectReason("")
+      setCourses(Array.isArray(data.data) ? { data: data.data, total: data.total, page: data.page, totalPages: data.totalPages } : { data: [], total: 0, page: 1, totalPages: 0 })
+    } catch { setCourses({ data: [], total: 0, page: 1, totalPages: 0 }) }
+    finally { setLoading(false) }
   }
 
-  async function handleAction() {
-    if (!targetCourse || !dialog) return
-    setActionLoading(true)
+  useEffect(() => { load() }, [statusFilter, search]) // eslint-disable-line
+
+  const [pendingCount, setPendingCount] = useState(0)
+
+  useEffect(() => {
+    api.get("/api/admin/courses?status=PENDING&limit=1")
+      .then(({ data }) => setPendingCount(data.total ?? 0))
+      .catch(() => {})
+  }, []) // eslint-disable-line
+
+  async function approve(id: string) {
+    setAction(true)
     try {
-      if (dialog === "approve") await api.put(`/api/admin/courses/${targetCourse.id}/approve`)
-      if (dialog === "reject")  await api.put(`/api/admin/courses/${targetCourse.id}/reject`, { reason: rejectReason || "Does not meet platform guidelines." })
-      if (dialog === "delete")  await api.delete(`/api/admin/courses/${targetCourse.id}`)
-      await fetchCourses()
-    } finally {
-      setActionLoading(false)
-      setDialog(null)
-      setTargetCourse(null)
-      setRejectReason("")
-    }
+      await api.put(`/api/admin/courses/${id}/approve`)
+      setCourses(cs => ({ ...cs, data: cs.data.map(c => c.id === id ? { ...c, status: "APPROVED" as const } : c) }))
+      setPendingCount(prev => Math.max(0, prev - 1))
+      window.dispatchEvent(new CustomEvent("pendingCountChanged"))
+    } catch (e: any) { setError(e.response?.data?.message ?? "Failed to approve") }
+    finally { setAction(false) }
   }
 
-  const columns: Column<CourseRow>[] = [
-    {
-      header: "Thumbnail",
-      render: (c) =>
-        c.thumbnail ? (
-          <Image src={c.thumbnail} alt={c.title} width={56} height={36} className="rounded-lg object-cover w-14 h-9 flex-shrink-0" />
-        ) : (
-          <div className="w-14 h-9 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
-            <BookOpen className="w-4 h-4 text-slate-400" />
-          </div>
-        ),
-    },
-    {
-      header: "Title",
-      render: (c) => (
-        <div className="min-w-0 max-w-[200px]">
-          <p className="font-semibold text-slate-800 truncate">{c.title}</p>
-          <p className="text-xs text-slate-400">{c.category?.name ?? "Uncategorized"}</p>
-        </div>
-      ),
-    },
-    {
-      header: "Teacher",
-      render: (c) => (
-        <div>
-          <p className="text-sm font-medium text-slate-700">{c.instructor.name}</p>
-          <p className="text-xs text-slate-400">{c.instructor.email}</p>
-        </div>
-      ),
-    },
-    { header: "Price",   render: (c) => <span className="font-semibold text-slate-700">৳ {parseFloat(c.price).toFixed(2)}</span> },
-    { header: "Created", render: (c) => <span className="text-slate-500 text-sm">{formatDate(c.created_at)}</span> },
-    { header: "Status",  render: (c) => <Badge label={c.status} /> },
-    {
-      header: "Action",
-      render: (c) => (
-        <div className="flex items-center gap-1">
-          <a
-            href={`/courses/${c.slug}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-1.5 rounded-lg hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 transition-colors"
-            title="View Course"
-          >
-            <Eye className="w-4 h-4" />
-          </a>
-          {c.status !== "APPROVED" && (
-            <button
-              onClick={() => openDialog("approve", c)}
-              className="p-1.5 rounded-lg hover:bg-emerald-50 text-slate-400 hover:text-emerald-600 transition-colors"
-              title="Approve"
-            >
-              <CheckCircle className="w-4 h-4" />
-            </button>
-          )}
-          {c.status !== "REJECTED" && (
-            <button
-              onClick={() => openDialog("reject", c)}
-              className="p-1.5 rounded-lg hover:bg-amber-50 text-slate-400 hover:text-amber-600 transition-colors"
-              title="Reject"
-            >
-              <XCircle className="w-4 h-4" />
-            </button>
-          )}
-          <button
-            onClick={() => openDialog("delete", c)}
-            className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors"
-            title="Delete"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      ),
-    },
-  ]
-
-  const dialogConfig = {
-    approve: { title: "Approve Course?", message: `Approve "${targetCourse?.title}"? It will go live on the platform.`, label: "Yes, Approve", danger: false },
-    reject:  { title: "Reject Course?",  message: `Reject "${targetCourse?.title}"? The instructor will be notified.`,  label: "Yes, Reject",  danger: true  },
-    delete:  { title: "Delete Course?",  message: `Permanently delete "${targetCourse?.title}"? This cannot be undone.`, label: "Yes, Delete", danger: true  },
+  async function reject() {
+    if (!rejectId || !rejectReason.trim()) return
+    setAction(true)
+    try {
+      await api.put(`/api/admin/courses/${rejectId}/reject`, { reason: rejectReason })
+      setCourses(cs => ({ ...cs, data: cs.data.map(c => c.id === rejectId ? { ...c, status: "REJECTED" as const } : c) }))
+      setPendingCount(prev => Math.max(0, prev - 1))
+      window.dispatchEvent(new CustomEvent("pendingCountChanged"))
+      setRejectId(null)
+      setReason("")
+    } catch (e: any) { setError(e.response?.data?.message ?? "Failed to reject") }
+    finally { setAction(false) }
   }
 
-  const dc = dialog ? dialogConfig[dialog] : null
+  async function handleTogglePopular(id: string, current: boolean) {
+    try {
+      await api.put(`/api/admin/courses/${id}/popular`, { is_popular: !current })
+      setCourses(cs => ({
+        ...cs,
+        data: cs.data.map(c => c.id === id ? { ...c, is_popular: !c.is_popular } : c),
+      }))
+    } catch (err: any) { alert(err.response?.data?.message ?? "Failed to update.") }
+  }
 
   return (
-    <main className="flex-1 p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold text-slate-900">Courses</h1>
-        <p className="text-sm text-slate-500 mt-1">Review, approve, and manage all courses — {total.toLocaleString()} total</p>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit flex-wrap">
-        {TABS.map((t) => (
-          <button
-            key={t}
-            onClick={() => setParam("tab", t === "ALL" ? null : t)}
-            className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
-              tab === t ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            {t.charAt(0) + t.slice(1).toLowerCase()}
-          </button>
-        ))}
-      </div>
-
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between gap-4">
-          <SearchInput
-            value={search}
-            onChange={(val) => setParam("search", val || null)}
-            placeholder="Search by title…"
-            className="max-w-sm flex-1"
-          />
-          <span className="text-sm text-slate-400 flex-shrink-0">{total} result{total !== 1 ? "s" : ""}</span>
+      <div className="p-6 space-y-6">
+        <div>
+          <h1 className="text-xl font-extrabold text-slate-900">Course Management</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Review and approve submitted courses</p>
         </div>
 
-        <DataTable columns={columns} data={courses} loading={loading} keyFn={(c) => c.id} emptyMessage="No courses found." />
+        {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl flex items-center justify-between">
+              {error}
+              <button onClick={() => setError("")}><X className="w-4 h-4" /></button>
+            </div>
+        )}
 
-        {totalPages > 1 && (
-          <div className="p-4 border-t border-slate-100 flex items-center justify-between">
-            <p className="text-sm text-slate-400">Page {page} of {totalPages}</p>
-            <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+                value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Search courses or teachers…"
+                className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-300"
+            />
           </div>
+          <div className="flex items-center gap-2">
+            {["", "PENDING", "APPROVED", "REJECTED", "DRAFT"].map(s => (
+                <button key={s} onClick={() => setStatus(s)}
+                        className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                            statusFilter === s
+                                ? "border-indigo-500 bg-indigo-50 text-indigo-700"
+                                : "border-slate-200 text-slate-600 hover:border-slate-300"
+                        }`}>
+                  {s || "All"}
+                </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+          {loading ? (
+              <div className="py-16 text-center text-slate-400 text-sm">Loading…</div>
+          ) : courses.data.length === 0 ? (
+              <div className="py-16 text-center text-slate-400 text-sm">No courses found</div>
+          ) : (
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  {["Course", "Teacher", "Category", "Subcategory", "Price", "Status", "Actions"].map(h => (
+                      <th key={h} className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">{h}</th>
+                  ))}
+                </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                {courses.data.map(c => (
+                    <tr key={c.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-4 py-3">
+                        <p className="font-semibold text-slate-900 line-clamp-1">{c.title}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">{new Date(c.created_at).toLocaleDateString()}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-slate-700">{c.teacher.name}</p>
+                        <p className="text-xs text-slate-400">{c.teacher.email}</p>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">{c.category?.parent?.name ?? "—"}</td>
+                      <td className="px-4 py-3 text-slate-600">{c.category?.name ?? "—"}</td>
+                      <td className="px-4 py-3 font-semibold text-slate-800">
+                        {c.price > 0 ? `৳${c.price.toLocaleString()}` : "Free"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${STATUS_STYLES[c.status]}`}>
+                          {c.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => handleTogglePopular(c.id, c.is_popular)}
+                                  className="p-1.5 rounded-lg transition-colors">
+                            <Star className={`w-4 h-4 ${c.is_popular ? "fill-yellow-400 text-yellow-500" : "text-slate-300 hover:text-yellow-400"}`} />
+                          </button>
+                          <button onClick={() => router.push(`/admin/courses/preview/${c.slug}`)}
+                             className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                             title="Preview">
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          {c.status === "PENDING" && (
+                              <>
+                                <button onClick={() => approve(c.id)} disabled={actionLoading}
+                                        className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-colors">
+                                  <Check className="w-3.5 h-3.5" /> Approve
+                                </button>
+                                <button onClick={() => { setRejectId(c.id); setReason("") }}
+                                        className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 border border-red-200 rounded-lg text-xs font-semibold hover:bg-red-100 transition-colors">
+                                  <X className="w-3.5 h-3.5" /> Reject
+                                </button>
+                              </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                ))}
+                </tbody>
+              </table>
+          )}
+        </div>
+
+        {/* Reject Modal */}
+        {rejectId && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+                <h3 className="text-base font-bold text-slate-900 mb-1">Reject Course</h3>
+                <p className="text-sm text-slate-500 mb-4">Provide a reason so the teacher can improve and resubmit.</p>
+                <textarea
+                    value={rejectReason} onChange={e => setReason(e.target.value)}
+                    rows={4} placeholder="e.g. Content quality needs improvement, missing curriculum details…"
+                    className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:border-red-300 resize-none"
+                />
+                <div className="flex items-center gap-3 mt-4">
+                  <button onClick={() => setRejectId(null)}
+                          className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50">
+                    Cancel
+                  </button>
+                  <button onClick={reject} disabled={!rejectReason.trim() || actionLoading}
+                          className="flex-1 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 disabled:opacity-50">
+                    {actionLoading ? "Rejecting…" : "Confirm Reject"}
+                  </button>
+                </div>
+              </div>
+            </div>
         )}
       </div>
-
-      {dc && (
-        <ConfirmDialog
-          isOpen={!!dialog}
-          onClose={() => { setDialog(null); setTargetCourse(null); setRejectReason("") }}
-          onConfirm={handleAction}
-          loading={actionLoading}
-          title={dc.title}
-          message={dc.message}
-          confirmLabel={dc.label}
-          danger={dc.danger}
-        >
-          {dialog === "reject" && (
-            <textarea
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              placeholder="Reason for rejection (optional)…"
-              rows={3}
-              className="w-full mt-3 px-3 py-2 text-sm border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300"
-            />
-          )}
-        </ConfirmDialog>
-      )}
-    </main>
-  )
-}
-
-export default function Page() {
-  return (
-    <Suspense>
-      <AdminCoursesPage />
-    </Suspense>
   )
 }

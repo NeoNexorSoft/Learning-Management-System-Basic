@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
-import TopBar from "@/components/shared/TopBar"
+
 import PageHeader from "@/components/shared/PageHeader"
 import { Bell, ShieldCheck, Loader2, CheckCheck } from "lucide-react"
 import api from "@/lib/axios"
@@ -64,7 +64,7 @@ function NotificationsPage() {
   if (loading) {
     return (
       <div className="flex flex-col min-h-screen">
-        <TopBar placeholder="Search notifications…" />
+
         <main className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
         </main>
@@ -74,7 +74,7 @@ function NotificationsPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <TopBar placeholder="Search notifications…" />
+
 
       <main className="flex-1 p-6 max-w-3xl w-full">
         <div className="flex items-start justify-between mb-6">

@@ -31,10 +31,15 @@ courseRouter.post('/', authenticate, requireRole('TEACHER'), courseController.cr
 
 // /:id sub-routes — ordered by specificity before the bare /:slug
 courseRouter.put('/:id',            authenticate, requireRole('TEACHER'), courseController.updateCourse);
-courseRouter.delete('/:id',         authenticate, requireRole('TEACHER'), courseController.deleteCourse);
 courseRouter.post('/:id/submit',    authenticate, requireRole('TEACHER'), courseController.submitCourse);
 courseRouter.post('/:id/objectives', authenticate, requireRole('TEACHER'), courseController.replaceObjectives);
 courseRouter.post('/:courseId/sections', authenticate, requireRole('TEACHER'), sectionController.createSection);
+
+// Public by-id lookup — must come before /:slug to avoid being swallowed
+courseRouter.get('/by-id/:id', courseController.getCourseById);
+
+// Student learn access
+courseRouter.get('/learn/:courseId', authenticate, requireRole('STUDENT'), courseController.getLearnCourse);
 
 // Public detail — must be last on this router to avoid swallowing the paths above
 courseRouter.get('/:slug', optionalAuthenticate, courseController.getCourseBySlug);
@@ -45,15 +50,19 @@ export const teacherRouter = Router();
 teacherRouter.use(authenticate, requireRole('TEACHER'));
 
 teacherRouter.get('/courses', courseController.listTeacherCourses);
+teacherRouter.get('/courses/:id', courseController.getTeacherCourseById);
 
 // ─── /api/admin ───────────────────────────────────────────────────────────────
 
 export const adminRouter = Router();
 adminRouter.use(authenticate, requireRole('ADMIN'));
 
-adminRouter.get('/courses',                courseController.listAllCourses);
+adminRouter.get('/courses',                    courseController.listAllCourses);
+adminRouter.get('/courses/preview/:slug',      courseController.getCourseBySlugAdmin);
+adminRouter.get('/courses/:id',                courseController.getAdminCourseById);
 adminRouter.put('/courses/:id/approve',    courseController.approveCourse);
 adminRouter.put('/courses/:id/reject',     courseController.rejectCourse);
+adminRouter.put('/courses/:id/popular',    courseController.togglePopular);
 adminRouter.delete('/courses/:id',         courseController.adminDeleteCourse);
 
 // ─── /api/categories ──────────────────────────────────────────────────────────

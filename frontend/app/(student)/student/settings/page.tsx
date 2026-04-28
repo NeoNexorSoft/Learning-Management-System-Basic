@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, type ChangeEvent } from "react"
 import { Camera, Save, CheckCircle2, Loader2, AlertCircle, Lock } from "lucide-react"
-import TopBar from "@/components/shared/TopBar"
+
 import api from "@/lib/axios"
 import { setUser } from "@/lib/auth"
 import { useAuth } from "@/hooks/useAuth"
@@ -58,11 +58,15 @@ export default function StudentSettingsPage() {
     setSaving(true)
     setError("")
     try {
+      let avatarUrl: string | undefined
       if (avatarFile) {
         const fd = new FormData()
         fd.append("avatar", avatarFile)
         const { data: upData } = await api.post("/api/upload/avatar", fd, { headers: { "Content-Type": "multipart/form-data" } })
-        if (upData.data?.url) setPreview(upData.data.url)
+        if (upData.data?.url) {
+          avatarUrl = upData.data.url
+          setPreview(avatarUrl)
+        }
       }
       const name = `${form.firstName} ${form.lastName}`.trim()
       const { data } = await api.put("/api/users/profile", {
@@ -70,8 +74,9 @@ export default function StudentSettingsPage() {
         mobile: form.mobile || undefined,
         bio:    form.bio    || undefined,
       })
-      const updated = data.data.user
+      const updated = { ...data.data.user, ...(avatarUrl ? { avatar: avatarUrl } : {}) }
       setUser(updated)
+      window.dispatchEvent(new Event("storage"))
       await refreshUser()
       setAvatarFile(null)
       setSaved(true)
@@ -108,7 +113,7 @@ export default function StudentSettingsPage() {
   if (loading) {
     return (
       <div className="flex flex-col flex-1">
-        <TopBar placeholder="Search…" />
+
         <main className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
         </main>
@@ -118,7 +123,7 @@ export default function StudentSettingsPage() {
 
   return (
     <div className="flex flex-col flex-1">
-      <TopBar placeholder="Search…" />
+
       <main className="flex-1 p-6 overflow-y-auto">
         <div className="mb-8">
           <h1 className="text-2xl font-extrabold text-slate-900">Settings</h1>
