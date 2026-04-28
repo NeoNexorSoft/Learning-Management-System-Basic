@@ -49,7 +49,7 @@ export default function FrontendManagementPage() {
     async function fetchSettings() {
       try {
         const token = localStorage.getItem("admin_token");
-        // ✅ FIX 1: নতুন endpoint
+        // ✅ FIX 1: new endpoint
         const res = await fetch(`${API}/api/system-config?group=frontend`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -77,7 +77,7 @@ export default function FrontendManagementPage() {
     setMessage("");
     try {
       const token = localStorage.getItem("admin_token");
-      // ✅ FIX 3: PUT → PATCH, নতুন endpoint
+      // ✅ FIX 3: PUT → PATCH, new endpoint
       const res = await fetch(`${API}/api/system-config`, {
         method: "PATCH",
         headers: {
