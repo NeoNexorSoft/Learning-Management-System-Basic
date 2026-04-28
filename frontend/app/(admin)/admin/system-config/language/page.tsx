@@ -58,7 +58,7 @@ export default function LanguageSettingsPage() {
     async function fetchSettings() {
       try {
         const token = localStorage.getItem("admin_token");
-        // ✅ FIX 1: নতুন endpoint
+        // ✅ FIX 1: new endpoint
         const res = await fetch(`${API}/api/system-config?group=language`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -86,7 +86,7 @@ export default function LanguageSettingsPage() {
     setMessage("");
     try {
       const token = localStorage.getItem("admin_token");
-      // ✅ FIX 3: PUT → PATCH, নতুন endpoint
+      // ✅ FIX 3: PUT → PATCH, new endpoint
       const res = await fetch(`${API}/api/system-config`, {
         method: "PATCH",
         headers: {
@@ -96,7 +96,7 @@ export default function LanguageSettingsPage() {
         body: JSON.stringify({ group: "language", settings: form }),
       });
       const data = await res.json();
-      setMessage(data.language ? "✓ Settings saved!" : "✗ Failed to save.");
+      setMessage(data.success ? "✓ Settings saved!" : "✗ Failed to save.");
     } finally {
       setSaving(false);
     }

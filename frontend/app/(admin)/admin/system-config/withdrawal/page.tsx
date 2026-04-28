@@ -77,7 +77,7 @@ export default function WithdrawalMethodsPage() {
         body: JSON.stringify({ group: "withdrawal", settings: form }),
       });
       const data = await res.json();
-      setMessage(data.withdrawal ? "✓ Settings saved!" : "✗ Failed to save.");
+      setMessage(data.success ? "✓ Settings saved!" : "✗ Failed to save.");
     } finally {
       setSaving(false);
     }

@@ -83,6 +83,7 @@ export default function GeneralSettingsPage() {
         body: JSON.stringify({ group: "general", settings: form }),
       });
       const data = await res.json();
+      console.log("API Response:", data); // new console log
       setMessage(data.success ? "✓ Settings saved!" : "✗ Failed to save.");
     } finally {
       setSaving(false);
