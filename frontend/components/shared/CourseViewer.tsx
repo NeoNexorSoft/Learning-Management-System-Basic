@@ -6,6 +6,8 @@ import {
   BookOpen, ChevronDown, ChevronUp, PlayCircle,
   FileIcon, AlignLeft, HelpCircle,
 } from "lucide-react"
+import FilePreview from "@/components/shared/FilePreview"
+import QuizPreview from "@/components/shared/QuizPreview"
 
 interface CourseViewerProps {
   course: any
@@ -327,20 +329,45 @@ export default function CourseViewer({
                   {open && (
                     <div className="border-t border-slate-100 divide-y divide-slate-100">
                       {section.lessons?.map((lesson: any) => (
-                        <div key={lesson.id} className="flex items-center gap-3 px-4 py-3">
-                          {accessLevel === "full"
-                            ? <LessonIcon type={lesson.type} />
-                            : <BookOpen className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
-                          }
-                          <span className="text-sm text-slate-600 flex-1">{lesson.title}</span>
-                          {accessLevel === "full" && lesson.duration > 0 && (
-                            <span className="text-xs text-slate-400 flex-shrink-0">
-                              {Math.ceil(Number(lesson.duration) / 60)}m
-                            </span>
+                        <div key={lesson.id} className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            {accessLevel === "full"
+                              ? <LessonIcon type={lesson.type} />
+                              : <BookOpen className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
+                            }
+                            <span className="text-sm text-slate-600 flex-1">{lesson.title}</span>
+                            {accessLevel === "full" && lesson.duration > 0 && (
+                              <span className="text-xs text-slate-400 flex-shrink-0">
+                                {Math.ceil(Number(lesson.duration) / 60)}m
+                              </span>
+                            )}
+                            {accessLevel === "public" && (
+                              <Lock className="w-3.5 h-3.5 text-slate-300 flex-shrink-0" />
+                            )}
+                          </div>
+
+                          {accessLevel === "full" && (
+                            <>
+                              {lesson.type === "VIDEO" && lesson.video_url && (
+                                <FilePreview url={lesson.video_url} type="VIDEO" className="mt-2" />
+                              )}
+                              {lesson.type === "DOCUMENT" && lesson.file_url && (
+                                <FilePreview url={lesson.file_url} type="DOCUMENT" className="mt-2" />
+                              )}
+                              {lesson.type === "TEXT" && lesson.content && (
+                                <div
+                                  className="mt-2 p-4 bg-slate-50 rounded-xl border border-slate-200 prose max-w-none text-sm"
+                                  dangerouslySetInnerHTML={{ __html: lesson.content }}
+                                />
+                              )}
+                              {lesson.lessonQuizzes?.map((quiz: any) => (
+                                <QuizPreview key={quiz.id} quiz={quiz} accessLevel="full" />
+                              ))}
+                            </>
                           )}
-                          {accessLevel === "public" && (
-                            <Lock className="w-3.5 h-3.5 text-slate-300 flex-shrink-0" />
-                          )}
+                          {accessLevel === "public" && lesson.lessonQuizzes?.map((quiz: any) => (
+                            <QuizPreview key={quiz.id} quiz={quiz} accessLevel="locked" />
+                          ))}
                         </div>
                       ))}
                     </div>

@@ -160,7 +160,13 @@ export const courseService = {
             lessons: {
               orderBy: { order: 'asc' },
               include: {
-                lessonQuizzes: { select: { id: true, title: true } },
+                lessonQuizzes: {
+                  select: {
+                    id: true,
+                    title: true,
+                    _count: { select: { questions: true } },
+                  },
+                },
               },
             },
           },
@@ -230,7 +236,12 @@ export const courseService = {
             lessons: {
               orderBy: { order: 'asc' },
               include: {
-                lessonQuizzes: { select: { id: true, title: true } },
+                lessonQuizzes: {
+                  orderBy: { order: 'asc' },
+                  include: {
+                    questions: { orderBy: { order: 'asc' } },
+                  },
+                },
               },
             },
           },
@@ -425,7 +436,19 @@ export const courseService = {
         objectives: { orderBy: { order: 'asc' } },
         sections: {
           orderBy: { order: 'asc' },
-          include: { lessons: { orderBy: { order: 'asc' } } },
+          include: {
+            lessons: {
+              orderBy: { order: 'asc' },
+              include: {
+                lessonQuizzes: {
+                  orderBy: { order: 'asc' },
+                  include: {
+                    questions: { orderBy: { order: 'asc' } },
+                  },
+                },
+              },
+            },
+          },
         },
       },
     });
@@ -835,25 +858,76 @@ export const courseService = {
     if (!enrollment) throw Object.assign(
       new Error("Not enrolled"), { statusCode: 403 }
     )
-    return prisma.course.findUnique({
+
+    const course = await prisma.course.findUnique({
       where: { id: courseId },
       include: {
+        teacher: {
+          select: {
+            id: true, name: true,
+            avatar: true, bio: true
+          }
+        },
+        category: {
+          select: {
+            id: true, name: true,
+            parent: { select: { name: true } }
+          }
+        },
+        objectives: { orderBy: { order: "asc" } },
         sections: {
           orderBy: { order: "asc" },
           include: {
             lessons: {
               orderBy: { order: "asc" },
-              select: {
-                id: true, title: true,
-                type: true, duration: true,
-                order: true, content: true,
-                video_url: true, file_url: true
+              include: {
+                lessonQuizzes: {
+                  orderBy: { order: "asc" },
+                  include: {
+                    questions: {
+                      orderBy: { order: "asc" },
+                      select: {
+                        id: true,
+                        type: true,
+                        question: true,
+                        options: true,
+                        order: true,
+                      }
+                    },
+                    attempts: {
+                      where: { student_id: studentId },
+                      select: {
+                        id: true,
+                        score: true,
+                        submitted_at: true,
+                      }
+                    }
+                  }
+                },
+                progress: {
+                  where: { enrollment_id: enrollment.id },
+                  select: { completed: true }
+                }
               }
             }
           }
-        }
+        },
+        _count: { select: { enrollments: true } }
       }
     })
+
+    if (!course) throw Object.assign(
+      new Error("Course not found"), { statusCode: 404 }
+    )
+
+    return {
+      course,
+      enrollment: {
+        id:       enrollment.id,
+        progress: enrollment.progress,
+        status:   enrollment.status,
+      }
+    }
   },
 
   async getCourseById(courseId: string) {
@@ -862,6 +936,7 @@ export const courseService = {
       select: {
         id: true, title: true, slug: true,
         subtitle: true, thumbnail: true, price: true,
+        discount_price: true, discount_type: true, discount_ends_at: true,
       }
     });
     if (!course) throw Object.assign(

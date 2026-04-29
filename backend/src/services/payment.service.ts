@@ -16,18 +16,24 @@ export const paymentService = {
     const student = await prisma.user.findUnique({ where: { id: studentId } })
     if (!student) throw Object.assign(new Error("Student not found"), { statusCode: 404 })
 
+    const price         = Number(course.price ?? 0)
+    const discountPrice = Number(course.discount_price ?? 0)
+    const hasDiscount   = discountPrice > 0 && discountPrice < price
+    const finalPrice    = hasDiscount ? discountPrice : price
+
     const invoice_number = `INV-${Date.now()}-${uuidv4().slice(0,6).toUpperCase()}`
 
     await prisma.transaction.create({
       data: {
-        id:             uuidv4(),
-        user_id:        studentId,
-        course_id:      courseId,
+        id:               uuidv4(),
+        user_id:          studentId,
+        course_id:        courseId,
         invoice_number,
-        amount:         course.price,
-        status:         "INITIATED",
-        type:           "PURCHASE",
-        gateway:        "PAYSTATION",
+        amount:           finalPrice,
+        converted_amount: finalPrice,
+        status:           "INITIATED",
+        type:             "PURCHASE",
+        gateway:          "PAYSTATION",
       }
     })
 
@@ -38,7 +44,7 @@ export const paymentService = {
           password:        process.env.PAYSTATION_PASSWORD!,
           invoice_number,
           currency:        "BDT",
-          payment_amount:  Math.round(Number(course.price)).toString(),
+          payment_amount:  Math.round(finalPrice).toString(),
           pay_with_charge: "1",
           cust_name:       student.name,
           cust_phone:      student.mobile ?? "01700000000",
