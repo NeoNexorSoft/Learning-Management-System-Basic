@@ -73,7 +73,7 @@ export default function SeoSettingsPage() {
         body: JSON.stringify({ group: "seo", settings: form }),
       });
       const data = await res.json();
-      setMessage(data.seo ? "✓ Settings saved!" : "✗ Failed to save.");
+      setMessage(data.success ? "✓ Settings saved!" : "✗ Failed to save.");
     } finally {
       setSaving(false);
     }

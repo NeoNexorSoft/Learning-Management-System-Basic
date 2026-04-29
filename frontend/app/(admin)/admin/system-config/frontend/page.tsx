@@ -87,7 +87,7 @@ export default function FrontendManagementPage() {
         body: JSON.stringify({ group: "frontend", settings: form }),
       });
       const data = await res.json();
-      setMessage(data.frontend ? "✓ Settings saved!" : "✗ Failed to save.");
+      setMessage(data.success ? "✓ Settings saved!" : "✗ Failed to save.");
     } finally {
       setSaving(false);
     }
