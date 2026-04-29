@@ -28,9 +28,21 @@ export default function AdminTopBar({
 
   const [profileOpen, setProfileOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
+  const [user, setUser] = useState<{ name?: string; avatar?: string } | null>(null);
 
   const profileRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Sync user avatar/name from localStorage, updated by the settings page on save
+  useEffect(() => {
+    function syncUser() {
+      const u = JSON.parse(localStorage.getItem("user") ?? "{}")
+      setUser(u)
+    }
+    syncUser()
+    window.addEventListener("storage", syncUser)
+    return () => window.removeEventListener("storage", syncUser)
+  }, [])
 
   // Close profile dropdown on outside click
   useEffect(() => {
@@ -79,10 +91,12 @@ export default function AdminTopBar({
         <div ref={profileRef} className="relative">
           <button
             onClick={() => setProfileOpen((o) => !o)}
-            className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-400 to-purple-600 flex items-center justify-center text-sm font-bold text-white hover:opacity-90 transition-opacity"
+            className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-400 to-purple-600 flex items-center justify-center text-sm font-bold text-white hover:opacity-90 transition-opacity overflow-hidden"
             aria-label="Profile menu"
           >
-            {initials}
+            {user?.avatar
+              ? <img key={user.avatar} src={user.avatar} alt={user?.name} className="w-full h-full object-cover" />
+              : initials}
           </button>
 
           {profileOpen && (

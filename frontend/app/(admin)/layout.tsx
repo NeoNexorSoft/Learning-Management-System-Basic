@@ -42,6 +42,18 @@ export default function AdminLayout({
     setReady(true);
   }, [router]);
 
+  // Re-read admin_user when the settings page updates it
+  useEffect(() => {
+    function handleStorage() {
+      const raw = localStorage.getItem("admin_user");
+      if (raw) {
+        try { setAdmin(JSON.parse(raw)); } catch {}
+      }
+    }
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
+
   if (!ready || !admin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0F172A]">

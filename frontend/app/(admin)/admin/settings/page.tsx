@@ -21,6 +21,23 @@ export default function AdminSettingsPage() {
     const [pwError, setPwError]   = useState("")
 
     useEffect(() => {
+        // Pre-fill immediately from localStorage so the form isn't blank while waiting for the API
+        const raw = localStorage.getItem("admin_user")
+        if (raw) {
+            try {
+                const u = JSON.parse(raw)
+                const parts = (u.name ?? "").split(" ")
+                setForm({
+                    firstName: parts[0] ?? "",
+                    lastName:  parts.slice(1).join(" ") ?? "",
+                    email:     u.email ?? "",
+                    mobile:    u.mobile ?? "",
+                    bio:       u.bio ?? "",
+                })
+                if (u.avatar) setPreview(u.avatar)
+            } catch {}
+        }
+
         api.get("/api/auth/me")
             .then(({ data }) => {
                 const u = data.data.user
@@ -85,6 +102,18 @@ export default function AdminSettingsPage() {
                 }
             } catch {}
 
+            // Update "user" key so any component listening on storage can sync avatar/name
+            const finalAvatar = savedUser?.avatar ?? avatarUrl ?? preview ?? ""
+            const updated = {
+                ...JSON.parse(localStorage.getItem("user") ?? "{}"),
+                name:   name,
+                email:  form.email,
+                avatar: finalAvatar,
+                bio:    form.bio ?? "",
+            }
+            localStorage.setItem("user", JSON.stringify(updated))
+            window.dispatchEvent(new Event("storage"))
+
             setPreview(savedUser?.avatar ?? avatarUrl ?? preview)
             setAvatarFile(null)
             setSaved(true)
@@ -143,7 +172,7 @@ export default function AdminSettingsPage() {
                         <div className="flex flex-col items-center gap-2.5">
                             <div className="w-24 h-24 rounded-2xl overflow-hidden bg-gradient-to-br from-indigo-400 to-purple-600 flex items-center justify-center text-2xl font-bold text-white flex-shrink-0">
                                 {preview
-                                    ? <img src={preview} alt="Profile photo" className="w-full h-full object-cover" />
+                                    ? <img key={preview} src={preview} alt="Profile photo" className="w-full h-full object-cover" />
                                     : <span>{initials || "?"}</span>
                                 }
                             </div>
