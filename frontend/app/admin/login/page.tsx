@@ -54,7 +54,8 @@ export default function AdminLoginPage() {
 
   useEffect(() => {
     const token = localStorage.getItem("admin_token");
-    if (token) router.replace("/admin/dashboard");
+    const user = localStorage.getItem("admin_user");
+    if (token && user) router.replace("/admin/dashboard");
   }, [router]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {

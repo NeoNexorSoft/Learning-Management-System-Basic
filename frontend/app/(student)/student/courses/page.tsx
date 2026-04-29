@@ -38,7 +38,7 @@ function CourseCard({ course }: { course: CourseItem }) {
   const completed = course.status === "completed"
 
   return (
-    <Link href={`/student/courses/${course.id}/learn`} className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-lg hover:border-indigo-200 transition-all group block">
+    <Link href={`/student/courses/${course.id ?? (course as any).course_id ?? (course as any).course?.id}/learn`} className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-lg hover:border-indigo-200 transition-all group block cursor-pointer">
       {course.thumbnail ? (
         <img src={course.thumbnail} alt={course.title} className="h-32 w-full object-cover" />
       ) : (
@@ -88,7 +88,7 @@ function StudentCoursesPage() {
       .then(({ data }) => {
         const enrollments: any[] = data.data.enrollments ?? []
         const mapped: CourseItem[] = enrollments.map((e: any) => ({
-          id:               e.id,
+          id:               e.course?.id ?? e.id,
           title:            e.course?.title ?? "Untitled",
           teacher:          e.course?.teacher?.name ?? "Unknown",
           progress:         Number(e.progress ?? 0),
