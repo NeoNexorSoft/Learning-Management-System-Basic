@@ -4,7 +4,8 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import {
   Plus, Eye, Edit, Clock, CheckCircle, XCircle,
-  FileText, BookOpen, AlertCircle, Loader2
+  FileText, BookOpen, AlertCircle, Loader2,
+  PlayCircle, HelpCircle, Users
 } from "lucide-react"
 import TopBar from "@/components/shared/TopBar"
 import api from "@/lib/axios"
@@ -15,9 +16,14 @@ type Course = {
   slug: string
   status: "DRAFT" | "PENDING" | "APPROVED" | "REJECTED"
   price: number
+  discount_price?: number
   thumbnail?: string
   category?: { name: string }
   _count?: { enrollments: number; sections: number }
+  totalSections?: number
+  totalLessons?: number
+  totalQuizzes?: number
+  totalStudents?: number
   created_at: string
 }
 
@@ -93,8 +99,12 @@ export default function TeacherCoursesPage() {
         ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {courses.data?.map(course => {
-                const cfg = STATUS_CONFIG[course.status]
-                const Icon = cfg.icon
+                const cfg           = STATUS_CONFIG[course.status]
+                const Icon          = cfg.icon
+                const price         = Number(course.price ?? 0)
+                const discountPrice = Number(course.discount_price ?? 0)
+                const hasDiscount   = discountPrice > 0 && discountPrice < price
+                const finalPrice    = hasDiscount ? discountPrice : price
                 return (
                     <div key={course.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-md transition-shadow">
                       {/* Thumbnail */}
@@ -114,6 +124,25 @@ export default function TeacherCoursesPage() {
                         <p className="font-bold text-slate-900 line-clamp-2 text-sm leading-snug">{course.title}</p>
                         <p className="text-xs text-slate-400 mt-1">{course.category?.name ?? "Uncategorized"}</p>
 
+                        <div className="flex items-center gap-3 mt-2 flex-wrap">
+                          <span className="flex items-center gap-1 text-xs text-slate-500">
+                            <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
+                            {course.totalSections ?? 0} sections
+                          </span>
+                          <span className="flex items-center gap-1 text-xs text-slate-500">
+                            <PlayCircle className="w-3.5 h-3.5 text-teal-400" />
+                            {course.totalLessons ?? 0} lessons
+                          </span>
+                          <span className="flex items-center gap-1 text-xs text-slate-500">
+                            <HelpCircle className="w-3.5 h-3.5 text-amber-400" />
+                            {course.totalQuizzes ?? 0} quizzes
+                          </span>
+                          <span className="flex items-center gap-1 text-xs text-slate-500">
+                            <Users className="w-3.5 h-3.5 text-emerald-400" />
+                            {course.totalStudents ?? 0} students
+                          </span>
+                        </div>
+
                         {/* Rejection notice */}
                         {course.status === "REJECTED" && (
                             <div className="mt-3 flex items-start gap-2 p-2.5 bg-red-50 border border-red-200 rounded-lg">
@@ -132,21 +161,24 @@ export default function TeacherCoursesPage() {
 
                         <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100">
                           <div>
-                            <p className="text-sm font-extrabold text-slate-800">
-                              {course.price > 0 ? `৳${course.price.toLocaleString()}` : "Free"}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold text-indigo-600">
+                                {finalPrice === 0 ? "Free" : `৳${finalPrice.toLocaleString()}`}
+                              </span>
+                              {hasDiscount && (
+                                <span className="text-xs text-slate-400 line-through">
+                                  ৳{price.toLocaleString()}
+                                </span>
+                              )}
+                            </div>
                             <p className="text-xs text-slate-400">{course._count?.enrollments ?? 0} enrolled</p>
                           </div>
                           <div className="flex items-center gap-1.5">
-                          {/*  <Link href={`/teacher/courses/${course.id}/preview`}
-                                  className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
-                              <Eye className="w-4 h-4" />
-                            </Link>*/}
                             {course.status === "APPROVED" && (
-                                <a href={`/courses/${course.slug}`} target="_blank"
+                                <Link href={`/teacher/courses/preview/${course.slug}`}
                                    className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
                                   <Eye className="w-4 h-4" />
-                                </a>
+                                </Link>
                             )}
                             {course.status === "PENDING" && (
                                 <Link href={`/teacher/courses/${course.id}/edit`}

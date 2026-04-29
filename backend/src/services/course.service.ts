@@ -159,7 +159,9 @@ export const courseService = {
           include: {
             lessons: {
               orderBy: { order: 'asc' },
-              select: { id: true, title: true, type: true, duration: true, order: true, content: true, video_url: true },
+              include: {
+                lessonQuizzes: { select: { id: true, title: true } },
+              },
             },
           },
         },
@@ -206,6 +208,10 @@ export const courseService = {
       ...courseRest,
       sections,
       totalStudents: _count.enrollments,
+      totalSections: course.sections?.length ?? 0,
+      totalLessons:  course.sections?.reduce((sum, s) => sum + s.lessons.length, 0) ?? 0,
+      totalQuizzes:  course.sections?.reduce((sum, s) =>
+        sum + s.lessons.reduce((ls, l) => ls + (l.lessonQuizzes?.length ?? 0), 0), 0) ?? 0,
       avgRating:    ratingAgg._avg.rating ?? 0,
       totalReviews: ratingAgg._count._all,
     };
@@ -223,9 +229,8 @@ export const courseService = {
           include: {
             lessons: {
               orderBy: { order: 'asc' },
-              select: {
-                id: true, title: true, type: true, duration: true, order: true,
-                content: true, video_url: true, file_url: true,
+              include: {
+                lessonQuizzes: { select: { id: true, title: true } },
               },
             },
           },
@@ -234,7 +239,45 @@ export const courseService = {
       },
     });
     if (!course) throw Object.assign(new Error('Not found'), { statusCode: 404 });
-    return course;
+    return {
+      ...course,
+      totalSections: course.sections?.length ?? 0,
+      totalLessons:  course.sections?.reduce((sum, s) => sum + s.lessons.length, 0) ?? 0,
+      totalQuizzes:  course.sections?.reduce((sum, s) =>
+        sum + s.lessons.reduce((ls, l) => ls + (l.lessonQuizzes?.length ?? 0), 0), 0) ?? 0,
+    };
+  },
+
+  async getCourseBySlugTeacher(slug: string, teacherId: string) {
+    const course = await prisma.course.findUnique({
+      where: { slug },
+      include: {
+        teacher:    { select: { id: true, name: true, email: true, avatar: true, bio: true } },
+        category:   { select: { id: true, name: true, parent: { select: { name: true } } } },
+        objectives: { orderBy: { order: 'asc' } },
+        sections: {
+          orderBy: { order: 'asc' },
+          include: {
+            lessons: {
+              orderBy: { order: 'asc' },
+              include: {
+                lessonQuizzes: { select: { id: true, title: true } },
+              },
+            },
+          },
+        },
+        _count: { select: { enrollments: true } },
+      },
+    });
+    if (!course) throw Object.assign(new Error('Not found'), { statusCode: 404 });
+    if (course.teacher_id !== teacherId) throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
+    return {
+      ...course,
+      totalSections: course.sections?.length ?? 0,
+      totalLessons:  course.sections?.reduce((sum, s) => sum + s.lessons.length, 0) ?? 0,
+      totalQuizzes:  course.sections?.reduce((sum, s) =>
+        sum + s.lessons.reduce((ls, l) => ls + (l.lessonQuizzes?.length ?? 0), 0), 0) ?? 0,
+    };
   },
 
   // ─── Categories ────────────────────────────────────────────────────────────
@@ -324,9 +367,49 @@ export const courseService = {
         .map(e => [e.course_id, e._sum.amount ?? 0]),
     );
 
+    const [lessonCounts, quizCounts, sectionRows, lessonRows] = await Promise.all([
+      prisma.lesson.groupBy({
+        by: ['section_id'],
+        where: { section: { course_id: { in: courseIds } } },
+        _count: { _all: true },
+      }),
+      prisma.lessonQuiz.groupBy({
+        by: ['lesson_id'],
+        where: { lesson: { section: { course_id: { in: courseIds } } } },
+        _count: { _all: true },
+      }),
+      prisma.section.findMany({
+        where: { course_id: { in: courseIds } },
+        select: { id: true, course_id: true },
+      }),
+      prisma.lesson.findMany({
+        where: { section: { course_id: { in: courseIds } } },
+        select: { id: true, section_id: true },
+      }),
+    ]);
+
+    const sectionToCourse: Record<string, string> = {};
+    for (const s of sectionRows) sectionToCourse[s.id] = s.course_id;
+    const lessonToCourse: Record<string, string> = {};
+    for (const l of lessonRows) lessonToCourse[l.id] = sectionToCourse[l.section_id];
+
+    const lessonCountsPerCourse: Record<string, number> = {};
+    for (const row of lessonCounts) {
+      const cid = sectionToCourse[row.section_id];
+      if (cid) lessonCountsPerCourse[cid] = (lessonCountsPerCourse[cid] ?? 0) + row._count._all;
+    }
+    const quizCountsPerCourse: Record<string, number> = {};
+    for (const row of quizCounts) {
+      const cid = lessonToCourse[row.lesson_id];
+      if (cid) quizCountsPerCourse[cid] = (quizCountsPerCourse[cid] ?? 0) + row._count._all;
+    }
+
     const data = courses.map(({ _count, ...c }) => ({
       ...c,
       totalStudents: _count.enrollments,
+      totalSections: _count.sections,
+      totalLessons:  lessonCountsPerCourse[c.id] ?? 0,
+      totalQuizzes:  quizCountsPerCourse[c.id] ?? 0,
       totalEarnings: earningsMap[c.id] ?? 0,
       ...(ratingsMap[c.id] ?? { avgRating: 0, totalReviews: 0 }),
     }));
@@ -618,15 +701,57 @@ export const courseService = {
           price: true, is_popular: true, thumbnail: true, published_at: true, created_at: true,
           teacher:  { select: { id: true, name: true, email: true, avatar: true } },
           category: { select: { id: true, name: true, parent: { select: { name: true } } } },
-          _count:   { select: { enrollments: true } },
+          _count:   { select: { enrollments: true, sections: true } },
         },
       }),
       prisma.course.count({ where }),
     ]);
 
+    const courseIds = courses.map(c => c.id);
+
+    const [lessonCounts, quizCounts, sectionRows, lessonRows] = await Promise.all([
+      prisma.lesson.groupBy({
+        by: ['section_id'],
+        where: { section: { course_id: { in: courseIds } } },
+        _count: { _all: true },
+      }),
+      prisma.lessonQuiz.groupBy({
+        by: ['lesson_id'],
+        where: { lesson: { section: { course_id: { in: courseIds } } } },
+        _count: { _all: true },
+      }),
+      prisma.section.findMany({
+        where: { course_id: { in: courseIds } },
+        select: { id: true, course_id: true },
+      }),
+      prisma.lesson.findMany({
+        where: { section: { course_id: { in: courseIds } } },
+        select: { id: true, section_id: true },
+      }),
+    ]);
+
+    const sectionToCourse: Record<string, string> = {};
+    for (const s of sectionRows) sectionToCourse[s.id] = s.course_id;
+    const lessonToCourse: Record<string, string> = {};
+    for (const l of lessonRows) lessonToCourse[l.id] = sectionToCourse[l.section_id];
+
+    const lessonCountsPerCourse: Record<string, number> = {};
+    for (const row of lessonCounts) {
+      const cid = sectionToCourse[row.section_id];
+      if (cid) lessonCountsPerCourse[cid] = (lessonCountsPerCourse[cid] ?? 0) + row._count._all;
+    }
+    const quizCountsPerCourse: Record<string, number> = {};
+    for (const row of quizCounts) {
+      const cid = lessonToCourse[row.lesson_id];
+      if (cid) quizCountsPerCourse[cid] = (quizCountsPerCourse[cid] ?? 0) + row._count._all;
+    }
+
     const data = courses.map(({ _count, ...c }) => ({
       ...c,
       totalStudents: _count.enrollments,
+      totalSections: _count.sections,
+      totalLessons:  lessonCountsPerCourse[c.id] ?? 0,
+      totalQuizzes:  quizCountsPerCourse[c.id] ?? 0,
     }));
 
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };

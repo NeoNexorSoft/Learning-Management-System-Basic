@@ -50,6 +50,7 @@ export const teacherRouter = Router();
 teacherRouter.use(authenticate, requireRole('TEACHER'));
 
 teacherRouter.get('/courses', courseController.listTeacherCourses);
+teacherRouter.get('/courses/preview/:slug', courseController.getTeacherCoursePreview);
 teacherRouter.get('/courses/:id', courseController.getTeacherCourseById);
 
 // ─── /api/admin ───────────────────────────────────────────────────────────────

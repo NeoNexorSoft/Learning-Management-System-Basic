@@ -70,13 +70,14 @@ export const userController = {
 
   async updateProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { name, mobile, bio, country, social_links } = req.body;
+      const { name, mobile, bio, country, social_links, avatar } = req.body;
       const user = await userService.updateProfile(req.user!.userId, {
         name,
         mobile,
         bio,
         country,
         social_links,
+        ...(avatar ? { avatar } : {}),
       });
       res.json({ status: 'success', data: { user } });
     } catch (err) {

@@ -103,8 +103,11 @@ export default function CoursesPage() {
                 const displayEmoji    = emojis[categoryName]    ?? emojis[subcategoryName]    ?? "📚"
                 const students        = Number(course.totalStudents ?? course._count?.enrollments ?? 0)
                 const rating          = Number(course.avgRating ?? 0)
-                const price           = Number(course.price ?? 0)
-                const teacherName     = course.teacher?.name ?? "Instructor"
+                const price         = Number(course.price ?? 0)
+                const discountPrice = Number(course.discount_price ?? 0)
+                const hasDiscount   = discountPrice > 0 && discountPrice < price
+                const finalPrice    = hasDiscount ? discountPrice : price
+                const teacherName   = course.teacher?.name ?? "Instructor"
 
                 return (
                   <div key={course.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-lg hover:border-indigo-200 transition-all group">
@@ -137,9 +140,16 @@ export default function CoursesPage() {
                         <span className="flex items-center gap-1 text-amber-500"><Star className="w-3.5 h-3.5 fill-amber-400" /> {rating > 0 ? rating.toFixed(1) : "New"}</span>
                       </div>
                       <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                        <span className="text-sm font-bold text-indigo-600">
-                          {price === 0 ? "Free" : `TK${price.toLocaleString()} BDT`}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-indigo-600">
+                            {finalPrice === 0 ? "Free" : `৳${finalPrice.toLocaleString()}`}
+                          </span>
+                          {hasDiscount && (
+                            <span className="text-xs text-slate-400 line-through">
+                              ৳{price.toLocaleString()}
+                            </span>
+                          )}
+                        </div>
                         <Link href={`/courses/${course.slug}`} className="text-xs font-semibold text-slate-600 hover:text-indigo-600 transition-colors">
                           View →
                         </Link>

@@ -69,8 +69,23 @@ export default function AdminSettingsPage() {
                 ...(avatarUrl ? { avatar: avatarUrl } : {}),
             })
 
-            setUser(data.data.user)
-            setPreview(data.data.user?.avatar ?? avatarUrl ?? preview)
+            const savedUser = data.data.user
+            setUser(savedUser)
+
+            // Keep admin_user in sync so the topbar reflects the new name/avatar
+            try {
+                const raw = localStorage.getItem("admin_user")
+                if (raw) {
+                    const adminUser = JSON.parse(raw)
+                    localStorage.setItem("admin_user", JSON.stringify({
+                        ...adminUser,
+                        name: savedUser.name ?? adminUser.name,
+                        ...(savedUser.avatar != null ? { avatar: savedUser.avatar } : {}),
+                    }))
+                }
+            } catch {}
+
+            setPreview(savedUser?.avatar ?? avatarUrl ?? preview)
             setAvatarFile(null)
             setSaved(true)
             setTimeout(() => setSaved(false), 3000)

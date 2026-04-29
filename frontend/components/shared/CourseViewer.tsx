@@ -2,9 +2,9 @@
 
 import { useState } from "react"
 import {
-  Lock, CheckCircle2, Users, Star, Clock,
+  Lock, CheckCircle2, Users, Star,
   BookOpen, ChevronDown, ChevronUp, PlayCircle,
-  FileIcon, AlignLeft,
+  FileIcon, AlignLeft, HelpCircle,
 } from "lucide-react"
 
 interface CourseViewerProps {
@@ -33,13 +33,6 @@ const EMOJIS: Record<string, string> = {
   Programming: "💻", Design: "🎨", "Data Science": "📈",
   "Machine Learning": "🤖", CS: "🔬", Business: "📊", Marketing: "📣",
 }
-const STATUS_STYLES: Record<string, string> = {
-  DRAFT:    "bg-slate-100 text-slate-600",
-  PENDING:  "bg-amber-100 text-amber-700",
-  APPROVED: "bg-emerald-100 text-emerald-700",
-  REJECTED: "bg-red-100 text-red-700",
-}
-
 function totalDuration(sections: any[]): string {
   let mins = 0
   sections?.forEach((s: any) => s.lessons?.forEach((l: any) => { mins += Number(l.duration ?? 0) }))
@@ -86,11 +79,6 @@ export default function CourseViewer({
   const emoji           = EMOJIS[categoryName]    ?? "📚"
   const teacherName     = course.teacher?.name    ?? "Instructor"
   const teacherInitials = (teacherName.split(" ").map((p: string) => p[0] ?? "").join("").toUpperCase().slice(0, 2)) || "IN"
-  const price           = Number(course.price ?? 0)
-  const students        = Number(course.totalStudents ?? 0)
-  const rating          = Number(course.avgRating ?? 0)
-  const reviewCount     = Number(course.totalReviews ?? 0)
-  const duration        = totalDuration(course.sections ?? [])
   const lessons         = totalLessons(course.sections ?? [])
   const status          = course.status as string
 
@@ -141,25 +129,18 @@ export default function CourseViewer({
         )}
 
         <div className="p-6">
-          {/* Status badge + title */}
-          <div className="flex items-start gap-3 mb-2">
-            <h1 className="text-2xl font-extrabold text-slate-900 flex-1 leading-snug">
-              {course.title}
-            </h1>
-            {status && (
-              <span className={`px-3 py-1 rounded-full text-xs font-bold flex-shrink-0 mt-1 ${STATUS_STYLES[status] ?? "bg-slate-100 text-slate-600"}`}>
-                {status}
-              </span>
-            )}
-          </div>
+          {/* Title */}
+          <h1 className="text-2xl font-extrabold text-slate-900 leading-snug mb-2">
+            {course.title}
+          </h1>
 
           {/* Subtitle */}
           {course.subtitle && (
             <p className="text-slate-500 mb-4">{course.subtitle}</p>
           )}
 
-          {/* Category + subcategory */}
-          <div className="flex flex-wrap gap-2 mb-4">
+          {/* Category, subcategory, level */}
+          <div className="flex flex-wrap gap-2 mb-3">
             {subcategoryName && (
               <span className="px-2.5 py-1 bg-slate-100 text-slate-500 rounded-lg text-xs font-medium">
                 {subcategoryName}
@@ -168,56 +149,52 @@ export default function CourseViewer({
             <span className="px-2.5 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-semibold">
               {categoryName}
             </span>
-          </div>
-
-          {/* Stats row */}
-          <div className="flex flex-wrap items-center gap-5 text-sm text-slate-600 mb-5">
-            {rating > 0 && (
-              <div className="flex items-center gap-1.5">
-                <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                <span className="font-bold text-slate-800">{rating.toFixed(1)}</span>
-                {reviewCount > 0 && <span className="text-slate-400">({reviewCount.toLocaleString()})</span>}
-              </div>
-            )}
-            <div className="flex items-center gap-1.5">
-              <Users className="w-4 h-4 text-slate-400" />
-              <span>{students.toLocaleString()} students</span>
-            </div>
-            {duration && (
-              <div className="flex items-center gap-1.5">
-                <Clock className="w-4 h-4 text-slate-400" />
-                <span>{duration}</span>
-              </div>
-            )}
-            {lessons > 0 && (
-              <div className="flex items-center gap-1.5">
-                <BookOpen className="w-4 h-4 text-slate-400" />
-                <span>{lessons} lessons</span>
-              </div>
+            {course.level && (
+              <span className="px-2.5 py-1 bg-purple-50 text-purple-600 rounded-lg text-xs font-semibold">
+                {course.level}
+              </span>
             )}
           </div>
 
-          {/* Price + teacher */}
-          <div className="flex items-center justify-between flex-wrap gap-3 pt-4 border-t border-slate-100">
-            <div className="flex items-center gap-3">
-              {course.teacher?.avatar ? (
-                <img
-                  src={course.teacher.avatar}
-                  alt={teacherName}
-                  className="w-9 h-9 rounded-full object-cover flex-shrink-0"
-                />
-              ) : (
-                <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-xs font-bold text-white flex-shrink-0`}>
-                  {teacherInitials}
-                </div>
-              )}
-              <span className="text-sm font-semibold text-slate-700">{teacherName}</span>
-            </div>
-            <span className="text-2xl font-extrabold text-slate-900">
-              {price === 0 ? "Free" : `৳${price.toLocaleString()}`}
-            </span>
+          {/* Published date */}
+          {course.published_at && (
+            <p className="text-xs text-slate-400 mb-4">
+              Published {new Date(course.published_at).toLocaleDateString("en-BD", { year: "numeric", month: "long", day: "numeric" })}
+            </p>
+          )}
+
+          {/* Teacher */}
+          <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
+            {course.teacher?.avatar ? (
+              <img
+                src={course.teacher.avatar}
+                alt={teacherName}
+                className="w-9 h-9 rounded-full object-cover flex-shrink-0"
+              />
+            ) : (
+              <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-xs font-bold text-white flex-shrink-0`}>
+                {teacherInitials}
+              </div>
+            )}
+            <span className="text-sm font-semibold text-slate-700">{teacherName}</span>
           </div>
         </div>
+      </div>
+
+      {/* Stats bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+        {[
+          { icon: BookOpen,   label: "Sections", value: course.totalSections ?? course.sections?.length ?? 0 },
+          { icon: PlayCircle, label: "Lessons",  value: course.totalLessons ?? 0 },
+          { icon: HelpCircle, label: "Quizzes",  value: course.totalQuizzes ?? 0 },
+          { icon: Users,      label: "Students", value: course.totalStudents ?? 0 },
+        ].map(({ icon: Icon, label, value }) => (
+          <div key={label} className="bg-white rounded-xl border border-slate-200 p-4 text-center">
+            <Icon className="w-5 h-5 mx-auto mb-1 text-indigo-400" />
+            <p className="text-lg font-extrabold text-slate-900">{value}</p>
+            <p className="text-xs text-slate-500">{label}</p>
+          </div>
+        ))}
       </div>
 
       {/* What You'll Learn */}
@@ -264,6 +241,48 @@ export default function CourseViewer({
           </ul>
         </div>
       )}
+
+      {/* Pricing */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm mb-6">
+        <h3 className="text-base font-bold text-slate-900 mb-4">Pricing</h3>
+        {(() => {
+          const p  = Number(course?.price ?? 0)
+          const dp = Number(course?.discount_price ?? 0)
+          const hd = dp > 0 && dp < p
+          const fp = hd ? dp : p
+          return (
+            <div className="space-y-2">
+              <div className="flex items-baseline gap-3">
+                <span className="text-3xl font-extrabold text-indigo-600">
+                  {fp === 0 ? "Free" : `৳${fp.toLocaleString()}`}
+                </span>
+                {hd && (
+                  <>
+                    <span className="text-lg text-slate-400 line-through">
+                      ৳{p.toLocaleString()}
+                    </span>
+                    <span className="text-sm font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                      {Math.round(((p - dp) / p) * 100)}% OFF
+                    </span>
+                  </>
+                )}
+              </div>
+              {course?.discount_ends_at && hd && (
+                <p className="text-xs text-red-500">
+                  Offer ends: {new Date(course.discount_ends_at).toLocaleDateString("en-BD")}
+                </p>
+              )}
+              {course?.discount_type && hd && (
+                <p className="text-xs text-slate-400">
+                  {course.discount_type === "PERCENTAGE"
+                    ? `${course.discount_value}% discount applied`
+                    : `৳${p - fp} discount applied`}
+                </p>
+              )}
+            </div>
+          )
+        })()}
+      </div>
 
       {/* Curriculum */}
       {course.sections?.length > 0 && (
@@ -400,6 +419,19 @@ export default function CourseViewer({
               </div>
             ))}
           </div>
+        </div>
+      )}
+      {/* Welcome / Completion Messages */}
+      {course?.welcome_message && (
+        <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-4">
+          <p className="text-xs font-bold text-indigo-700 mb-1">Welcome Message</p>
+          <p className="text-sm text-indigo-800">{course.welcome_message}</p>
+        </div>
+      )}
+      {course?.congrats_message && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4">
+          <p className="text-xs font-bold text-emerald-700 mb-1">Completion Message</p>
+          <p className="text-sm text-emerald-800">{course.congrats_message}</p>
         </div>
       )}
     </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Check, X, Eye, Search, Star } from "lucide-react"
+import { Check, X, Eye, Search, Star, BookOpen, PlayCircle, HelpCircle, Users } from "lucide-react"
 import api from "@/lib/axios"
 
 type Course = {
@@ -11,9 +11,14 @@ type Course = {
   slug: string
   status: "DRAFT" | "PENDING" | "APPROVED" | "REJECTED"
   price: number
+  discount_price?: number
   is_popular: boolean
   teacher: { name: string; email: string }
   category?: { name: string; parent?: { name: string } }
+  totalSections?: number
+  totalLessons?: number
+  totalQuizzes?: number
+  totalStudents?: number
   created_at: string
   submitted_at?: string
 }
@@ -149,38 +154,70 @@ export default function AdminCoursesPage() {
                 </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                {courses.data.map(c => (
-                    <tr key={c.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3">
-                        <p className="font-semibold text-slate-900 line-clamp-1">{c.title}</p>
-                        <p className="text-xs text-slate-400 mt-0.5">{new Date(c.created_at).toLocaleDateString()}</p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-slate-700">{c.teacher.name}</p>
-                        <p className="text-xs text-slate-400">{c.teacher.email}</p>
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">{c.category?.parent?.name ?? "—"}</td>
-                      <td className="px-4 py-3 text-slate-600">{c.category?.name ?? "—"}</td>
-                      <td className="px-4 py-3 font-semibold text-slate-800">
-                        {c.price > 0 ? `৳${c.price.toLocaleString()}` : "Free"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${STATUS_STYLES[c.status]}`}>
-                          {c.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => handleTogglePopular(c.id, c.is_popular)}
-                                  className="p-1.5 rounded-lg transition-colors">
-                            <Star className={`w-4 h-4 ${c.is_popular ? "fill-yellow-400 text-yellow-500" : "text-slate-300 hover:text-yellow-400"}`} />
-                          </button>
-                          <button onClick={() => router.push(`/admin/courses/preview/${c.slug}`)}
-                             className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                             title="Preview">
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          {c.status === "PENDING" && (
+                  {courses.data.map(c => {
+                    const price         = Number(c.price ?? 0)
+                    const discountPrice = Number(c.discount_price ?? 0)
+                    const hasDiscount   = discountPrice > 0 && discountPrice < price
+                    const finalPrice    = hasDiscount ? discountPrice : price
+                    return (
+                      <tr key={c.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-4 py-3">
+                          <p className="font-semibold text-slate-900 line-clamp-1">{c.title}</p>
+                          <p className="text-xs text-slate-400 mt-0.5">{new Date(c.created_at).toLocaleDateString()}</p>
+                          <div className="flex items-center gap-3 mt-2 flex-wrap">
+                            <span className="flex items-center gap-1 text-xs text-slate-500">
+                              <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
+                              {c.totalSections ?? 0} sections
+                            </span>
+                            <span className="flex items-center gap-1 text-xs text-slate-500">
+                              <PlayCircle className="w-3.5 h-3.5 text-teal-400" />
+                              {c.totalLessons ?? 0} lessons
+                            </span>
+                            <span className="flex items-center gap-1 text-xs text-slate-500">
+                              <HelpCircle className="w-3.5 h-3.5 text-amber-400" />
+                              {c.totalQuizzes ?? 0} quizzes
+                            </span>
+                            <span className="flex items-center gap-1 text-xs text-slate-500">
+                              <Users className="w-3.5 h-3.5 text-emerald-400" />
+                              {c.totalStudents ?? 0} students
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-slate-700">{c.teacher.name}</p>
+                          <p className="text-xs text-slate-400">{c.teacher.email}</p>
+                        </td>
+                        <td className="px-4 py-3 text-slate-600">{c.category?.parent?.name ?? "—"}</td>
+                        <td className="px-4 py-3 text-slate-600">{c.category?.name ?? "—"}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-indigo-600">
+                              {finalPrice === 0 ? "Free" : `৳${finalPrice.toLocaleString()}`}
+                            </span>
+                            {hasDiscount && (
+                              <span className="text-xs text-slate-400 line-through">
+                                ৳{price.toLocaleString()}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${STATUS_STYLES[c.status]}`}>
+                            {c.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => handleTogglePopular(c.id, c.is_popular)}
+                                    className="p-1.5 rounded-lg transition-colors">
+                              <Star className={`w-4 h-4 ${c.is_popular ? "fill-yellow-400 text-yellow-500" : "text-slate-300 hover:text-yellow-400"}`} />
+                            </button>
+                            <button onClick={() => router.push(`/admin/courses/preview/${c.slug}`)}
+                                    className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                    title="Preview">
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            {c.status === "PENDING" && (
                               <>
                                 <button onClick={() => approve(c.id)} disabled={actionLoading}
                                         className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-colors">
@@ -191,11 +228,12 @@ export default function AdminCoursesPage() {
                                   <X className="w-3.5 h-3.5" /> Reject
                                 </button>
                               </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                ))}
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
           )}

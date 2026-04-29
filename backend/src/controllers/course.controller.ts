@@ -64,6 +64,15 @@ export const courseController = {
     }
   },
 
+  async getTeacherCoursePreview(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const course = await courseService.getCourseBySlugTeacher(req.params.slug as string, req.user!.userId);
+      res.json({ status: 'success', data: { course } });
+    } catch (err) {
+      next(err);
+    }
+  },
+
   async listTeacherCourses(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const page  = req.query.page  as string | undefined;

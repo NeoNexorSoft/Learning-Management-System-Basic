@@ -11,6 +11,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { LogOut, User, ShieldCheck } from "lucide-react";
 import NotificationBell from "@/components/admin/NotificationBell";
 
@@ -61,7 +62,7 @@ export default function AdminTopBar({
     .toUpperCase();
 
   return (
-    <header className="sticky top-0 z-10 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between gap-4 flex-shrink-0">
+    <header className="sticky top-0 z-50 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between gap-4 flex-shrink-0">
       {/* Left side — reserved for future search bar */}
       <div className="flex-1 max-w-md" />
 
@@ -85,7 +86,7 @@ export default function AdminTopBar({
           </button>
 
           {profileOpen && (
-            <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 overflow-hidden">
+            <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 z-[9999] overflow-hidden">
               <div className="px-4 py-3 border-b border-slate-100">
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <p className="text-sm font-bold text-slate-900">
@@ -99,10 +100,14 @@ export default function AdminTopBar({
               </div>
 
               <div className="py-1">
-                <button className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors">
+                <Link
+                  href="/admin/settings"
+                  onClick={() => setProfileOpen(false)}
+                  className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
+                >
                   <User className="w-4 h-4" />
-                  Profile Settings
-                </button>
+                  Edit Profile
+                </Link>
               </div>
 
               <div className="border-t border-slate-100 py-1">

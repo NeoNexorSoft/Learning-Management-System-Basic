@@ -35,6 +35,7 @@ interface UpdateProfileInput {
   bio?: string;
   country?: string;
   social_links?: Record<string, string>;
+  avatar?: string;
 }
 
 export const userService = {
