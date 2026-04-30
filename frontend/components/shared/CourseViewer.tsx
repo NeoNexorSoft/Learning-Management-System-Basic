@@ -348,11 +348,19 @@ export default function CourseViewer({
 
                           {accessLevel === "full" && (
                             <>
-                              {lesson.type === "VIDEO" && lesson.video_url && (
-                                <FilePreview url={lesson.video_url} type="VIDEO" className="mt-2" />
+                              {lesson.type === "VIDEO" && lesson.video_urls.length && (
+                                <>
+                                  {lesson.video_urls.map((url: string, idx: number) => (
+                                    <FilePreview key={idx} url={url} type="VIDEO" className="mt-2" />
+                                  ))}
+                                </>
                               )}
-                              {lesson.type === "DOCUMENT" && lesson.file_url && (
-                                <FilePreview url={lesson.file_url} type="DOCUMENT" className="mt-2" />
+                              {lesson.type === "DOCUMENT" && lesson.file_urls.length && (
+                                <>
+                                  {lesson.file_urls.map((url: string, idx: number) => (
+                                    <FilePreview key={idx} url={url} type="DOCUMENT" className="mt-2" />
+                                  ))}
+                                </>
                               )}
                               {lesson.type === "TEXT" && lesson.content && (
                                 <div

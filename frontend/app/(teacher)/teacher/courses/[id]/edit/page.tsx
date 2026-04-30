@@ -908,7 +908,7 @@ export default function EditCoursePage() {
               title:        l.title,
               type:         l.type?.toLowerCase() ?? "video",
               duration:     l.duration?.toString() ?? "",
-              file_urls:    l.video_url ? [l.video_url] : l.file_url ? [l.file_url] : [],
+              file_urls:    l.video_urls ? l.video_urls : l.file_urls ? [l.file_urls] : [],
               text_content: l.content ?? "",
               quizzes:      [],
             })) ?? [],

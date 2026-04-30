@@ -204,9 +204,9 @@ export const courseService = {
 
     const sections = courseRest.sections.map(section => ({
       ...section,
-      lessons: section.lessons.map(({ video_url, content, ...lesson }) => ({
+      lessons: section.lessons.map(({ video_urls, content, ...lesson }) => ({
         ...lesson,
-        ...(canAccessContent ? { video_url, content } : {}),
+        ...(canAccessContent ? { video_urls, content } : {}),
       })),
     }));
 
@@ -611,7 +611,7 @@ export const courseService = {
   async createLesson(
     sectionId: string,
     teacherId: string,
-    data: { title: string; type: LessonType; content?: string; video_url?: string; file_url?: string; duration?: number; order?: number },
+    data: { title: string; type: LessonType; content?: string; video_urls?: string[]; file_urls?: string[]; duration?: number; order?: number },
   ) {
     const section = await prisma.section.findUnique({
       where:   { id: sectionId },
@@ -629,8 +629,8 @@ export const courseService = {
         title:      data.title,
         type:       data.type,
         content:    data.content,
-        video_url:  data.video_url,
-        file_url:   data.file_url,
+        video_urls: data.video_urls,
+        file_urls:  data.file_urls,
         duration:   data.duration ?? 0,
         order:      data.order ?? (last ? last.order + 1 : 0),
       },
@@ -640,7 +640,7 @@ export const courseService = {
   async updateLesson(
     lessonId: string,
     teacherId: string,
-    data: { title?: string; type?: LessonType; content?: string; video_url?: string; file_url?: string; duration?: number; order?: number },
+    data: { title?: string; type?: LessonType; content?: string; video_urls?: string[]; file_urls?: string[]; duration?: number; order?: number },
   ) {
     const lesson = await prisma.lesson.findUnique({
       where:   { id: lessonId },
@@ -653,8 +653,8 @@ export const courseService = {
     if (data.title    !== undefined) lessonUpdate.title    = data.title;
     if (data.type     !== undefined) lessonUpdate.type     = data.type;
     if (data.content  !== undefined) lessonUpdate.content  = data.content;
-    if (data.video_url !== undefined) lessonUpdate.video_url = data.video_url;
-    if (data.file_url  !== undefined) lessonUpdate.file_url  = data.file_url;
+    if (data.video_urls !== undefined) lessonUpdate.video_urls = data.video_urls;
+    if (data.file_urls  !== undefined) lessonUpdate.file_urls  = data.file_urls;
     if (data.duration !== undefined) lessonUpdate.duration = data.duration;
     if (data.order    !== undefined) lessonUpdate.order    = data.order;
 
@@ -847,6 +847,7 @@ export const courseService = {
   },
 
   async getLearnCourse(courseId: string, studentId: string) {
+    console.log("Fetching enrollment for studentId:", studentId, "and courseId:", courseId)
     const enrollment = await prisma.enrollment.findUnique({
       where: {
         student_id_course_id: {
@@ -855,6 +856,7 @@ export const courseService = {
         }
       }
     })
+    console.log("Enrollment:", enrollment)
     if (!enrollment) throw Object.assign(
       new Error("Not enrolled"), { statusCode: 403 }
     )
