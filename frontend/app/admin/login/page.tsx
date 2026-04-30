@@ -103,6 +103,11 @@ export default function AdminLoginPage() {
         return;
       }
 
+      // Clear any stale student/teacher tokens that could conflict
+      localStorage.removeItem("auth_token")
+      localStorage.removeItem("auth_user")
+      document.cookie = "demo_role=; path=/; max-age=0; SameSite=Lax"
+
       localStorage.setItem("admin_token", accessToken);
       localStorage.setItem(
         "admin_user",
