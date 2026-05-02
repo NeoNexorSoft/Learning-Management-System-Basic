@@ -185,11 +185,16 @@ export const courseService = {
     let canAccessContent =
       viewerRole === 'ADMIN' || course.teacher_id === viewerUserId;
 
+      // console.log(`Viewer role: ${viewerRole}, viewerUserId: ${viewerUserId}, course.teacher_id: ${course.teacher_id}, canAccessContent: ${canAccessContent}`)
+
     if (!canAccessContent && viewerUserId) {
+      // console.log(`Checking enrollment for user ${viewerUserId} on course ${course.id}`)
       const enrollment = await prisma.enrollment.findUnique({
         where: { student_id_course_id: { student_id: viewerUserId, course_id: course.id } },
       });
+      // console.log(`Enrollment found for user ${viewerUserId} on course ${course.id}: ${!!enrollment}`);
       canAccessContent = !!enrollment;
+      // console.log(`Updated canAccessContent for user ${viewerUserId} on course ${course.id}: ${canAccessContent}`);
     }
 
     const [ratingAgg] = await Promise.all([
@@ -220,6 +225,7 @@ export const courseService = {
         sum + s.lessons.reduce((ls, l) => ls + (l.lessonQuizzes?.length ?? 0), 0), 0) ?? 0,
       avgRating:    ratingAgg._avg.rating ?? 0,
       totalReviews: ratingAgg._count._all,
+      canAccessContent,
     };
   },
 

@@ -88,7 +88,7 @@ function StudentCoursesPage() {
       .then(({ data }) => {
         const enrollments: any[] = data.data.enrollments ?? []
         const mapped: CourseItem[] = enrollments.map((e: any) => ({
-          id:               e.id,
+          id:               e.course.id,
           title:            e.course?.title ?? "Untitled",
           teacher:          e.course?.teacher?.name ?? "Unknown",
           progress:         Number(e.progress ?? 0),

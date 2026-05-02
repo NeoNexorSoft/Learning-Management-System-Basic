@@ -7,6 +7,8 @@ import {
     ArrowLeft, ArrowRight, CheckCircle2, HelpCircle, X
 } from "lucide-react"
 import api from "@/lib/axios"
+import RichTextRenderer from "@/components/ui/RichTextRenderer"
+import FilePreview from "@/components/shared/FilePreview"
 
 export default function LearnPage() {
     const { courseId } = useParams<{ courseId: string }>()
@@ -32,6 +34,7 @@ export default function LearnPage() {
         api.get(`/api/courses/learn/${courseId}`)
             .then(({ data }) => {
                 const c = data.data.course
+                console.log(data)
                 setCourse(c)
                 setOpenSections(new Set(c.sections?.map((s: any) => s.id) ?? []))
                 setActiveLesson(c.sections?.[0]?.lessons?.[0] ?? null)
@@ -299,49 +302,29 @@ export default function LearnPage() {
                         </div>
 
                         {/* VIDEO */}
-                        {activeLesson.type === "VIDEO" && activeLesson.video_url && (
-                            <div className="rounded-2xl overflow-hidden border border-slate-200 bg-black shadow-lg">
-                                <video
-                                    key={activeLesson.video_url}
-                                    controls
-                                    preload="auto"
-                                    className="w-full max-h-[500px]"
-                                    onEnded={() => markLessonComplete(activeLesson.id)}
-                                >
-                                    <source src={activeLesson.video_url} />
-                                </video>
-                            </div>
+                        {activeLesson.type === "VIDEO" && activeLesson.video_urls && (
+                            <>
+                                {activeLesson.video_urls.map((url: string, idx: number) => (
+                                    <FilePreview key={idx} url={url} type="VIDEO" className="mb-4" />
+                                ))}
+                            </>
                         )}
 
                         {/* TEXT */}
                         {activeLesson.type === "TEXT" && activeLesson.content && (
                             <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
-                                <div
-                                    className="prose prose-slate max-w-none text-sm leading-relaxed"
-                                    dangerouslySetInnerHTML={{ __html: activeLesson.content }}
-                                />
+                                <RichTextRenderer html={activeLesson.content} allowFullscreen />
                             </div>
                         )}
 
                         {/* DOCUMENT */}
-                        {activeLesson.type === "DOCUMENT" && activeLesson.file_url && (() => {
-                            const ext = activeLesson.file_url.split(".").pop()?.toLowerCase()
-                            return (
-                                <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
-                                    {ext === "pdf" ? (
-                                        <iframe
-                                            src={`https://docs.google.com/viewer?url=${encodeURIComponent(activeLesson.file_url)}&embedded=true`}
-                                            className="w-full h-[600px]"
-                                        />
-                                    ) : (
-                                        <iframe
-                                            src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(activeLesson.file_url)}`}
-                                            className="w-full h-[600px]"
-                                        />
-                                    )}
-                                </div>
-                            )
-                        })()}
+                        {activeLesson.type === "DOCUMENT" && activeLesson.file_urls && (
+                            <>
+                                {activeLesson.file_urls.map((url: string, idx: number) => (
+                                    <FilePreview key={idx} url={url} type="DOCUMENT" className="mb-4" />
+                                ))}
+                            </>
+                        )}
 
                         {/* Navigation buttons */}
                         <div className="flex items-center justify-between pt-4 border-t border-slate-200">
