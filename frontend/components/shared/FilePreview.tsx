@@ -1,6 +1,8 @@
 "use client"
 import { fixCloudinaryUrl, getFileType } from "@/lib/cloudinary"
 import { FileIcon, Download } from "lucide-react"
+import SecureVideoPlayer from "../ui/SecureVideoPlayer";
+import SecurePDFViewer from "../ui/SecurePDFViewer";
 
 export default function FilePreview({
   url, type = "DOCUMENT", className = ""
@@ -14,12 +16,16 @@ export default function FilePreview({
 
   if (fileType === "video") return (
     <div className={`rounded-xl overflow-hidden bg-black border border-slate-200 ${className}`}>
-      <video key={fixedUrl} controls preload="auto" className="w-full max-h-64">
-        <source src={fixedUrl} />
-        <source src={fixedUrl} type="video/mp4" />
-        <source src={fixedUrl} type="video/webm" />
-        Your browser does not support this video.
-      </video>
+      <SecureVideoPlayer url={fixedUrl} allowFullscreen={true} />
+    </div>
+  )
+
+  if (type === "DOCUMENT") return (
+    <div className={`rounded-xl overflow-hidden bg-black border border-slate-200 ${className}`}>
+      <SecurePDFViewer
+        url={fixedUrl}
+        allowFullscreen
+      />
     </div>
   )
 
