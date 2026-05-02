@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState , Suspense } from "react";
 import api from "@/lib/axios";
 import { Search } from "lucide-react";
 
@@ -16,7 +16,7 @@ interface Notification {
   };
 }
 
-export default function NotificationReportsPage() {
+function NotificationReportsPage() {
   const [data, setData] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -210,4 +210,12 @@ export default function NotificationReportsPage() {
       </div>
     </div>
   );
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <NotificationReportsPage />
+    </Suspense>
+  )
 }

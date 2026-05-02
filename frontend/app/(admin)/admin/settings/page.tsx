@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useRef, useEffect, type ChangeEvent } from "react"
+import { useState, useRef, useEffect, type ChangeEvent , Suspense } from "react"
 import { Camera, Save, CheckCircle2, Loader2, AlertCircle, Lock } from "lucide-react"
 import api from "@/lib/axios"
 import { setUser } from "@/lib/auth"
 
-export default function AdminSettingsPage() {
+function AdminSettingsPage() {
     const [form, setForm]         = useState({ firstName: "", lastName: "", email: "", mobile: "", bio: "" })
     const [preview, setPreview]   = useState<string | null>(null)
     const [avatarFile, setAvatarFile] = useState<File | null>(null)
@@ -343,4 +343,12 @@ export default function AdminSettingsPage() {
             </div>
         </main>
     )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <AdminSettingsPage />
+    </Suspense>
+  )
 }

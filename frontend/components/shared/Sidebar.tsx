@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useContext } from "react"
+import { useState, useContext, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import type { LucideIcon } from "lucide-react"
@@ -27,6 +27,7 @@ import {
 import { BrandIcon, BRAND_NAME, BRAND_ICON_BG, BRAND_ICON_COLOR } from "@/lib/brand"
 import { useNotifications } from "@/hooks/useNotifications"
 import { useAuth } from "@/hooks/useAuth"
+import api from "@/lib/axios"
 
 
 // ─── Nav item types ──────────────────────────────────────────────────────────
@@ -92,9 +93,20 @@ function NavLink({
             ? "bg-indigo-600 text-white shadow-sm shadow-indigo-500/30"
             : "text-slate-400 hover:bg-slate-700/50 hover:text-white"
         }`}
+        aria-label={unreadCount > 0 ? `${label}, ${unreadCount} unread` : label}
       >
         <Icon className="w-4 h-4 flex-shrink-0" />
-        {label}
+        <span className="flex-1">{label}</span>
+        {unreadCount > 0 && (
+          <span
+            className={`min-w-[18px] h-[18px] text-[10px] font-bold rounded-full flex items-center justify-center leading-none px-1 ${
+              active ? "bg-white text-indigo-600" : "bg-red-500 text-white"
+            }`}
+            aria-hidden="true"
+          >
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
+        )}
       </Link>
     )
   }
@@ -144,6 +156,17 @@ export default function Sidebar({ role }: { role: "student" | "teacher" }) {
   const { unreadCount, isLoaded } = useNotifications();
   const { user: authUser } = useAuth();
 
+  const [assignmentCount, setAssignmentCount] = useState(0);
+
+  // Refresh unread assignment count on every navigation (student only)
+  useEffect(() => {
+    if (role !== "student") return;
+    api
+      .get("/api/assignments/count")
+      .then(({ data }) => setAssignmentCount(data.data?.count ?? 0))
+      .catch(() => {});
+  }, [pathname, role]);
+
   const displayName =
     authUser?.name ?? (role === "student" ? "Student" : "Teacher");
   const displayEmail = authUser?.email ?? "";
@@ -181,8 +204,9 @@ export default function Sidebar({ role }: { role: "student" | "teacher" }) {
               href={href}
               icon={icon}
               label={label}
-              active={pathname === href}
+              active={pathname.startsWith(href) && (href !== "/student/dashboard" || pathname === href)}
               variant="student"
+              unreadCount={href === "/student/assignments" ? assignmentCount : 0}
             />
           ))}
 

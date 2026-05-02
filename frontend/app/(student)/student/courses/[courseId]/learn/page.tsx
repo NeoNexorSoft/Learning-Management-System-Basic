@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useParams, useSearchParams } from "next/navigation"
 import {
     Loader2, PlayCircle, FileIcon, AlignLeft,
@@ -8,7 +8,7 @@ import {
 } from "lucide-react"
 import api from "@/lib/axios"
 
-export default function LearnPage() {
+function LearnPage() {
     const { courseId } = useParams<{ courseId: string }>()
     const searchParams = useSearchParams()
     const [course, setCourse]             = useState<any>(null)
@@ -607,4 +607,12 @@ function QuizExaminer({
             )}
         </div>
     )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <LearnPage />
+    </Suspense>
+  )
 }

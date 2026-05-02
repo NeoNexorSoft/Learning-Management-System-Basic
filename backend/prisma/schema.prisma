@@ -78,6 +78,17 @@ enum DiscountType {
   FIXED
 }
 
+enum AssignmentTarget {
+  COURSE
+  ALL_ENROLLED
+}
+
+enum AssignmentStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
 // ─── Models ───────────────────────────────────────────────────────────────────
 
 model User {
@@ -101,6 +112,7 @@ model User {
 
   courses           Course[]
   enrollments       Enrollment[]
+  assignments       Assignment[]
   submissions       Submission[]
   certificates      Certificate[]
   reviews           Review[]
@@ -158,10 +170,11 @@ model Course {
   category    Category?         @relation(fields: [category_id], references: [id], onDelete: SetNull)
   objectives  CourseObjective[]
   sections    Section[]
-  enrollments Enrollment[]
+  enrollments  Enrollment[]
   certificates Certificate[]
-  reviews     Review[]
+  reviews      Review[]
   transactions Transaction[]
+  assignments  Assignment[]
 
   @@map("courses")
 }
@@ -198,15 +211,14 @@ model Lesson {
   title      String
   type       LessonType
   content    String?
-  video_url  String?
-  file_url   String?
+  video_urls String[]
+  file_urls  String[]
   duration   Int        @default(0)
   order      Int        @default(0)
   created_at DateTime   @default(now())
 
-  section     Section            @relation(fields: [section_id], references: [id], onDelete: Cascade)
-  progress    LessonProgress[]
-  assignments Assignment[]
+  section       Section          @relation(fields: [section_id], references: [id], onDelete: Cascade)
+  progress      LessonProgress[]
   lessonQuizzes LessonQuiz[]
 
   @@map("lessons")
@@ -271,15 +283,23 @@ model LessonProgress {
 }
 
 model Assignment {
-  id          String    @id @default(uuid())
-  lesson_id   String
-  title       String
-  description String?
-  due_date    DateTime?
-  total_marks Int       @default(100)
-  created_at  DateTime  @default(now())
+  id             String           @id @default(uuid())
+  teacher_id     String
+  course_id      String?
+  title          String
+  description    String?
+  file_url       String?
+  target         AssignmentTarget @default(COURSE)
+  status         AssignmentStatus @default(PENDING_APPROVAL)
+  due_date       DateTime
+  total_marks    Int              @default(100)
+  score_released Boolean          @default(false)
+  is_deleted     Boolean          @default(false)
+  created_at     DateTime         @default(now())
+  updated_at     DateTime         @updatedAt
 
-  lesson      Lesson       @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
+  teacher     User         @relation(fields: [teacher_id], references: [id])
+  course      Course?      @relation(fields: [course_id], references: [id], onDelete: SetNull)
   submissions Submission[]
 
   @@map("assignments")
@@ -295,10 +315,13 @@ model Submission {
   feedback      String?
   status        SubmissionStatus @default(SUBMITTED)
   submitted_at  DateTime         @default(now())
+  updated_at    DateTime         @updatedAt
+  deleted_at    DateTime?
 
   assignment Assignment @relation(fields: [assignment_id], references: [id], onDelete: Cascade)
   student    User       @relation(fields: [student_id], references: [id])
 
+  @@unique([assignment_id, student_id])
   @@map("submissions")
 }
 

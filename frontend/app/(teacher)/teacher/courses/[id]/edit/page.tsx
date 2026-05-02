@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect, useCallback , Suspense } from "react"
 import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import {
@@ -838,7 +838,7 @@ function Step5({ w, set }: { w: Wizard; set: (p: Partial<Wizard>) => void }) {
 
 // ─── Main Wizard ──────────────────────────────────────────────────────────────
 
-export default function EditCoursePage() {
+function EditCoursePage() {
   const router = useRouter()
   const { id: courseId } = useParams<{ id: string }>()
   const [w, setW]                     = useState<Wizard>(initWizard)
@@ -1123,5 +1123,13 @@ export default function EditCoursePage() {
             </div>
         )}
       </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <EditCoursePage />
+    </Suspense>
   )
 }

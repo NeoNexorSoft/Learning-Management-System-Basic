@@ -198,9 +198,9 @@ export const courseService = {
 
     const sections = courseRest.sections.map(section => ({
       ...section,
-      lessons: section.lessons.map(({ video_url, content, ...lesson }) => ({
+      lessons: section.lessons.map(({ video_urls, content, ...lesson }) => ({
         ...lesson,
-        ...(canAccessContent ? { video_url, content } : {}),
+        ...(canAccessContent ? { video_urls, content } : {}),
       })),
     }));
 
@@ -606,8 +606,8 @@ export const courseService = {
         title:      data.title,
         type:       data.type,
         content:    data.content,
-        video_url:  data.video_url,
-        file_url:   data.file_url,
+        video_urls: data.video_url ? [data.video_url] : [],
+        file_urls:  data.file_url  ? [data.file_url]  : [],
         duration:   data.duration ?? 0,
         order:      data.order ?? (last ? last.order + 1 : 0),
       },
@@ -627,11 +627,11 @@ export const courseService = {
     if (lesson.section.course.teacher_id !== teacherId) throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
 
     const lessonUpdate: Prisma.LessonUpdateInput = {};
-    if (data.title    !== undefined) lessonUpdate.title    = data.title;
-    if (data.type     !== undefined) lessonUpdate.type     = data.type;
-    if (data.content  !== undefined) lessonUpdate.content  = data.content;
-    if (data.video_url !== undefined) lessonUpdate.video_url = data.video_url;
-    if (data.file_url  !== undefined) lessonUpdate.file_url  = data.file_url;
+    if (data.title     !== undefined) lessonUpdate.title     = data.title;
+    if (data.type      !== undefined) lessonUpdate.type      = data.type;
+    if (data.content   !== undefined) lessonUpdate.content   = data.content;
+    if (data.video_url !== undefined) lessonUpdate.video_urls = [data.video_url];
+    if (data.file_url  !== undefined) lessonUpdate.file_urls  = [data.file_url];
     if (data.duration !== undefined) lessonUpdate.duration = data.duration;
     if (data.order    !== undefined) lessonUpdate.order    = data.order;
 
@@ -847,7 +847,7 @@ export const courseService = {
                 id: true, title: true,
                 type: true, duration: true,
                 order: true, content: true,
-                video_url: true, file_url: true
+                video_urls: true, file_urls: true
               }
             }
           }

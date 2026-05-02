@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect , Suspense } from "react";
 import { useRouter } from "next/navigation";
 import {
   Users,
@@ -137,7 +137,7 @@ function buildPaymentSummary(payments: any[]): PaymentSummary {
   );
 }
 
-export default function AdminDashboardPage() {
+function AdminDashboardPage() {
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats>(zero);
   const [paymentSummary, setPaymentSummary] =
@@ -432,4 +432,12 @@ export default function AdminDashboardPage() {
       </div>
     </main>
   );
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <AdminDashboardPage />
+    </Suspense>
+  )
 }

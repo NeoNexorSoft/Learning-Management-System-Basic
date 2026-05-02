@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState , Suspense } from "react";
 
-export default function SocialLoginLanguagePage() {
+function SocialLoginLanguagePage() {
   const [form, setForm] = useState({
     google_enabled: false,
     google_client_id: "",
@@ -116,4 +116,12 @@ export default function SocialLoginLanguagePage() {
       </form>
     </div>
   );
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <SocialLoginLanguagePage />
+    </Suspense>
+  )
 }
