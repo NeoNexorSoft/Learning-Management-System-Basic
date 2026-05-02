@@ -8,6 +8,9 @@ import {
 } from "lucide-react"
 import FilePreview from "@/components/shared/FilePreview"
 import QuizPreview from "@/components/shared/QuizPreview"
+import RichTextRenderer from "../ui/RichTextRenderer"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/hooks/useAuth"
 
 interface CourseViewerProps {
   course: any
@@ -66,6 +69,8 @@ export default function CourseViewer({
   onEnroll,
 }: CourseViewerProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const router = useRouter();
+  const { user } = useAuth()
 
   function toggleSection(id: string) {
     setExpanded(prev => {
@@ -95,6 +100,14 @@ export default function CourseViewer({
     ["TARGET_AUDIENCE", "WHO_IS_THIS_FOR"].includes(o.type),
   )
   const fallbackLearnList = learnList.length > 0 ? learnList : objectives
+
+  const isCourseCreator = course.canAccessContent && course.teacher?.id === user?.id && user?.role === "TEACHER"
+  
+  const navigateToCourse = () => {
+    // Implement navigation to course content page
+    if (isCourseCreator) router.replace(`/teacher/courses/preview/${course.slug}`);
+    router.replace(`/student/courses/${course.id}/learn`);
+  }
 
   return (
     <div>
@@ -363,10 +376,9 @@ export default function CourseViewer({
                                 </>
                               )}
                               {lesson.type === "TEXT" && lesson.content && (
-                                <div
-                                  className="mt-2 p-4 bg-slate-50 rounded-xl border border-slate-200 prose max-w-none text-sm"
-                                  dangerouslySetInnerHTML={{ __html: lesson.content }}
-                                />
+                                <div className="mt-2">
+                                  <RichTextRenderer html={lesson.content} allowFullscreen />
+                                </div>
                               )}
                               {lesson.lessonQuizzes?.map((quiz: any) => (
                                 <QuizPreview key={quiz.id} quiz={quiz} accessLevel="full" />
@@ -387,10 +399,10 @@ export default function CourseViewer({
 
           {accessLevel === "public" && onEnroll && (
             <button
-              onClick={onEnroll}
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-colors"
+              onClick={course.canAccessContent ? navigateToCourse : onEnroll}
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-colors cursor-pointer"
             >
-              Enroll Now
+              {course.canAccessContent ? (isCourseCreator ? "Manage Course" : "Continue Learning") : "Enroll Now to Access Content"}
             </button>
           )}
         </div>
