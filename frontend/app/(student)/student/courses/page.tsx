@@ -38,7 +38,7 @@ function CourseCard({ course }: { course: CourseItem }) {
   const completed = course.status === "completed"
 
   return (
-    <Link href={`/student/courses/${course.id}/learn`} className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-lg hover:border-indigo-200 transition-all group block">
+    <Link href={`/student/courses/${course.id ?? (course as any).course_id ?? (course as any).course?.id}/learn`} className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-lg hover:border-indigo-200 transition-all group block cursor-pointer">
       {course.thumbnail ? (
         <img src={course.thumbnail} alt={course.title} className="h-32 w-full object-cover" />
       ) : (

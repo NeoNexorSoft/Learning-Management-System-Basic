@@ -89,17 +89,10 @@ export default function CourseViewer({
   const lessons         = totalLessons(course.sections ?? [])
   const status          = course.status as string
 
-  const objectives  = course.objectives ?? []
-  const learnList   = objectives.filter((o: any) =>
-    ["LEARNING_OUTCOME", "WHAT_YOU_WILL_LEARN", "OUTCOME"].includes(o.type),
-  )
-  const reqList     = objectives.filter((o: any) =>
-    ["REQUIREMENT", "PREREQUISITE"].includes(o.type),
-  )
-  const audienceList = objectives.filter((o: any) =>
-    ["TARGET_AUDIENCE", "WHO_IS_THIS_FOR"].includes(o.type),
-  )
-  const fallbackLearnList = learnList.length > 0 ? learnList : objectives
+  const objectives   = course.objectives ?? []
+  const learnList    = objectives.filter((o: any) => o.type === "OBJECTIVE")
+  const reqList      = objectives.filter((o: any) => o.type === "REQUIREMENT")
+  const audienceList = objectives.filter((o: any) => o.type === "TARGET_AUDIENCE")
 
   const isCourseCreator = course.canAccessContent && course.teacher?.id === user?.id && user?.role === "TEACHER"
   
@@ -212,12 +205,12 @@ export default function CourseViewer({
         ))}
       </div>
 
-      {/* What You'll Learn */}
-      {fallbackLearnList.length > 0 && (
+      {/* Course Objective */}
+      {learnList.length > 0 && (
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm mb-6">
-          <h2 className="text-base font-bold text-slate-900 mb-4">What You&apos;ll Learn</h2>
+          <h2 className="text-base font-bold text-slate-900 mb-4">What is the Objective of this Course</h2>
           <div className="grid sm:grid-cols-2 gap-3">
-            {fallbackLearnList.map((obj: any) => (
+            {learnList.map((obj: any) => (
               <div key={obj.id} className="flex items-start gap-2 text-sm text-slate-700">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
                 <span>{obj.content}</span>
