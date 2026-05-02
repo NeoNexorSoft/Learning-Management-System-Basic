@@ -1,10 +1,14 @@
 import axios from "axios"
 import { prisma } from "../config/db"
 import { v4 as uuidv4 } from "uuid"
+import { formatSettings } from "../utils/settings";
 
 export const paymentService = {
 
   async initiatePayment(courseId: string, studentId: string) {
+    const config = await getPayStationConfig();
+    if (!config) throw Object.assign(new Error("Payment gateway not configured"), { statusCode: 500 })
+    
     const course = await prisma.course.findUnique({ where: { id: courseId } })
     if (!course) throw Object.assign(new Error("Course not found"), { statusCode: 404 })
 
@@ -40,8 +44,8 @@ export const paymentService = {
     const response = await axios.post(
         "https://api.paystation.com.bd/initiate-payment",
         new URLSearchParams({
-          merchantId:      process.env.PAYSTATION_MERCHANT_ID!,
-          password:        process.env.PAYSTATION_PASSWORD!,
+          merchantId:      config?.paystation_merchant_id || process.env.PAYSTATION_MERCHANT_ID!,
+          password:        config?.paystation_password || process.env.PAYSTATION_PASSWORD!,
           invoice_number,
           currency:        "BDT",
           payment_amount:  Math.round(finalPrice).toString(),
@@ -50,9 +54,9 @@ export const paymentService = {
           cust_phone:      student.mobile ?? "01700000000",
           cust_email:      student.email,
           // ✅ callback_url  → Paystation POSTs here (server-to-server)
-          callback_url:    `${process.env.BACKEND_URL}/api/payment/callback`,
+          callback_url:    config?.paystation_callback_url || `${process.env.BACKEND_URL}/api/payment/callback`,
           // ✅ redirect_url  → Paystation redirects browser here after payment
-          redirect_url:    `${process.env.BACKEND_URL}/api/payment/return`,
+          redirect_url:    config?.paystation_redirect_url || `${process.env.BACKEND_URL}/api/payment/return`,
           checkout_items:  JSON.stringify({ courseId, courseTitle: course.title }),
           opt_a:           courseId,
           opt_b:           studentId,
@@ -79,6 +83,8 @@ export const paymentService = {
   // ─────────────────────────────────────────────────────────────
   async handleCallback(query: any) {
     console.log("CALLBACK RECEIVED:", JSON.stringify(query))
+    const config = await getPayStationConfig();
+    if (!config) throw Object.assign(new Error("Payment gateway not configured"), { statusCode: 500 })
 
     const status         = (query.status ?? "").toString()
     const invoice_number = query.invoice_number ?? query.invoiceNumber ?? ""
@@ -117,7 +123,7 @@ export const paymentService = {
             new URLSearchParams({ invoice_number }),
             {
               headers: {
-                "merchantId":    process.env.PAYSTATION_MERCHANT_ID!,
+                "merchantId":    config?.paystation_merchant_id || process.env.PAYSTATION_MERCHANT_ID!,
                 "Content-Type":  "application/x-www-form-urlencoded",
               }
             }
@@ -216,4 +222,14 @@ export const paymentService = {
 
     return { success: false, courseId: null }
   }
+}
+
+const getPayStationConfig = async () => {
+  const configs = await prisma.systemSetting.findMany({
+    where: { key: { startsWith: "paystation_" } }
+  })
+
+  if (!configs) throw Object.assign(new Error("Payment gateway not configured"), { statusCode: 500 })
+
+  return formatSettings(configs)
 }
