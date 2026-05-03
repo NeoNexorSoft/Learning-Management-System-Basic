@@ -26,11 +26,22 @@ async function requireTeacherOwnsQuiz(quizId: string, teacherId: string) {
 }
 
 export const quizService = {
-  async createQuiz(lessonId: string, teacherId: string, body: { title?: string }) {
+  async createQuiz(
+    lessonId: string,
+    teacherId: string,
+    body: { title?: string; timer_seconds?: number; deadline?: string },
+  ) {
     await requireTeacherOwnsLesson(lessonId, teacherId)
     const count = await prisma.lessonQuiz.count({ where: { lesson_id: lessonId } })
     const quiz = await prisma.lessonQuiz.create({
-      data: { id: uuidv4(), lesson_id: lessonId, title: body.title ?? 'Quiz', order: count + 1 },
+      data: {
+        id: uuidv4(),
+        lesson_id: lessonId,
+        title: body.title ?? 'Quiz',
+        order: count + 1,
+        timer_seconds: body.timer_seconds,
+        deadline: body.deadline ? new Date(body.deadline) : undefined,
+      },
     })
     return { quiz }
   },
@@ -86,32 +97,114 @@ export const quizService = {
     return { quiz }
   },
 
-  async submitAttempt(quizId: string, studentId: string, body: { answers?: Record<string, string> }) {
-    const quiz = await prisma.lessonQuiz.findUnique({
-      where: { id: quizId },
-      include: { questions: true },
-    })
+  async startAttempt(quizId: string, studentId: string) {
+    const quiz = await prisma.lessonQuiz.findUnique({ where: { id: quizId } })
     if (!quiz) throw Object.assign(new Error('Quiz not found'), { statusCode: 404 })
 
-    const answers = body.answers ?? {}
-    let correct = 0
-    for (const q of quiz.questions) {
-      if (answers[q.id] === q.correct_answer) correct++
+    const existing = await prisma.quizAttempt.findUnique({
+      where: { quiz_id_student_id: { quiz_id: quizId, student_id: studentId } },
+    })
+    if (existing) {
+      throw Object.assign(new Error('You have already attempted this quiz'), { statusCode: 400 })
     }
-    const total = quiz.questions.length
-    const score = total > 0 ? (correct / total) * 100 : 0
 
     const attempt = await prisma.quizAttempt.create({
       data: {
         id: uuidv4(),
         quiz_id: quizId,
         student_id: studentId,
-        answers,
-        score,
-        graded: true,
+        answers: {},
+        submitted: false,
+        started_at: new Date(),
       },
     })
-    return { attempt, score, correct, total }
+    return { attempt }
+  },
+
+  async submitAttempt(quizId: string, studentId: string, body: { answers?: Record<string, string> }) {
+    const attempt = await prisma.quizAttempt.findUnique({
+      where: { quiz_id_student_id: { quiz_id: quizId, student_id: studentId } },
+    })
+    if (!attempt) {
+      throw Object.assign(new Error('You must start the quiz before submitting'), { statusCode: 400 })
+    }
+    if (attempt.submitted) {
+      throw Object.assign(new Error('You have already submitted this quiz'), { statusCode: 400 })
+    }
+
+    const quiz = await prisma.lessonQuiz.findUnique({
+      where: { id: quizId },
+      include: { questions: true },
+    })
+    if (!quiz) throw Object.assign(new Error('Quiz not found'), { statusCode: 404 })
+
+    let is_late = false
+    if (quiz.timer_seconds && attempt.started_at) {
+      is_late = new Date() > new Date(attempt.started_at.getTime() + quiz.timer_seconds * 1000 + 10000)
+    }
+
+    const answers = body.answers ?? {}
+    let correct = 0
+    const result = quiz.questions.map((q) => {
+      const student_answer = answers[q.id] ?? null
+      const is_correct = student_answer === q.correct_answer
+      if (is_correct) correct++
+      return {
+        question_id: q.id,
+        question: q.question,
+        options: q.options,
+        correct_answer: q.correct_answer,
+        student_answer,
+        is_correct,
+      }
+    })
+
+    const total = quiz.questions.length
+    const score = total > 0 ? (correct / total) * 100 : 0
+    const time_taken_seconds = attempt.started_at
+      ? Math.floor((new Date().getTime() - attempt.started_at.getTime()) / 1000)
+      : null
+
+    await prisma.quizAttempt.update({
+      where: { quiz_id_student_id: { quiz_id: quizId, student_id: studentId } },
+      data: { answers, score, graded: true, submitted: true, is_late, time_taken_seconds },
+    })
+
+    return { score, correct, total, is_late, time_taken_seconds, result }
+  },
+
+  async getMyAttempt(quizId: string, studentId: string) {
+    const attempt = await prisma.quizAttempt.findUnique({
+      where: { quiz_id_student_id: { quiz_id: quizId, student_id: studentId } },
+    })
+    if (!attempt) throw Object.assign(new Error('No attempt found'), { statusCode: 404 })
+
+    const quiz = await prisma.lessonQuiz.findUnique({
+      where: { id: quizId },
+      include: { questions: true },
+    })
+    if (!quiz) throw Object.assign(new Error('Quiz not found'), { statusCode: 404 })
+
+    const answers = (attempt.answers ?? {}) as Record<string, string>
+    let correct = 0
+    const result = quiz.questions.map((q) => {
+      const student_answer = answers[q.id] ?? null
+      const is_correct = student_answer === q.correct_answer
+      if (is_correct) correct++
+      return {
+        question_id: q.id,
+        question: q.question,
+        options: q.options,
+        correct_answer: q.correct_answer,
+        student_answer,
+        is_correct,
+      }
+    })
+
+    const total = quiz.questions.length
+    const score = total > 0 ? (correct / total) * 100 : 0
+
+    return { attempt, score, correct, total, result }
   },
 
   async getAttempts(quizId: string, teacherId: string) {

@@ -89,6 +89,24 @@ export const quizController = {
     }
   },
 
+  async startAttempt(req: Request, res: Response) {
+    try {
+      const result = await quizService.startAttempt(req.params.quizId as string, req.user!.userId)
+      res.status(201).json({ success: true, data: result })
+    } catch (err: any) {
+      res.status(err.statusCode ?? 500).json({ success: false, message: err.message })
+    }
+  },
+
+  async getMyAttempt(req: Request, res: Response) {
+    try {
+      const result = await quizService.getMyAttempt(req.params.quizId as string, req.user!.userId)
+      res.status(200).json({ success: true, data: result })
+    } catch (err: any) {
+      res.status(err.statusCode ?? 500).json({ success: false, message: err.message })
+    }
+  },
+
   async gradeAttempt(req: Request, res: Response) {
     try {
       const result = await quizService.gradeAttempt(

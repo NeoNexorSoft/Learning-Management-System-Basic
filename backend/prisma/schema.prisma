@@ -198,8 +198,8 @@ model Lesson {
   title      String
   type       LessonType
   content    String?
-  video_url  String?
-  file_url   String?
+  video_urls  String[]
+  file_urls   String[]
   duration   Int        @default(0)
   order      Int        @default(0)
   created_at DateTime   @default(now())
@@ -422,11 +422,13 @@ model SystemSetting {
 }
 
 model LessonQuiz {
-  id         String   @id @default(uuid())
-  lesson_id  String
-  title      String
-  order      Int      @default(0)
-  created_at DateTime @default(now())
+  id              String    @id @default(uuid())
+  lesson_id       String
+  title           String
+  order           Int       @default(0)
+  timer_seconds   Int?
+  deadline        DateTime?
+  created_at      DateTime  @default(now())
 
   lesson    Lesson               @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
   questions LessonQuizQuestion[]
@@ -450,18 +452,23 @@ model LessonQuizQuestion {
 }
 
 model QuizAttempt {
-  id           String   @id @default(uuid())
-  quiz_id      String
-  student_id   String
-  answers      Json
-  score        Decimal? @db.Decimal(5, 2)
-  feedback     String?
-  graded       Boolean  @default(false)
-  submitted_at DateTime @default(now())
+  id                  String    @id @default(uuid())
+  quiz_id             String
+  student_id          String
+  answers             Json
+  score               Decimal?  @db.Decimal(5, 2)
+  feedback            String?
+  graded              Boolean   @default(false)
+  submitted_at        DateTime  @default(now())
+  started_at          DateTime?
+  time_taken_seconds  Int?
+  is_late             Boolean   @default(false)
+  submitted           Boolean   @default(false)
 
   quiz    LessonQuiz @relation(fields: [quiz_id], references: [id], onDelete: Cascade)
   student User       @relation(fields: [student_id], references: [id])
 
+  @@unique([quiz_id, student_id])
   @@map("quiz_attempts")
 }
 

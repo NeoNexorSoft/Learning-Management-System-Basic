@@ -20,8 +20,14 @@ export default function AdminLayout({
     const token = localStorage.getItem("admin_token");
     const raw = localStorage.getItem("admin_user");
 
-    if (!token || !raw) {
+    function clearAndRedirect() {
+      localStorage.removeItem("admin_token");
+      localStorage.removeItem("admin_user");
       router.replace("/admin/login");
+    }
+
+    if (!token || !raw) {
+      clearAndRedirect();
       return;
     }
 
@@ -29,13 +35,13 @@ export default function AdminLayout({
       const user: AdminUser = JSON.parse(raw);
 
       if (user.role !== "ADMIN") {
-        router.replace("/admin/login");
+        clearAndRedirect();
         return;
       }
 
       setAdmin(user);
     } catch {
-      router.replace("/admin/login");
+      clearAndRedirect();
       return;
     }
 

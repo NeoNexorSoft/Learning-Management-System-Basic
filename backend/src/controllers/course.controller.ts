@@ -307,7 +307,7 @@ export const courseController = {
         req.params.courseId as string,
         studentId
       )
-      res.json({ success: true, data: { course: result } })
+      res.json({ success: true, data: { course: result.course, enrollment: result.enrollment } })
     } catch (err: any) {
       res.status(err.statusCode ?? 500).json({
         success: false, message: err.message
