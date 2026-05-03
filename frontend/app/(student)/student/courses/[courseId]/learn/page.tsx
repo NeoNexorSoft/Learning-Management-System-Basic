@@ -319,6 +319,12 @@ export default function LearnPage() {
                                             {lesson.lessonQuizzes?.map((quiz: any) => {
                                                 const attempted = quiz.attempts?.length > 0
                                                 const attempt   = quiz.attempts?.[0]
+                                                const pct = attempt?.score != null
+                                                    ? Math.round(Number(attempt.score))
+                                                    : attempt?.correct != null && attempt?.total != null
+                                                    ? Math.round((attempt.correct / attempt.total) * 100)
+                                                    : null
+                                                console.log("attempt data:", quiz.attempts?.[0])
                                                 return (
                                                     <div
                                                         key={quiz.id}
@@ -351,9 +357,7 @@ export default function LearnPage() {
                                                         </div>
                                                         {attempted ? (
                                                             <span className="text-sm font-extrabold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full flex-shrink-0">
-                                                                {attempt.correct != null
-                                                                    ? `${attempt.correct}/${attempt.total}`
-                                                                    : `${Math.round(attempt.score ?? 0)}%`} ✓
+                                                                {pct !== null ? `${pct}%` : "Done"} ✓
                                                             </span>
                                                         ) : (
                                                             <span className="text-[10px] font-semibold text-amber-600 flex-shrink-0">
@@ -704,23 +708,25 @@ function QuizExaminer({
                             )}
                             {q.type === "TRUE_FALSE" && (
                                 <div className="flex gap-3">
-                                    {["True", "False"].map((opt, oi) => (
-                                        <button key={oi}
-                                            onClick={() => !submitted && setAnswers(a => ({ ...a, [q.id]: opt }))}
-                                            disabled={submitted}
-                                            className={`flex-1 py-3 rounded-xl border text-sm font-bold transition-all ${
-                                                submitted && result?.correct_answer === opt
-                                                    ? "border-emerald-400 bg-emerald-50 text-emerald-700"
-                                                    : submitted && studentAnswer === opt && result?.is_correct === false
-                                                    ? "border-red-400 bg-red-50 text-red-700"
-                                                    : studentAnswer === opt
-                                                    ? "border-indigo-400 bg-indigo-50 text-indigo-700"
-                                                    : "border-slate-200 hover:border-indigo-300 text-slate-600"
-                                            }`}
-                                        >
-                                            {opt === "True" ? "✓ True" : "✗ False"}
-                                        </button>
-                                    ))}
+                                    {["True", "False"].map((opt, oi) => {
+                                        const isTFCorrect  = submitted && result?.correct_answer === opt
+                                        const isTFWrong    = submitted && result?.is_correct === false && result?.student_answer === opt
+                                        const isTFSelected = !submitted && studentAnswer === opt
+                                        return (
+                                            <button key={oi}
+                                                onClick={() => !submitted && setAnswers(a => ({ ...a, [q.id]: opt }))}
+                                                disabled={submitted}
+                                                className={`flex-1 py-3 rounded-xl border text-sm font-bold transition-all ${
+                                                    isTFCorrect  ? "border-emerald-400 bg-emerald-50 text-emerald-700 font-bold" :
+                                                    isTFWrong    ? "border-red-400 bg-red-50 text-red-700" :
+                                                    isTFSelected ? "border-indigo-400 bg-indigo-50 text-indigo-700" :
+                                                                   "border-slate-200 hover:border-indigo-300 text-slate-600"
+                                                }`}
+                                            >
+                                                {opt}
+                                            </button>
+                                        )
+                                    })}
                                 </div>
                             )}
                             {q.type === "FILL_BLANK" && (
