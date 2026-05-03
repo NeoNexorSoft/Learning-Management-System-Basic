@@ -77,7 +77,7 @@ export default function PaymentGatewaysPage() {
         body: JSON.stringify({ group: "payment", settings: form }),
       });
       const data = await res.json();
-      setMessage(data.payment ? "✓ Settings saved!" : "✗ Failed to save.");
+      setMessage(data.success? "✓ Settings saved!" : "✗ Failed to save.");
     } finally {
       setSaving(false);
     }
