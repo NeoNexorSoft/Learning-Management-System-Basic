@@ -61,26 +61,26 @@ export default function LogoFaviconPage() {
 
       if (logoFile) {
         const formData = new FormData();
-        formData.append("file", logoFile);
-        const uploadRes = await fetch(`${API}/api/upload`, {
+        formData.append("logo", logoFile);
+        const uploadRes = await fetch(`${API}/api/upload/logo`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
           body: formData,
         });
         const uploadData = await uploadRes.json();
-        if (uploadData.url) logo_url = uploadData.url;
+        if (uploadData.data?.url) logo_url = uploadData.data.url;
       }
 
       if (faviconFile) {
         const formData = new FormData();
-        formData.append("file", faviconFile);
-        const uploadRes = await fetch(`${API}/api/upload`, {
+        formData.append("logo", faviconFile);
+        const uploadRes = await fetch(`${API}/api/upload/logo`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
           body: formData,
         });
         const uploadData = await uploadRes.json();
-        if (uploadData.url) favicon_url = uploadData.url;
+        if (uploadData.data?.url) favicon_url = uploadData.data.url;
       }
 
       // Save URLs to system config

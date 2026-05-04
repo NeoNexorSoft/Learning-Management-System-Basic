@@ -7,9 +7,10 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
-    const token      = getToken()
     const adminToken = localStorage.getItem("admin_token")
-    const bearer     = token || adminToken
+    const token      = getToken()
+    const isAdminPage = window.location.pathname.startsWith("/admin")
+    const bearer = isAdminPage ? (adminToken || token) : (token || adminToken)
     if (bearer) config.headers.Authorization = `Bearer ${bearer}`
   }
   return config

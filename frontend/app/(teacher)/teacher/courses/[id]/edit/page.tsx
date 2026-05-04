@@ -370,13 +370,7 @@ function LectureForm({ lecture, onChange, onDelete, uploadConfig }: {
         {isText && (
             <div>
               <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5 block">Article / Lesson Text</label>
-              <textarea
-                  value={lecture.text_content ?? ""}
-                  onChange={e => onChange({ ...lecture, text_content: e.target.value })}
-                  rows={6}
-                  placeholder="Write the full lesson text here. Students will read this directly."
-                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 bg-white focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none resize-y transition-all"
-              />
+              <RichTextEditor initialValue={lecture.text_content} onBlur={html => onChange({ ...lecture, text_content: html })} />
             </div>
         )}
 
@@ -908,7 +902,7 @@ export default function EditCoursePage() {
               title:        l.title,
               type:         l.type?.toLowerCase() ?? "video",
               duration:     l.duration?.toString() ?? "",
-              file_urls:    l.video_url ? [l.video_url] : l.file_url ? [l.file_url] : [],
+              file_urls:    l.video_urls ? l.video_urls : l.file_urls ? [l.file_urls] : [],
               text_content: l.content ?? "",
               quizzes:      [],
             })) ?? [],
