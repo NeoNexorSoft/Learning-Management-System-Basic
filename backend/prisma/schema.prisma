@@ -111,6 +111,7 @@ model User {
   loginHistory      LoginHistory[]
   quizAttempts      QuizAttempt[]
   blogs             Blog[]            @relation("BlogAuthor")
+  simulations       Simulation[]      @relation("createdBy")
 
   @@map("users")
 }
@@ -483,4 +484,29 @@ model Blog {
   @@index([slug])
   @@index([authorId])
   @@map("blogs")
+}
+
+model Simulation {
+  id          String   @id @default(uuid())
+  title       String
+  description String?  @db.Text
+  subject     String   // e.g. "Physics", "Chemistry", "Biology", "Math"
+  gradeLevel  String   // e.g. "Grade 9", "Grade 10", "University"
+  provider    String?   // e.g. "PhET", "GeoGebra", "HHMI BioInteractive"
+  simulationUrl String // The third-party URL that will be embedded in the iframe
+  thumbnailUrl  String? // Optional preview image stored on Cloudinary
+  isPublished Boolean  @default(false)
+ 
+  createdById String
+  createdBy   User   @relation("createdBy", fields: [createdById], references: [id])
+ 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+ 
+  @@index([subject])
+  @@index([gradeLevel])
+  @@index([isPublished])
+  @@index([createdById])
+
+  @@map("simulations")
 }
