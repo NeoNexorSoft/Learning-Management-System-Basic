@@ -34,9 +34,9 @@ export default function CreateAssignmentModal({ open, onClose, onCreated }: Prop
   useEffect(() => {
     if (!open) return
     api
-      .get("/api/courses/my-courses")
+      .get("/api/teacher/courses")
       .then(({ data }) => {
-        setCourses(data.data?.courses ?? data.data?.data ?? [])
+        setCourses(data.data ?? [])
       })
       .catch(() => {})
   }, [open])
@@ -68,10 +68,10 @@ export default function CreateAssignmentModal({ open, onClose, onCreated }: Prop
     try {
       const form = new FormData()
       form.append("file", f)
-      const { data } = await api.post("/api/upload/cloudinary", form, {
+      const { data } = await api.post("/api/upload/document", form, {
         headers: { "Content-Type": "multipart/form-data" },
       })
-      setFileUrl(data.url ?? data.data?.url ?? "")
+      setFileUrl(data.data?.url ?? "")
     } catch (err: any) {
       setError(err.response?.data?.message ?? "File upload failed")
       setFile(null)
@@ -86,6 +86,10 @@ export default function CreateAssignmentModal({ open, onClose, onCreated }: Prop
     if (!title.trim()) { setError("Title is required."); return }
     if (!dueDate)       { setError("Due date is required."); return }
     if (target === "COURSE" && !courseId) { setError("Please select a course."); return }
+    if (!description.trim() && !fileUrl) {
+      setError("Please provide assignment content as plain text or upload a PDF. At least one is required.")
+      return
+    }
 
     setError("")
     setSubmitting(true)
@@ -128,18 +132,6 @@ export default function CreateAssignmentModal({ open, onClose, onCreated }: Prop
             onChange={e => setTitle(e.target.value)}
             placeholder="e.g. Week 3 Essay"
             className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          />
-        </div>
-
-        {/* Description */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">Description</label>
-          <textarea
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-            placeholder="Instructions or details for students…"
-            rows={3}
-            className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
           />
         </div>
 
@@ -204,17 +196,37 @@ export default function CreateAssignmentModal({ open, onClose, onCreated }: Prop
           </div>
         </div>
 
-        {/* File upload */}
+        {/* Assignment Instructions */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1.5">
-            Attachment{" "}
-            <span className="text-slate-400 font-normal">(optional)</span>
+            Assignment Instructions (Plain Text)
+          </label>
+          <textarea
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            placeholder="Write assignment instructions for students…"
+            rows={4}
+            className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+          />
+        </div>
+
+        {/* Divider */}
+        <div className="flex items-center gap-3 text-slate-400 text-xs">
+          <span className="flex-1 h-px bg-slate-200" />
+          OR
+          <span className="flex-1 h-px bg-slate-200" />
+        </div>
+
+        {/* Upload PDF */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            Upload PDF
           </label>
           <input
             ref={fileRef}
             type="file"
             onChange={handleFileChange}
-            accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.zip"
+            accept=".pdf"
             className="hidden"
           />
           <button
@@ -236,7 +248,7 @@ export default function CreateAssignmentModal({ open, onClose, onCreated }: Prop
             ) : (
               <>
                 <Upload className="w-4 h-4" />
-                Click to upload file
+                Click to upload PDF
               </>
             )}
           </button>
@@ -246,6 +258,9 @@ export default function CreateAssignmentModal({ open, onClose, onCreated }: Prop
               File uploaded successfully
             </p>
           )}
+          <p className="text-xs text-slate-400 mt-2">
+            At least one of the above is required
+          </p>
         </div>
 
         {/* Actions */}
@@ -268,7 +283,7 @@ export default function CreateAssignmentModal({ open, onClose, onCreated }: Prop
                 Creating…
               </>
             ) : (
-              "Create Assignment"
+              "Submit for Admin Approval"
             )}
           </button>
         </div>

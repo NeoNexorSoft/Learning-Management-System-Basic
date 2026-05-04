@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, Suspense } from "react"
+import { useState, useEffect, useCallback, useRef, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import {
   CheckCircle,
@@ -13,6 +13,10 @@ import {
   FileText,
   Clock,
   TrendingUp,
+  Eye,
+  Upload,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react"
 import type { ElementType } from "react"
 import api from "@/lib/axios"
@@ -21,6 +25,8 @@ import SearchInput from "@/components/admin/SearchInput"
 import ConfirmDialog from "@/components/admin/ConfirmDialog"
 import Badge from "@/components/admin/Badge"
 import Modal from "@/components/admin/Modal"
+import dynamic from "next/dynamic"
+const PdfViewer = dynamic(() => import("@/components/shared/PdfViewer"), { ssr: false })
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -31,6 +37,7 @@ interface Assignment {
   id: string
   title: string
   description: string | null
+  file_url: string | null
   target: "COURSE" | "ALL_ENROLLED"
   status: AssignmentStatus
   due_date: string
@@ -43,11 +50,19 @@ interface Assignment {
   _count: { submissions: number }
 }
 
+interface Course {
+  id: string
+  title: string
+}
+
 interface EditForm {
   title: string
   description: string
   due_date: string
   total_marks: number
+  file_url: string
+  target: "COURSE" | "ALL_ENROLLED"
+  course_id: string
 }
 
 type Toast = { type: "success" | "error"; message: string } | null
@@ -59,20 +74,21 @@ const TABS: StatusTab[] = ["ALL", "PENDING", "APPROVED", "REJECTED"]
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatDate(s: string) {
-  return new Date(s).toLocaleDateString("en-GB", {
-    day: "2-digit",
+  return new Date(s).toLocaleString("en-US", {
     month: "short",
+    day: "numeric",
     year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   })
 }
 
-// Maps PENDING_APPROVAL → "Pending" so Badge's colorMap resolves to amber
 function statusLabel(status: AssignmentStatus): string {
   if (status === "PENDING_APPROVAL") return "Pending"
   return status.charAt(0) + status.slice(1).toLowerCase()
 }
 
-// ─── Inline StatCard (extends shared design with optional onClick) ─────────────
+// ─── StatCard ─────────────────────────────────────────────────────────────────
 
 function StatCard({
   icon: Icon,
@@ -111,13 +127,12 @@ function StatCard({
   )
 }
 
-// ─── Inner page (needs Suspense for useSearchParams) ──────────────────────────
+// ─── Inner page ───────────────────────────────────────────────────────────────
 
 function AdminAssignmentsPage() {
   const router       = useRouter()
   const searchParams = useSearchParams()
 
-  // Default tab is PENDING (no param = pending)
   const rawTab = searchParams.get("tab")?.toUpperCase() as StatusTab | undefined
   const tab    = rawTab ?? "PENDING"
   const search = searchParams.get("search") ?? ""
@@ -126,21 +141,30 @@ function AdminAssignmentsPage() {
   const [loading,        setLoading]        = useState(true)
   const [toast,          setToast]          = useState<Toast>(null)
 
-  // Per-row action loading
   const [approvingId, setApprovingId] = useState<string | null>(null)
   const [rejectingId, setRejectingId] = useState<string | null>(null)
 
-  // Delete confirm
-  const [deleteTarget,   setDeleteTarget]   = useState<Assignment | null>(null)
-  const [deleteLoading,  setDeleteLoading]  = useState(false)
+  const [deleteTarget,  setDeleteTarget]  = useState<Assignment | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+
+  // View modal
+  const [viewTarget,  setViewTarget]  = useState<Assignment | null>(null)
+  const [showViewPdf, setShowViewPdf] = useState(false)
 
   // Edit modal
-  const [editTarget,  setEditTarget]  = useState<Assignment | null>(null)
-  const [editForm,    setEditForm]    = useState<EditForm>({ title: "", description: "", due_date: "", total_marks: 100 })
-  const [editLoading, setEditLoading] = useState(false)
-  const [editError,   setEditError]   = useState("")
+  const [editTarget, setEditTarget] = useState<Assignment | null>(null)
+  const [editForm,   setEditForm]   = useState<EditForm>({
+    title: "", description: "", due_date: "", total_marks: 100,
+    file_url: "", target: "COURSE", course_id: "",
+  })
+  const [editCourses,       setEditCourses]       = useState<Course[]>([])
+  const [editFileUploading, setEditFileUploading] = useState(false)
+  const [editFile,          setEditFile]          = useState<File | null>(null)
+  const [editLoading,       setEditLoading]       = useState(false)
+  const [editError,         setEditError]         = useState("")
+  const editFileRef = useRef<HTMLInputElement>(null)
 
-  // ── URL helpers ─────────────────────────────────────────────────────────────
+  // ── URL helpers ──────────────────────────────────────────────────────────────
 
   function setParam(key: string, value: string | null) {
     const params = new URLSearchParams(searchParams.toString())
@@ -149,14 +173,14 @@ function AdminAssignmentsPage() {
     router.push(`/admin/assignments?${params.toString()}`)
   }
 
-  // ── Toast ───────────────────────────────────────────────────────────────────
+  // ── Toast ────────────────────────────────────────────────────────────────────
 
   function showToast(type: "success" | "error", message: string) {
     setToast({ type, message })
     setTimeout(() => setToast(null), 3500)
   }
 
-  // ── Data fetching ────────────────────────────────────────────────────────────
+  // ── Data fetching ─────────────────────────────────────────────────────────────
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -174,13 +198,13 @@ function AdminAssignmentsPage() {
 
   useEffect(() => { load() }, [load])
 
-  // ── Derived data ─────────────────────────────────────────────────────────────
+  // ── Derived data ──────────────────────────────────────────────────────────────
 
   const filtered = allAssignments.filter(a => {
     const matchesTab =
-      tab === "ALL"      ? true :
-      tab === "PENDING"  ? a.status === "PENDING_APPROVAL" :
-                           a.status === tab
+      tab === "ALL"     ? true :
+      tab === "PENDING" ? a.status === "PENDING_APPROVAL" :
+                          a.status === tab
 
     const q = search.toLowerCase()
     const matchesSearch =
@@ -197,7 +221,7 @@ function AdminAssignmentsPage() {
   const approved = allAssignments.filter(a => a.status === "APPROVED").length
   const rejected = allAssignments.filter(a => a.status === "REJECTED").length
 
-  // ── Actions ──────────────────────────────────────────────────────────────────
+  // ── Actions ───────────────────────────────────────────────────────────────────
 
   async function handleApprove(id: string) {
     setApprovingId(id)
@@ -240,15 +264,70 @@ function AdminAssignmentsPage() {
     }
   }
 
-  function openEdit(a: Assignment) {
+  function openView(a: Assignment) {
+    setViewTarget(a)
+    setShowViewPdf(false)
+  }
+
+  function closeView() {
+    setViewTarget(null)
+    setShowViewPdf(false)
+  }
+
+  async function openEdit(a: Assignment) {
     setEditTarget(a)
     setEditForm({
       title:       a.title,
       description: a.description ?? "",
       due_date:    new Date(a.due_date).toISOString().slice(0, 16),
       total_marks: a.total_marks,
+      file_url:    a.file_url ?? "",
+      target:      a.target,
+      course_id:   a.course?.id ?? "",
     })
     setEditError("")
+    setEditFile(null)
+    setEditFileUploading(false)
+    if (editFileRef.current) editFileRef.current.value = ""
+
+    if (editCourses.length === 0) {
+      try {
+        const { data } = await api.get("/api/admin/courses", {
+          params: { status: "APPROVED", limit: 100 },
+        })
+        setEditCourses(data.data?.courses ?? data.data ?? [])
+      } catch {
+        // non-fatal — dropdown stays empty
+      }
+    }
+  }
+
+  function closeEdit() {
+    setEditTarget(null)
+    setEditError("")
+    if (editFileRef.current) editFileRef.current.value = ""
+  }
+
+  async function handleEditFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]
+    if (!f) return
+    setEditFile(f)
+    setEditFileUploading(true)
+    setEditError("")
+    try {
+      const form = new FormData()
+      form.append("file", f)
+      const { data } = await api.post("/api/upload/document", form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+      setEditForm(p => ({ ...p, file_url: data.data?.url ?? "" }))
+    } catch (err: any) {
+      setEditError(err.response?.data?.message ?? "File upload failed")
+      setEditFile(null)
+      if (editFileRef.current) editFileRef.current.value = ""
+    } finally {
+      setEditFileUploading(false)
+    }
   }
 
   async function handleEdit() {
@@ -264,9 +343,12 @@ function AdminAssignmentsPage() {
         description: editForm.description.trim() || undefined,
         due_date:    new Date(editForm.due_date).toISOString(),
         total_marks: editForm.total_marks,
+        file_url:    editForm.file_url || undefined,
+        target:      editForm.target,
+        course_id:   editForm.target === "COURSE" ? editForm.course_id || undefined : undefined,
       })
       showToast("success", "Assignment updated successfully")
-      setEditTarget(null)
+      closeEdit()
       load()
     } catch (err: any) {
       setEditError(err.response?.data?.message ?? "Failed to update assignment")
@@ -275,20 +357,13 @@ function AdminAssignmentsPage() {
     }
   }
 
-  // ── Table columns ─────────────────────────────────────────────────────────────
+  // ── Table columns ──────────────────────────────────────────────────────────────
 
   const columns: Column<Assignment>[] = [
     {
       header: "Assignment",
       render: (a) => (
-        <div>
-          <p className="font-semibold text-slate-800 text-sm">{a.title}</p>
-          {a.description && (
-            <p className="text-xs text-slate-400 mt-0.5 truncate max-w-[180px]">
-              {a.description}
-            </p>
-          )}
-        </div>
+        <p className="font-semibold text-slate-800 text-sm">{a.title}</p>
       ),
     },
     {
@@ -340,7 +415,7 @@ function AdminAssignmentsPage() {
     {
       header: "Actions",
       render: (a) => (
-        <div className="flex items-center gap-1.5 flex-wrap min-w-[160px]">
+        <div className="flex items-center gap-1.5 flex-wrap min-w-[200px]">
           {a.status === "PENDING_APPROVAL" && (
             <>
               <button
@@ -370,8 +445,15 @@ function AdminAssignmentsPage() {
             </>
           )}
           <button
-            onClick={() => openEdit(a)}
+            onClick={() => openView(a)}
             className="flex items-center gap-1 px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg transition-colors"
+          >
+            <Eye className="w-3.5 h-3.5" />
+            View
+          </button>
+          <button
+            onClick={() => openEdit(a)}
+            className="flex items-center gap-1 px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-semibold rounded-lg transition-colors"
           >
             <Pencil className="w-3.5 h-3.5" />
             Edit
@@ -388,7 +470,7 @@ function AdminAssignmentsPage() {
     },
   ]
 
-  // ── Render ────────────────────────────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────────────────────────────
 
   return (
     <main className="flex-1 p-6 space-y-6">
@@ -447,9 +529,7 @@ function AdminAssignmentsPage() {
         {TABS.map(t => (
           <button
             key={t}
-            onClick={() =>
-              setParam("tab", t === "PENDING" ? null : t)
-            }
+            onClick={() => setParam("tab", t === "PENDING" ? null : t)}
             className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
               tab === t
                 ? "bg-white text-slate-900 shadow-sm"
@@ -496,10 +576,62 @@ function AdminAssignmentsPage() {
         danger={true}
       />
 
+      {/* ── View modal ───────────────────────────────────────────────────────── */}
+      <Modal
+        isOpen={!!viewTarget}
+        onClose={closeView}
+        title={viewTarget?.title ?? "Assignment"}
+        size="xl"
+      >
+        {viewTarget && (
+          <div className="space-y-4">
+            {viewTarget.description && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Instructions
+                </label>
+                <div className="px-3.5 py-2.5 bg-indigo-50 border border-indigo-100 rounded-xl text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+                  {viewTarget.description}
+                </div>
+              </div>
+            )}
+
+            {viewTarget.file_url && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowViewPdf(prev => !prev)}
+                  className="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-xl hover:bg-indigo-100 transition-colors"
+                >
+                  <FileText className="w-4 h-4" />
+                  {showViewPdf ? "Hide PDF" : "View PDF"}
+                  {showViewPdf ? (
+                    <ChevronUp className="w-3.5 h-3.5" />
+                  ) : (
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  )}
+                </button>
+                {showViewPdf && (
+                  <div className="mt-3">
+                    <PdfViewer url={viewTarget.file_url} />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!viewTarget.description && !viewTarget.file_url && (
+              <p className="text-sm text-slate-400 text-center py-6">
+                No content provided.
+              </p>
+            )}
+          </div>
+        )}
+      </Modal>
+
       {/* ── Edit modal ──────────────────────────────────────────────────────── */}
       <Modal
         isOpen={!!editTarget}
-        onClose={() => setEditTarget(null)}
+        onClose={closeEdit}
         title="Edit Assignment"
         size="lg"
       >
@@ -520,9 +652,7 @@ function AdminAssignmentsPage() {
               <input
                 type="text"
                 value={editForm.title}
-                onChange={e =>
-                  setEditForm(p => ({ ...p, title: e.target.value }))
-                }
+                onChange={e => setEditForm(p => ({ ...p, title: e.target.value }))}
                 className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
@@ -534,14 +664,52 @@ function AdminAssignmentsPage() {
               </label>
               <textarea
                 value={editForm.description}
-                onChange={e =>
-                  setEditForm(p => ({ ...p, description: e.target.value }))
-                }
+                onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))}
                 rows={3}
                 placeholder="Optional instructions…"
                 className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
               />
             </div>
+
+            {/* Target */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                Target
+              </label>
+              <select
+                value={editForm.target}
+                onChange={e =>
+                  setEditForm(p => ({
+                    ...p,
+                    target: e.target.value as "COURSE" | "ALL_ENROLLED",
+                    course_id: "",
+                  }))
+                }
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              >
+                <option value="COURSE">Course</option>
+                <option value="ALL_ENROLLED">All Enrolled</option>
+              </select>
+            </div>
+
+            {/* Course — only when target is COURSE */}
+            {editForm.target === "COURSE" && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Course
+                </label>
+                <select
+                  value={editForm.course_id}
+                  onChange={e => setEditForm(p => ({ ...p, course_id: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                >
+                  <option value="">Select a course…</option>
+                  {editCourses.map(c => (
+                    <option key={c.id} value={c.id}>{c.title}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Due Date + Total Marks */}
             <div className="grid grid-cols-2 gap-4">
@@ -552,9 +720,7 @@ function AdminAssignmentsPage() {
                 <input
                   type="datetime-local"
                   value={editForm.due_date}
-                  onChange={e =>
-                    setEditForm(p => ({ ...p, due_date: e.target.value }))
-                  }
+                  onChange={e => setEditForm(p => ({ ...p, due_date: e.target.value }))}
                   className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
               </div>
@@ -567,27 +733,69 @@ function AdminAssignmentsPage() {
                   min={1}
                   value={editForm.total_marks}
                   onChange={e =>
-                    setEditForm(p => ({
-                      ...p,
-                      total_marks: Math.max(1, Number(e.target.value)),
-                    }))
+                    setEditForm(p => ({ ...p, total_marks: Math.max(1, Number(e.target.value)) }))
                   }
                   className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
               </div>
             </div>
 
+            {/* PDF Upload */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                Assignment PDF
+              </label>
+              <input
+                ref={editFileRef}
+                type="file"
+                accept=".pdf"
+                onChange={handleEditFileChange}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => editFileRef.current?.click()}
+                disabled={editFileUploading}
+                className="flex items-center justify-center gap-2 w-full px-4 py-3 border border-dashed border-slate-300 rounded-xl text-sm text-slate-500 hover:border-indigo-400 hover:text-indigo-500 transition-colors disabled:opacity-60"
+              >
+                {editFileUploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Uploading…
+                  </>
+                ) : editFile ? (
+                  <>
+                    <FileText className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+                    <span className="truncate max-w-xs text-slate-700 font-medium">
+                      {editFile.name}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4" />
+                    {editForm.file_url ? "Replace PDF" : "Upload PDF (optional)"}
+                  </>
+                )}
+              </button>
+              {editForm.file_url && !editFileUploading && (
+                <p className="flex items-center gap-1 text-xs text-emerald-600 mt-1.5">
+                  <CheckCircle className="w-3.5 h-3.5" />
+                  {editFile ? "New file uploaded" : "Current file attached"}
+                </p>
+              )}
+            </div>
+
             {/* Modal actions */}
             <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
               <button
-                onClick={() => setEditTarget(null)}
+                onClick={closeEdit}
                 className="px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleEdit}
-                disabled={editLoading}
+                disabled={editLoading || editFileUploading}
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-70"
               >
                 {editLoading ? (
@@ -623,7 +831,7 @@ function AdminAssignmentsPage() {
   )
 }
 
-// ─── Export with Suspense (required for useSearchParams) ──────────────────────
+// ─── Export with Suspense ─────────────────────────────────────────────────────
 
 export default function Page() {
   return (

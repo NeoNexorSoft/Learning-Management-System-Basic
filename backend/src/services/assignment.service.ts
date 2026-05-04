@@ -128,6 +128,9 @@ export const assignmentService = {
       description?: string;
       due_date?: Date | string;
       total_marks?: number;
+      file_url?: string;
+      target?: AssignmentTarget;
+      course_id?: string;
     },
   ) {
     const assignment = await prisma.assignment.findFirst({
@@ -142,6 +145,9 @@ export const assignmentService = {
         ...(data.description !== undefined && { description: data.description }),
         ...(data.due_date    !== undefined && { due_date: new Date(data.due_date) }),
         ...(data.total_marks !== undefined && { total_marks: data.total_marks }),
+        ...(data.file_url    !== undefined && { file_url: data.file_url }),
+        ...(data.target      !== undefined && { target: data.target }),
+        ...(data.course_id   !== undefined && { course_id: data.course_id }),
       },
     });
   },

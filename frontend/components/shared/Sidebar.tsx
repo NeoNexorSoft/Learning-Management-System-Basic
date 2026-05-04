@@ -65,6 +65,7 @@ const teacherCourseNav: NavItem[] = [
 ]
 const teacherBottomNav: NavItem[] = [
   { icon: ClipboardList, label: "Enrollments",      href: "/teacher/enrollments" },
+  { icon: ClipboardList, label: "Assignments",      href: "/teacher/assignments" },
   { icon: GraduationCap, label: "Students",         href: "/teacher/students" },
   { icon: Wallet,        label: "Withdraw",         href: "/teacher/withdraw" },
   { icon: History,       label: "Withdraw History", href: "/teacher/withdraw/history" },

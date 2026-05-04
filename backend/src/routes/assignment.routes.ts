@@ -13,8 +13,9 @@ assignmentRouter.get('/my',            requireRole('STUDENT'), assignmentControl
 assignmentRouter.get('/score-history', requireRole('STUDENT'), assignmentController.getStudentScoreHistory);
 
 // ─── Teacher ─────────────────────────────────────────────────────────────────
-assignmentRouter.get('/teacher',  requireRole('TEACHER'), assignmentController.getTeacherAssignments);
-assignmentRouter.post('/create',  requireRole('TEACHER'), assignmentController.createAssignment);
+assignmentRouter.get('/teacher',       requireRole('TEACHER'), assignmentController.getTeacherAssignments);
+assignmentRouter.post('/create',       requireRole('TEACHER'), assignmentController.createAssignment);
+assignmentRouter.put('/teacher/:id',   requireRole('TEACHER'), assignmentController.editTeacherAssignment);
 
 // ─── Admin ───────────────────────────────────────────────────────────────────
 assignmentRouter.get('/admin',             requireRole('ADMIN'), assignmentController.getAdminAssignments);

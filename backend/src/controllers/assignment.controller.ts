@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { assignmentService } from '../services/assignment.service';
+import { prisma } from '../config/db';
 
 export const assignmentController = {
 
@@ -29,6 +30,27 @@ export const assignmentController = {
       const teacherId = req.user!.userId;
       const assignments = await assignmentService.getTeacherAssignments(teacherId);
       res.json({ status: 'success', data: { assignments } });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async editTeacherAssignment(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const teacherId = req.user!.userId;
+      const id = req.params.id as string;
+      const { title, description, file_url, course_id, target, due_date, total_marks } = req.body;
+      const assignment = await prisma.assignment.findFirst({
+        where: { id, teacher_id: teacherId, is_deleted: false },
+      });
+      if (!assignment) {
+        res.status(404).json({ status: 'error', message: 'Assignment not found or access denied' });
+        return;
+      }
+      const updated = await assignmentService.editAssignment(id, {
+        title, description, file_url, course_id, target, due_date, total_marks,
+      });
+      res.json({ status: 'success', data: { assignment: updated } });
     } catch (err) {
       next(err);
     }
@@ -103,12 +125,9 @@ export const assignmentController = {
   async editAssignment(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const id = req.params.id as string;
-      const { title, description, due_date, total_marks } = req.body;
+      const { title, description, due_date, total_marks, file_url, target, course_id } = req.body;
       const assignment = await assignmentService.editAssignment(id, {
-        title,
-        description,
-        due_date,
-        total_marks,
+        title, description, due_date, total_marks, file_url, target, course_id,
       });
       res.json({ status: 'success', data: { assignment } });
     } catch (err) {

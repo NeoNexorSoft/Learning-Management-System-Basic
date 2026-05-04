@@ -19,6 +19,8 @@ import TopBar from "@/components/shared/TopBar"
 import StatCard from "@/components/shared/StatCard"
 import StatusBadge from "@/components/shared/StatusBadge"
 import Modal from "@/components/admin/Modal"
+import dynamic from "next/dynamic"
+const PdfViewer = dynamic(() => import("@/components/shared/PdfViewer"), { ssr: false })
 import api from "@/lib/axios"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -48,6 +50,8 @@ interface Assignment {
   total_marks: number
   score_released: boolean
   due_date: string
+  description: string | null
+  file_url: string | null
   course: { id: string; title: string } | null
 }
 
@@ -239,15 +243,41 @@ function SubmissionsPage() {
             {assignment?.due_date && (
               <span className="text-slate-400 text-sm">
                 Due{" "}
-                {new Date(assignment.due_date).toLocaleDateString("en-US", {
+                {new Date(assignment.due_date).toLocaleString("en-US", {
                   month: "short",
                   day: "numeric",
                   year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
                 })}
               </span>
             )}
           </div>
         </div>
+
+        {/* ── Assignment Content ────────────────────────────────────────── */}
+        {(assignment?.description || assignment?.file_url) && (
+          <div className="space-y-4">
+            {assignment.description && (
+              <div>
+                <p className="text-sm font-semibold text-slate-700 mb-2">
+                  Assignment Instructions
+                </p>
+                <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+                  {assignment.description}
+                </div>
+              </div>
+            )}
+            {assignment.file_url && (
+              <div>
+                <p className="text-sm font-semibold text-slate-700 mb-2">
+                  Assignment File
+                </p>
+                <PdfViewer url={assignment.file_url} />
+              </div>
+            )}
+          </div>
+        )}
 
         {error && (
           <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-3">
@@ -460,10 +490,12 @@ function SubmissionsPage() {
               <div className="ml-auto text-right">
                 <p className="text-xs text-slate-400">Submitted</p>
                 <p className="text-sm font-medium text-slate-700">
-                  {new Date(grading.submitted_at).toLocaleDateString("en-US", {
+                  {new Date(grading.submitted_at).toLocaleString("en-US", {
                     month: "short",
                     day: "numeric",
                     year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
                   })}
                 </p>
               </div>
