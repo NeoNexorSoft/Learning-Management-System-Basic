@@ -42,6 +42,7 @@ import {
 import quizRouter from "./routes/quiz.routes";
 import paymentRouter from "./routes/payment.routes";
 import couponRoutes from "./routes/coupon.routes";
+import simulationRoutes from "./routes/simulationRoutes";
 
 const app = express();
 
@@ -104,6 +105,8 @@ app.use("/api/notifications", notificationRouter);
 app.use("/api/upload", uploadRoutes);
 app.use("/api", quizRouter);
 app.use("/api", paymentRouter);
+
+app.use("/api/simulations", simulationRoutes);
 
 app.use(
   (
