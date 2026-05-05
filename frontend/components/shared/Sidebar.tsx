@@ -23,6 +23,7 @@ import {
   History,
   Receipt,
   Award,
+  Database,
 } from "lucide-react"
 import { BrandIcon, BRAND_NAME, BRAND_ICON_BG, BRAND_ICON_COLOR } from "@/lib/brand"
 import { useNotifications } from "@/hooks/useNotifications"
@@ -63,6 +64,7 @@ const teacherCourseNav: NavItem[] = [
   { icon: PlusCircle, label: "Create Course", href: "/teacher/courses/create" },
 ]
 const teacherBottomNav: NavItem[] = [
+  { icon: Database,      label: "Question Bank",   href: "/teacher/question-bank" },
   { icon: ClipboardList, label: "Enrollments",      href: "/teacher/enrollments" },
   { icon: GraduationCap, label: "Students",         href: "/teacher/students" },
   { icon: Wallet,        label: "Withdraw",         href: "/teacher/withdraw" },
@@ -93,7 +95,7 @@ function NavLink({
             : "text-slate-400 hover:bg-slate-700/50 hover:text-white"
         }`}
       >
-        <Icon className="w-4 h-4 flex-shrink-0" />
+        <Icon className="w-4 h-4 shrink-0" />
         {label}
       </Link>
     )
@@ -111,14 +113,14 @@ function NavLink({
       }`}
       aria-label={unreadCount > 0 ? `${label}, ${unreadCount} unread` : label}
     >
-      <Icon className={`${sub ? "w-4 h-4" : "w-5 h-5"} flex-shrink-0`} />
+      <Icon className={`${sub ? "w-4 h-4" : "w-5 h-5"} shrink-0`} />
 
       <span className="flex-1">{label}</span>
 
       {/* Notification badge on the nav item */}
       {unreadCount > 0 && (
         <span
-          className={`min-w-[18px] h-[18px] text-[10px] font-bold rounded-full flex items-center justify-center leading-none px-1 ${
+          className={`min-w-4.5 h-4.5 text-[10px] font-bold rounded-full flex items-center justify-center leading-none px-1 ${
             active ? "bg-white text-indigo-600" : "bg-red-500 text-white"
           }`}
           aria-hidden="true"
@@ -156,7 +158,7 @@ export default function Sidebar({ role }: { role: "student" | "teacher" }) {
       .slice(0, 2) || "?";
 
   return (
-    <aside className="w-64 h-screen sticky top-0 bg-slate-900 flex flex-col flex-shrink-0 overflow-hidden border-r border-slate-700/50">
+    <aside className="w-64 h-screen sticky top-0 bg-slate-900 flex flex-col shrink-0 overflow-hidden border-r border-slate-700/50">
       {/* Logo — teacher only */}
       {role === "teacher" && (
         <div className="p-6 border-b border-slate-800">
@@ -202,7 +204,7 @@ export default function Sidebar({ role }: { role: "student" | "teacher" }) {
           ))}
         </nav>
       ) : (
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {teacherMainNav.map(({ icon, label, href }) => (
             <NavLink key={href} href={href} icon={icon} label={label} active={pathname === href} />
           ))}
@@ -217,7 +219,7 @@ export default function Sidebar({ role }: { role: "student" | "teacher" }) {
                   : "text-slate-400 hover:text-white hover:bg-slate-800"
               }`}
             >
-              <BookOpen className="w-5 h-5 flex-shrink-0" />
+              <BookOpen className="w-5 h-5 shrink-0" />
               <span className="flex-1 text-left">Courses</span>
               {coursesOpen
                 ? <ChevronDown className="w-4 h-4 opacity-70" />
