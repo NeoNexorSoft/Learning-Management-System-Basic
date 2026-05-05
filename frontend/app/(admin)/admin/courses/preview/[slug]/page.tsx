@@ -70,7 +70,7 @@ export default function AdminCoursePreviewPage() {
   )
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="bg-slate-50">
 
       {/* Sticky header */}
       <div className="sticky top-0 z-30 bg-white border-b border-slate-200 px-6 py-3 flex items-center gap-3">

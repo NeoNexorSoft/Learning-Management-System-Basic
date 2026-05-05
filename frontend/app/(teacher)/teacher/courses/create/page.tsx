@@ -19,7 +19,7 @@ type LectureType = "video" | "text" | "document"
 
 type QOption = [string, string, string, string]
 type QItem   = { id: string; question: string; options: QOption; correctIndex: number }
-type Quiz    = { id: string; title: string; questions: QItem[] }
+type Quiz    = { id: string; title: string; timer_seconds: number | ""; questions: QItem[] }
 
 type Lecture = {
   id: string
@@ -303,7 +303,7 @@ function LectureForm({ lecture, onChange, onDelete, uploadConfig }: {
 
   const addQuiz = () => onChange({
     ...lecture,
-    quizzes: [...lecture.quizzes, { id: uid(), title: "", questions: [{ id: uid(), question: "", options: ["", "", "", ""], correctIndex: 0 }] }],
+    quizzes: [...lecture.quizzes, { id: uid(), title: "", timer_seconds: "", questions: [{ id: uid(), question: "", options: ["", "", "", ""], correctIndex: 0 }] }],
   })
   const updQuiz = (qi: number, q: Quiz) => { const qs = [...lecture.quizzes]; qs[qi] = q; onChange({ ...lecture, quizzes: qs }) }
   const delQuiz = (qi: number) => onChange({ ...lecture, quizzes: lecture.quizzes.filter((_, i) => i !== qi) })
@@ -437,6 +437,20 @@ function QuizForm({ quiz, onChange, onDelete }: { quiz: Quiz; onChange: (q: Quiz
           <button type="button" onClick={onDelete} className="p-1 text-slate-400 hover:text-red-500"><X className="w-4 h-4" /></button>
         </div>
         <Input value={quiz.title} onChange={e => onChange({ ...quiz, title: e.target.value })} placeholder="Quiz title" className="bg-white" />
+        <div className="space-y-1">
+          <div className="flex items-center gap-1.5">
+            <label className="text-xs font-semibold text-slate-600">Timer (minutes)</label>
+            <span className="text-[10px] text-slate-400 font-medium">optional</span>
+          </div>
+          <Input
+            type="number"
+            min={1}
+            value={quiz.timer_seconds}
+            onChange={e => onChange({ ...quiz, timer_seconds: e.target.value === "" ? "" : Number(e.target.value) })}
+            placeholder="e.g. 5 (leave empty for no timer)"
+            className="bg-white"
+          />
+        </div>
         {quiz.questions.map((q, qi) => (
             <div key={q.id} className="bg-white border border-amber-200 rounded-xl p-4 space-y-3">
               <div className="flex items-center justify-between">
@@ -986,7 +1000,10 @@ export default function CreateCoursePage() {
 
           for (const quiz of lec.quizzes ?? []) {
             try {
-              const { data: qd } = await api.post(`/api/lessons/${lessonId}/quizzes`, { title: quiz.title })
+              const { data: qd } = await api.post(`/api/lessons/${lessonId}/quizzes`, {
+                title: quiz.title,
+                ...(quiz.timer_seconds ? { timer_seconds: Number(quiz.timer_seconds) * 60 } : {}),
+              })
               for (const q of quiz.questions ?? []) {
                 try {
                   await api.post(`/api/quizzes/${qd.data.quiz.id}/questions`, {

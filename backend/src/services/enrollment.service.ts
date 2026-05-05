@@ -81,7 +81,7 @@ export const enrollmentService = {
                   orderBy: { order: 'asc' },
                   select: {
                     id: true, title: true, type: true,
-                    duration: true, order: true, content: true, video_url: true,
+                    duration: true, order: true, content: true, video_urls: true,
                   },
                 },
               },

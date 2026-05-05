@@ -18,6 +18,8 @@ router.patch('/attempts/:attemptId/grade',  ...teacher, quizController.gradeAtte
 // Student routes
 router.get('/lessons/:lessonId/quizzes',    ...student, quizController.getLessonQuizzes)
 router.get('/quizzes/:quizId/take',         ...student, quizController.getQuizForStudent)
+router.post('/quizzes/:quizId/start',       ...student, quizController.startAttempt)
+router.get('/quizzes/:quizId/my-attempt',   ...student, quizController.getMyAttempt)
 router.post('/quizzes/:quizId/attempt',     ...student, quizController.submitAttempt)
 
 export default router

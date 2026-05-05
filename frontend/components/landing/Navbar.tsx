@@ -97,6 +97,7 @@ export default function Navbar() {
   }
 
   const isStudent = token && user?.role === "STUDENT"
+  const isTeacher = token && user?.role === "TEACHER"
 
   return (
     <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200">
@@ -122,7 +123,7 @@ export default function Navbar() {
 
           {/* Desktop right */}
           <div className="hidden md:flex items-center gap-1.5">
-            {isStudent ? (
+            {isStudent || isTeacher ? (
               <div className="flex items-center gap-2">
 
                 {/* Bell */}
@@ -159,7 +160,7 @@ export default function Navbar() {
                         ))}
                       </div>
                       <div className="border-t border-slate-100 px-4 py-2.5">
-                        <Link href="/student/notifications" onClick={() => setBellOpen(false)}
+                        <Link href={isTeacher ? "/teacher/notifications" : "/student/notifications"} onClick={() => setBellOpen(false)}
                           className="text-xs font-semibold text-indigo-600 hover:text-indigo-800">
                           View all notifications →
                         </Link>
@@ -192,14 +193,14 @@ export default function Navbar() {
                       {/* Links */}
                       <div className="py-1">
                         <Link
-                          href="/student/dashboard"
+                          href={isTeacher ? "/teacher/dashboard" : "/student/dashboard"}
                           onClick={() => setProfileOpen(false)}
                           className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
                         >
                           <LayoutDashboard className="w-4 h-4" /> Dashboard
                         </Link>
                         <Link
-                          href="/student/settings"
+                          href={isTeacher ? "/teacher/settings" : "/student/settings"}
                           onClick={() => setProfileOpen(false)}
                           className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
                         >
@@ -282,7 +283,7 @@ export default function Navbar() {
             </Link>
           ))}
 
-          {isStudent ? (
+          {isStudent || isTeacher ? (
             <div className="pt-3 border-t border-slate-100 space-y-1">
               <div className="px-3 py-2 flex items-center gap-2.5">
                 {user?.avatar ? (
@@ -297,11 +298,11 @@ export default function Navbar() {
                   <p className="text-xs text-slate-400 truncate">{user?.email}</p>
                 </div>
               </div>
-              <Link href="/student/dashboard" onClick={() => setMobileOpen(false)}
+              <Link href={isTeacher ? "/teacher/dashboard" : "/student/dashboard"} onClick={() => setMobileOpen(false)}
                 className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
                 <BookOpen className="w-4 h-4" /> My Courses
               </Link>
-              <Link href="/student/notifications" onClick={() => setMobileOpen(false)}
+              <Link href={isTeacher ? "/teacher/notifications" : "/student/notifications"} onClick={() => setMobileOpen(false)}
                 className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
                 <Bell className="w-4 h-4" /> Notifications {unread > 0 && <span className="ml-auto text-xs font-bold text-white bg-red-500 px-1.5 py-0.5 rounded-full">{unread}</span>}
               </Link>

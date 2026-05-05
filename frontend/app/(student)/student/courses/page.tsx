@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
+import Link from "next/link"
 import { BookOpen, Loader2 } from "lucide-react"
 
 import PageHeader from "@/components/shared/PageHeader"
@@ -37,7 +38,7 @@ function CourseCard({ course }: { course: CourseItem }) {
   const completed = course.status === "completed"
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-lg hover:border-indigo-200 transition-all group">
+    <Link href={`/student/courses/${course.id ?? (course as any).course_id ?? (course as any).course?.id}/learn`} className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-lg hover:border-indigo-200 transition-all group block cursor-pointer">
       {course.thumbnail ? (
         <img src={course.thumbnail} alt={course.title} className="h-32 w-full object-cover" />
       ) : (
@@ -55,20 +56,22 @@ function CourseCard({ course }: { course: CourseItem }) {
           {course.title}
         </h4>
         <p className="text-xs text-slate-500 mb-4">by {course.teacher} · {course.category}</p>
-        <div>
-          <div className="flex justify-between text-xs text-slate-500 mb-1.5">
-            <span>{course.progress}% complete</span>
-            <span className="font-semibold text-slate-700">{course.progress}%</span>
+        <div className="mt-3">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-slate-500">Progress</span>
+            <span className="text-xs font-bold text-indigo-600">
+              {course.progress ?? 0}%
+            </span>
           </div>
           <div className="w-full bg-slate-100 rounded-full h-1.5">
             <div
-              className={`h-1.5 rounded-full ${completed ? "bg-emerald-500" : "bg-indigo-500"}`}
-              style={{ width: `${course.progress}%` }}
+              className="bg-indigo-600 h-1.5 rounded-full transition-all"
+              style={{ width: `${course.progress ?? 0}%` }}
             />
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   )
 }
 
@@ -85,7 +88,7 @@ function StudentCoursesPage() {
       .then(({ data }) => {
         const enrollments: any[] = data.data.enrollments ?? []
         const mapped: CourseItem[] = enrollments.map((e: any) => ({
-          id:               e.id,
+          id:               e.course.id,
           title:            e.course?.title ?? "Untitled",
           teacher:          e.course?.teacher?.name ?? "Unknown",
           progress:         Number(e.progress ?? 0),
