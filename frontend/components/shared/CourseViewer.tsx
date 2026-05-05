@@ -6,6 +6,11 @@ import {
   BookOpen, ChevronDown, ChevronUp, PlayCircle,
   FileIcon, AlignLeft, HelpCircle,
 } from "lucide-react"
+import FilePreview from "@/components/shared/FilePreview"
+import QuizPreview from "@/components/shared/QuizPreview"
+import RichTextRenderer from "../ui/RichTextRenderer"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/hooks/useAuth"
 
 interface CourseViewerProps {
   course: any
@@ -64,6 +69,8 @@ export default function CourseViewer({
   onEnroll,
 }: CourseViewerProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const router = useRouter();
+  const { user } = useAuth()
 
   function toggleSection(id: string) {
     setExpanded(prev => {
@@ -82,17 +89,18 @@ export default function CourseViewer({
   const lessons         = totalLessons(course.sections ?? [])
   const status          = course.status as string
 
-  const objectives  = course.objectives ?? []
-  const learnList   = objectives.filter((o: any) =>
-    ["LEARNING_OUTCOME", "WHAT_YOU_WILL_LEARN", "OUTCOME"].includes(o.type),
-  )
-  const reqList     = objectives.filter((o: any) =>
-    ["REQUIREMENT", "PREREQUISITE"].includes(o.type),
-  )
-  const audienceList = objectives.filter((o: any) =>
-    ["TARGET_AUDIENCE", "WHO_IS_THIS_FOR"].includes(o.type),
-  )
-  const fallbackLearnList = learnList.length > 0 ? learnList : objectives
+  const objectives   = course.objectives ?? []
+  const learnList    = objectives.filter((o: any) => o.type === "OBJECTIVE")
+  const reqList      = objectives.filter((o: any) => o.type === "REQUIREMENT")
+  const audienceList = objectives.filter((o: any) => o.type === "TARGET_AUDIENCE")
+
+  const isCourseCreator = course.canAccessContent && course.teacher?.id === user?.id && user?.role === "TEACHER"
+  
+  const navigateToCourse = () => {
+    // Implement navigation to course content page
+    if (isCourseCreator) router.replace(`/teacher/courses/preview/${course.slug}`);
+    router.replace(`/student/courses/${course.id}/learn`);
+  }
 
   return (
     <div>
@@ -197,12 +205,12 @@ export default function CourseViewer({
         ))}
       </div>
 
-      {/* What You'll Learn */}
-      {fallbackLearnList.length > 0 && (
+      {/* Course Objective */}
+      {learnList.length > 0 && (
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm mb-6">
-          <h2 className="text-base font-bold text-slate-900 mb-4">What You&apos;ll Learn</h2>
+          <h2 className="text-base font-bold text-slate-900 mb-4">What is the Objective of this Course</h2>
           <div className="grid sm:grid-cols-2 gap-3">
-            {fallbackLearnList.map((obj: any) => (
+            {learnList.map((obj: any) => (
               <div key={obj.id} className="flex items-start gap-2 text-sm text-slate-700">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
                 <span>{obj.content}</span>
@@ -327,20 +335,52 @@ export default function CourseViewer({
                   {open && (
                     <div className="border-t border-slate-100 divide-y divide-slate-100">
                       {section.lessons?.map((lesson: any) => (
-                        <div key={lesson.id} className="flex items-center gap-3 px-4 py-3">
-                          {accessLevel === "full"
-                            ? <LessonIcon type={lesson.type} />
-                            : <BookOpen className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
-                          }
-                          <span className="text-sm text-slate-600 flex-1">{lesson.title}</span>
-                          {accessLevel === "full" && lesson.duration > 0 && (
-                            <span className="text-xs text-slate-400 flex-shrink-0">
-                              {Math.ceil(Number(lesson.duration) / 60)}m
-                            </span>
+                        <div key={lesson.id} className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            {accessLevel === "full"
+                              ? <LessonIcon type={lesson.type} />
+                              : <BookOpen className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
+                            }
+                            <span className="text-sm text-slate-600 flex-1">{lesson.title}</span>
+                            {accessLevel === "full" && lesson.duration > 0 && (
+                              <span className="text-xs text-slate-400 flex-shrink-0">
+                                {Math.ceil(Number(lesson.duration) / 60)}m
+                              </span>
+                            )}
+                            {accessLevel === "public" && (
+                              <Lock className="w-3.5 h-3.5 text-slate-300 flex-shrink-0" />
+                            )}
+                          </div>
+
+                          {accessLevel === "full" && (
+                            <>
+                              {lesson.type === "VIDEO" && lesson.video_urls.length && (
+                                <>
+                                  {lesson.video_urls.map((url: string, idx: number) => (
+                                    <FilePreview key={idx} url={url} type="VIDEO" className="mt-2" />
+                                  ))}
+                                </>
+                              )}
+                              {lesson.type === "DOCUMENT" && lesson.file_urls.length && (
+                                <>
+                                  {lesson.file_urls.map((url: string, idx: number) => (
+                                    <FilePreview key={idx} url={url} type="DOCUMENT" className="mt-2" />
+                                  ))}
+                                </>
+                              )}
+                              {lesson.type === "TEXT" && lesson.content && (
+                                <div className="mt-2">
+                                  <RichTextRenderer html={lesson.content} allowFullscreen />
+                                </div>
+                              )}
+                              {lesson.lessonQuizzes?.map((quiz: any) => (
+                                <QuizPreview key={quiz.id} quiz={quiz} accessLevel="full" />
+                              ))}
+                            </>
                           )}
-                          {accessLevel === "public" && (
-                            <Lock className="w-3.5 h-3.5 text-slate-300 flex-shrink-0" />
-                          )}
+                          {accessLevel === "public" && lesson.lessonQuizzes?.map((quiz: any) => (
+                            <QuizPreview key={quiz.id} quiz={quiz} accessLevel="locked" />
+                          ))}
                         </div>
                       ))}
                     </div>
@@ -352,10 +392,10 @@ export default function CourseViewer({
 
           {accessLevel === "public" && onEnroll && (
             <button
-              onClick={onEnroll}
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-colors"
+              onClick={course.canAccessContent ? navigateToCourse : onEnroll}
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-colors cursor-pointer"
             >
-              Enroll Now
+              {course.canAccessContent ? (isCourseCreator ? "Manage Course" : "Continue Learning") : "Enroll Now to Access Content"}
             </button>
           )}
         </div>
