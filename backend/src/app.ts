@@ -42,6 +42,8 @@ import {
 import quizRouter from "./routes/quiz.routes";
 import paymentRouter from "./routes/payment.routes";
 import couponRoutes from "./routes/coupon.routes";
+import questionBankRouter from "./routes/questionBank.routes";
+import taxonomySubject from "./routes/lms-ai/taxonomy.subject.routes";
 
 const app = express();
 
@@ -104,6 +106,8 @@ app.use("/api/notifications", notificationRouter);
 app.use("/api/upload", uploadRoutes);
 app.use("/api", quizRouter);
 app.use("/api", paymentRouter);
+app.use("/api/question-bank", questionBankRouter);
+app.use("/api/taxonomy/subjects", taxonomySubject);
 
 app.use(
   (
