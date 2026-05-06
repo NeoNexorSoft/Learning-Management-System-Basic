@@ -160,7 +160,13 @@ export const courseService = {
             lessons: {
               orderBy: { order: 'asc' },
               include: {
-                lessonQuizzes: { select: { id: true, title: true } },
+                lessonQuizzes: {
+                  select: {
+                    id: true,
+                    title: true,
+                    _count: { select: { questions: true } },
+                  },
+                },
               },
             },
           },
@@ -179,11 +185,16 @@ export const courseService = {
     let canAccessContent =
       viewerRole === 'ADMIN' || course.teacher_id === viewerUserId;
 
+      // console.log(`Viewer role: ${viewerRole}, viewerUserId: ${viewerUserId}, course.teacher_id: ${course.teacher_id}, canAccessContent: ${canAccessContent}`)
+
     if (!canAccessContent && viewerUserId) {
+      // console.log(`Checking enrollment for user ${viewerUserId} on course ${course.id}`)
       const enrollment = await prisma.enrollment.findUnique({
         where: { student_id_course_id: { student_id: viewerUserId, course_id: course.id } },
       });
+      // console.log(`Enrollment found for user ${viewerUserId} on course ${course.id}: ${!!enrollment}`);
       canAccessContent = !!enrollment;
+      // console.log(`Updated canAccessContent for user ${viewerUserId} on course ${course.id}: ${canAccessContent}`);
     }
 
     const [ratingAgg] = await Promise.all([
@@ -214,6 +225,7 @@ export const courseService = {
         sum + s.lessons.reduce((ls, l) => ls + (l.lessonQuizzes?.length ?? 0), 0), 0) ?? 0,
       avgRating:    ratingAgg._avg.rating ?? 0,
       totalReviews: ratingAgg._count._all,
+      canAccessContent,
     };
   },
 
@@ -230,7 +242,12 @@ export const courseService = {
             lessons: {
               orderBy: { order: 'asc' },
               include: {
-                lessonQuizzes: { select: { id: true, title: true } },
+                lessonQuizzes: {
+                  orderBy: { order: 'asc' },
+                  include: {
+                    questions: { orderBy: { order: 'asc' } },
+                  },
+                },
               },
             },
           },
@@ -425,7 +442,19 @@ export const courseService = {
         objectives: { orderBy: { order: 'asc' } },
         sections: {
           orderBy: { order: 'asc' },
-          include: { lessons: { orderBy: { order: 'asc' } } },
+          include: {
+            lessons: {
+              orderBy: { order: 'asc' },
+              include: {
+                lessonQuizzes: {
+                  orderBy: { order: 'asc' },
+                  include: {
+                    questions: { orderBy: { order: 'asc' } },
+                  },
+                },
+              },
+            },
+          },
         },
       },
     });
@@ -588,7 +617,7 @@ export const courseService = {
   async createLesson(
     sectionId: string,
     teacherId: string,
-    data: { title: string; type: LessonType; content?: string; video_url?: string; file_url?: string; duration?: number; order?: number },
+    data: { title: string; type: LessonType; content?: string; video_urls?: string[]; file_urls?: string[]; duration?: number; order?: number },
   ) {
     const section = await prisma.section.findUnique({
       where:   { id: sectionId },
@@ -617,7 +646,7 @@ export const courseService = {
   async updateLesson(
     lessonId: string,
     teacherId: string,
-    data: { title?: string; type?: LessonType; content?: string; video_url?: string; file_url?: string; duration?: number; order?: number },
+    data: { title?: string; type?: LessonType; content?: string; video_urls?: string[]; file_urls?: string[]; duration?: number; order?: number },
   ) {
     const lesson = await prisma.lesson.findUnique({
       where:   { id: lessonId },
@@ -824,6 +853,7 @@ export const courseService = {
   },
 
   async getLearnCourse(courseId: string, studentId: string) {
+    console.log("Fetching enrollment for studentId:", studentId, "and courseId:", courseId)
     const enrollment = await prisma.enrollment.findUnique({
       where: {
         student_id_course_id: {
@@ -832,12 +862,27 @@ export const courseService = {
         }
       }
     })
+    console.log("Enrollment:", enrollment)
     if (!enrollment) throw Object.assign(
       new Error("Not enrolled"), { statusCode: 403 }
     )
-    return prisma.course.findUnique({
+
+    const course = await prisma.course.findUnique({
       where: { id: courseId },
       include: {
+        teacher: {
+          select: {
+            id: true, name: true,
+            avatar: true, bio: true
+          }
+        },
+        category: {
+          select: {
+            id: true, name: true,
+            parent: { select: { name: true } }
+          }
+        },
+        objectives: { orderBy: { order: "asc" } },
         sections: {
           orderBy: { order: "asc" },
           include: {
@@ -854,6 +899,19 @@ export const courseService = {
         }
       }
     })
+
+    if (!course) throw Object.assign(
+      new Error("Course not found"), { statusCode: 404 }
+    )
+
+    return {
+      course,
+      enrollment: {
+        id:       enrollment.id,
+        progress: enrollment.progress,
+        status:   enrollment.status,
+      }
+    }
   },
 
   async getCourseById(courseId: string) {
@@ -862,6 +920,7 @@ export const courseService = {
       select: {
         id: true, title: true, slug: true,
         subtitle: true, thumbnail: true, price: true,
+        discount_price: true, discount_type: true, discount_ends_at: true,
       }
     });
     if (!course) throw Object.assign(

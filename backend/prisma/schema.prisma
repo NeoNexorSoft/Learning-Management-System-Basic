@@ -112,69 +112,69 @@ model User {
 
   courses           Course[]
   enrollments       Enrollment[]
-  assignments       Assignment[]
   submissions       Submission[]
   certificates      Certificate[]
   reviews           Review[]
   transactions      Transaction[]
   withdrawals       Withdrawal[]
-  notifications     Notification[]    @relation("NotificationReceiver")
-  sentNotifications Notification[]    @relation("NotificationSender")
+  notifications     Notification[] @relation("NotificationReceiver")
+  sentNotifications Notification[] @relation("NotificationSender")
   loginHistory      LoginHistory[]
   quizAttempts      QuizAttempt[]
   blogs             Blog[]            @relation("BlogAuthor")
+  questionBank      QuestionBank[]
+  simulations       Simulation[]      @relation("createdBy")
 
   @@map("users")
 }
 
 model Category {
-  id         String     @id @default(uuid())
+  id         String   @id @default(uuid())
   name       String
-  slug       String     @unique
+  slug       String   @unique
   parent_id  String?
-  created_at DateTime   @default(now())
+  created_at DateTime @default(now())
 
-  parent     Category?  @relation("CategoryTree", fields: [parent_id], references: [id], onDelete: SetNull)
-  children   Category[] @relation("CategoryTree")
-  courses    Course[]
+  parent   Category?  @relation("CategoryTree", fields: [parent_id], references: [id], onDelete: SetNull)
+  children Category[] @relation("CategoryTree")
+  courses  Course[]
 
   @@map("categories")
 }
 
 model Course {
-  id               String        @id @default(uuid())
+  id               String       @id @default(uuid())
   teacher_id       String
   category_id      String?
   title            String
-  slug             String        @unique
+  slug             String       @unique
   subtitle         String?
   description      String?
-  language         String?       @default("English")
+  language         String?      @default("English")
   level            CourseLevel?
-  status           CourseStatus  @default(DRAFT)
-  price            Decimal       @default(0) @db.Decimal(12, 2)
-  discount_price   Decimal?      @db.Decimal(12, 2)
+  status           CourseStatus @default(DRAFT)
+  price            Decimal      @default(0) @db.Decimal(12, 2)
+  discount_price   Decimal?     @db.Decimal(12, 2)
   discount_type    String?
   discount_ends_at DateTime?
   thumbnail        String?
   intro_video      String?
-  duration         Int           @default(0)
-  is_popular       Boolean       @default(false)
+  duration         Int          @default(0)
+  is_popular       Boolean      @default(false)
   welcome_message  String?
   congrats_message String?
   published_at     DateTime?
-  created_at       DateTime      @default(now())
-  updated_at       DateTime      @updatedAt
+  created_at       DateTime     @default(now())
+  updated_at       DateTime     @updatedAt
 
-  teacher     User              @relation(fields: [teacher_id], references: [id])
-  category    Category?         @relation(fields: [category_id], references: [id], onDelete: SetNull)
-  objectives  CourseObjective[]
-  sections    Section[]
+  teacher      User              @relation(fields: [teacher_id], references: [id])
+  category     Category?         @relation(fields: [category_id], references: [id], onDelete: SetNull)
+  objectives   CourseObjective[]
+  sections     Section[]
   enrollments  Enrollment[]
   certificates Certificate[]
   reviews      Review[]
   transactions Transaction[]
-  assignments  Assignment[]
 
   @@map("courses")
 }
@@ -186,7 +186,7 @@ model CourseObjective {
   content   String
   order     Int           @default(0)
 
-  course    Course        @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [course_id], references: [id], onDelete: Cascade)
 
   @@map("course_objectives")
 }
@@ -198,9 +198,9 @@ model Section {
   order      Int      @default(0)
   created_at DateTime @default(now())
 
-  course   Course   @relation(fields: [course_id], references: [id], onDelete: Cascade)
-  lessons  Lesson[]
-  quizzes  Quiz[]
+  course  Course   @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+  quizzes Quiz[]
 
   @@map("sections")
 }
@@ -219,16 +219,17 @@ model Lesson {
 
   section       Section          @relation(fields: [section_id], references: [id], onDelete: Cascade)
   progress      LessonProgress[]
+  assignments   Assignment[]
   lessonQuizzes LessonQuiz[]
 
   @@map("lessons")
 }
 
 model Quiz {
-  id         String   @id @default(uuid())
+  id         String @id @default(uuid())
   section_id String
   title      String
-  order      Int      @default(0)
+  order      Int    @default(0)
 
   section   Section        @relation(fields: [section_id], references: [id], onDelete: Cascade)
   questions QuizQuestion[]
@@ -258,8 +259,8 @@ model Enrollment {
   enrolled_at  DateTime         @default(now())
   completed_at DateTime?
 
-  student      User             @relation(fields: [student_id], references: [id])
-  course       Course           @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  student        User             @relation(fields: [student_id], references: [id])
+  course         Course           @relation(fields: [course_id], references: [id], onDelete: Cascade)
   lessonProgress LessonProgress[]
   certificate    Certificate?
 
@@ -445,11 +446,13 @@ model SystemSetting {
 }
 
 model LessonQuiz {
-  id         String   @id @default(uuid())
-  lesson_id  String
-  title      String
-  order      Int      @default(0)
-  created_at DateTime @default(now())
+  id            String    @id @default(uuid())
+  lesson_id     String
+  title         String
+  order         Int       @default(0)
+  timer_seconds Int?
+  deadline      DateTime?
+  created_at    DateTime  @default(now())
 
   lesson    Lesson               @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
   questions LessonQuizQuestion[]
@@ -473,18 +476,23 @@ model LessonQuizQuestion {
 }
 
 model QuizAttempt {
-  id           String   @id @default(uuid())
-  quiz_id      String
-  student_id   String
-  answers      Json
-  score        Decimal? @db.Decimal(5, 2)
-  feedback     String?
-  graded       Boolean  @default(false)
-  submitted_at DateTime @default(now())
+  id                 String    @id @default(uuid())
+  quiz_id            String
+  student_id         String
+  answers            Json
+  score              Decimal?  @db.Decimal(5, 2)
+  feedback           String?
+  graded             Boolean   @default(false)
+  submitted_at       DateTime  @default(now())
+  started_at         DateTime?
+  time_taken_seconds Int?
+  is_late            Boolean   @default(false)
+  submitted          Boolean   @default(false)
 
   quiz    LessonQuiz @relation(fields: [quiz_id], references: [id], onDelete: Cascade)
   student User       @relation(fields: [student_id], references: [id])
 
+  @@unique([quiz_id, student_id])
   @@map("quiz_attempts")
 }
 
@@ -506,4 +514,66 @@ model Blog {
   @@index([slug])
   @@index([authorId])
   @@map("blogs")
+}
+
+model QuestionBank {
+  id              String   @id @default(uuid())
+  teacher_id      String
+  questionText    String
+  questionTextEn  String?
+  type            String
+  difficulty      String   @default("medium")
+  marks           Int      @default(1)
+  options         String? // JSON stringified
+  answer          String?
+  answerBn        String?
+  explanation     String?
+  explanationBn   String?
+  subject         String?
+  topic           String?
+  subtopic        String?
+  hint            String?
+  source          String   @default("ai")
+  sourceReference String?
+  needEvaluation  Boolean  @default(false)
+  status          String   @default("draft")
+  isPublished     Boolean  @default(false)
+  hasFigure       Boolean  @default(false)
+  hasFormula      Boolean  @default(false)
+  bloomLevel      String?
+  metadata        String? // JSON stringified
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  subjectId Int?
+  topicId   Int?
+  User      User?   @relation(fields: [userId], references: [id])
+  userId    String?
+
+  @@map("questions")
+}
+
+model Simulation {
+  id          String   @id @default(uuid())
+  title       String
+  description String?  @db.Text
+  subject     String   // e.g. "Physics", "Chemistry", "Biology", "Math"
+  gradeLevel  String   // e.g. "Grade 9", "Grade 10", "University"
+  provider    String?   // e.g. "PhET", "GeoGebra", "HHMI BioInteractive"
+  simulationUrl String // The third-party URL that will be embedded in the iframe
+  thumbnailUrl  String? // Optional preview image stored on Cloudinary
+  isPublished Boolean  @default(false)
+
+  createdById String
+  createdBy   User   @relation("createdBy", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([subject])
+  @@index([gradeLevel])
+  @@index([isPublished])
+  @@index([createdById])
+
+  @@map("simulations")
 }

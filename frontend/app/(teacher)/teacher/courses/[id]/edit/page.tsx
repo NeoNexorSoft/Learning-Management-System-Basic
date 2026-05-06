@@ -272,24 +272,42 @@ function LectureForm({ lecture, onChange, onDelete, uploadConfig }: {
   const isDoc   = lecture.type === "document"
   const isText  = lecture.type === "text"
 
-  const accept    = isVideo ? "video/*" : "*/*"
+  const allowedDocFormats = uploadConfig?.document?.allowedFormats ?? ["pdf"]
+  const accept = isVideo ? "video/*" : allowedDocFormats.map((ext: string) => `.${ext}`).join(",")
   const endpoint  = isVideo ? "/api/upload/video" : "/api/upload/document"
   const fieldName = isVideo ? "video" : "document"
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    setUploading(true); setUploadError("")
+
+    // validate file type before sending to server
+    if (isDoc) {
+        const fileExt = file.name.split(".").pop()?.toLowerCase() ?? ""
+        if (!allowedDocFormats.includes(fileExt)) {
+            setUploadError(
+                `Invalid file type. Only ${allowedDocFormats.join(", ").toUpperCase()} files are allowed.`
+            )
+            if (fileRef.current) fileRef.current.value = ""
+            return
+        }
+    }
+
+    setUploading(true)
+    setUploadError("")
+
     try {
-      const fd = new FormData()
-      fd.append(fieldName, file)
-      const { data } = await api.post(endpoint, fd, { headers: { "Content-Type": "multipart/form-data" } })
-      onChange({ ...lecture, file_urls: [...(lecture.file_urls ?? []), data.data.url] })
+        const fd = new FormData()
+        fd.append(fieldName, file)
+        const { data } = await api.post(endpoint, fd, {
+            headers: { "Content-Type": "multipart/form-data" },
+        })
+        onChange({ ...lecture, file_urls: [...(lecture.file_urls ?? []), data.data.url] })
     } catch (err: any) {
-      setUploadError(err.response?.data?.message ?? "Upload failed.")
+        setUploadError(err.response?.data?.message ?? "Upload failed.")
     } finally {
-      setUploading(false)
-      if (fileRef.current) fileRef.current.value = ""
+        setUploading(false)
+        if (fileRef.current) fileRef.current.value = ""
     }
   }
 
@@ -370,13 +388,7 @@ function LectureForm({ lecture, onChange, onDelete, uploadConfig }: {
         {isText && (
             <div>
               <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5 block">Article / Lesson Text</label>
-              <textarea
-                  value={lecture.text_content ?? ""}
-                  onChange={e => onChange({ ...lecture, text_content: e.target.value })}
-                  rows={6}
-                  placeholder="Write the full lesson text here. Students will read this directly."
-                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 bg-white focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none resize-y transition-all"
-              />
+              <RichTextEditor initialValue={lecture.text_content} onBlur={html => onChange({ ...lecture, text_content: html })} />
             </div>
         )}
 
@@ -908,7 +920,7 @@ function EditCoursePage() {
               title:        l.title,
               type:         l.type?.toLowerCase() ?? "video",
               duration:     l.duration?.toString() ?? "",
-              file_urls:    l.video_url ? [l.video_url] : l.file_url ? [l.file_url] : [],
+              file_urls:    l.video_urls ? l.video_urls : l.file_urls ? [l.file_urls] : [],
               text_content: l.content ?? "",
               quizzes:      [],
             })) ?? [],

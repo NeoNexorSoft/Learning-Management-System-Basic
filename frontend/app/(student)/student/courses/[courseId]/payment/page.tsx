@@ -40,7 +40,10 @@ function PaymentPage() {
     </div>
   )
 
-  const price = Number(course?.price ?? 0)
+  const price         = Number(course?.price ?? 0)
+  const discountPrice = Number(course?.discount_price ?? 0)
+  const hasDiscount   = discountPrice > 0 && discountPrice < price
+  const finalPrice    = hasDiscount ? discountPrice : price
 
   return (
     <main className="min-h-screen bg-slate-50 pt-20 pb-10">
@@ -69,11 +72,30 @@ function PaymentPage() {
               <p className="text-sm text-slate-500 mb-4">{course.subtitle}</p>
             )}
 
-            <div className="flex items-center justify-between py-4 border-t border-b border-slate-100 mb-4">
-              <span className="text-slate-600 font-medium">Total</span>
-              <span className="text-2xl font-bold text-indigo-600">
-                ৳{price.toLocaleString()} BDT
-              </span>
+            <div className="py-4 border-t border-b border-slate-100 mb-4">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Course Price</span>
+                  <span className={`font-semibold ${hasDiscount ? "line-through text-slate-400" : "text-slate-800"}`}>
+                    ৳{price.toLocaleString()} BDT
+                  </span>
+                </div>
+                {hasDiscount && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-500">Discount</span>
+                    <span className="font-semibold text-emerald-600">
+                      - ৳{(price - finalPrice).toLocaleString()} BDT
+                    </span>
+                  </div>
+                )}
+                <div className="h-px bg-slate-200" />
+                <div className="flex justify-between">
+                  <span className="font-bold text-slate-900">Total</span>
+                  <span className="font-extrabold text-indigo-600 text-lg">
+                    ৳{finalPrice.toLocaleString()} BDT
+                  </span>
+                </div>
+              </div>
             </div>
 
             {error && (
@@ -83,11 +105,11 @@ function PaymentPage() {
             <button
               onClick={handlePayment}
               disabled={paying}
-              className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-semibold py-3 rounded-xl transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-colors disabled:opacity-70"
             >
               {paying
-                ? <><Loader2 className="w-4 h-4 animate-spin" /> Redirecting to PayStation…</>
-                : `Pay ৳${price.toLocaleString()} BDT`
+                ? <><Loader2 className="w-4 h-4 animate-spin" /> Redirecting…</>
+                : `Pay ৳${finalPrice.toLocaleString()} BDT`
               }
             </button>
 

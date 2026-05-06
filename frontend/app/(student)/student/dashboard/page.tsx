@@ -156,41 +156,43 @@ function getTimestamp(value: string | null | undefined) {
 
 function CourseCard({ course }: { course: EnrolledCourse }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden hover:shadow-md hover:border-indigo-200 transition-all group">
-      <div className="h-32 bg-gradient-to-br from-indigo-100 to-purple-100 relative overflow-hidden">
-        {course.thumbnail ? (
-          <img
-            src={course.thumbnail}
-            alt={course.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <BookOpen className="w-8 h-8 text-indigo-300" />
+    <Link href={`/student/courses/${course.id}/learn`} className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-lg hover:border-indigo-200 transition-all group block">
+      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden hover:shadow-md hover:border-indigo-200 transition-all group">
+        <div className="h-32 bg-gradient-to-br from-indigo-100 to-purple-100 relative overflow-hidden">
+          {course.thumbnail ? (
+            <img
+              src={course.thumbnail}
+              alt={course.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <BookOpen className="w-8 h-8 text-indigo-300" />
+            </div>
+          )}
+          <div className="absolute bottom-2 left-2">
+            <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-white/90 text-indigo-600">
+              {course.status === "completed" ? "Completed" : "In Progress"}
+            </span>
           </div>
-        )}
-        <div className="absolute bottom-2 left-2">
-          <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-white/90 text-indigo-600">
-            {course.status === "completed" ? "Completed" : "In Progress"}
-          </span>
+        </div>
+
+        <div className="p-4">
+          <p className="text-sm font-bold text-slate-900 line-clamp-2 mb-1">
+            {course.title}
+          </p>
+          <p className="text-xs text-slate-500 mb-3">by {course.teacher}</p>
+
+          <div className="w-full bg-slate-100 rounded-full h-1.5 mb-1">
+            <div
+              className="bg-indigo-600 h-1.5 rounded-full transition-all"
+              style={{ width: `${course.progress}%` }}
+            />
+          </div>
+          <p className="text-xs text-slate-400">{course.progress}% complete</p>
         </div>
       </div>
-
-      <div className="p-4">
-        <p className="text-sm font-bold text-slate-900 line-clamp-2 mb-1">
-          {course.title}
-        </p>
-        <p className="text-xs text-slate-500 mb-3">by {course.teacher}</p>
-
-        <div className="w-full bg-slate-100 rounded-full h-1.5 mb-1">
-          <div
-            className="bg-indigo-600 h-1.5 rounded-full transition-all"
-            style={{ width: `${course.progress}%` }}
-          />
-        </div>
-        <p className="text-xs text-slate-400">{course.progress}% complete</p>
-      </div>
-    </div>
+    </Link>
   );
 }
 
@@ -456,7 +458,7 @@ function StudentDashboardPage() {
           );
 
           return {
-            id: e.id,
+            id: e.course.id,
             title: e.course?.title ?? "Untitled",
             teacher: e.course?.teacher?.name ?? "Unknown",
             progress: e.progress ?? 0,

@@ -11,6 +11,11 @@ type PaymentForm = {
   stripe_enabled: string;
   stripe_public_key: string;
   stripe_secret_key: string;
+  paystation_enabled: string;
+  paystation_merchant_id: string;
+  paystation_password: string;
+  paystation_callback_url: string;
+  paystation_redirect_url: string;
   paypal_enabled: string;
   paypal_client_id: string;
   paypal_client_secret: string;
@@ -25,6 +30,11 @@ function PaymentGatewaysPage() {
     stripe_enabled: "false",
     stripe_public_key: "",
     stripe_secret_key: "",
+    paystation_enabled: "false",
+    paystation_merchant_id: "",
+    paystation_password: "",
+    paystation_callback_url: "",
+    paystation_redirect_url: "",
     paypal_enabled: "false",
     paypal_client_id: "",
     paypal_client_secret: "",
@@ -104,6 +114,78 @@ function PaymentGatewaysPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
+        {/* PayStation: Trusted Payment Gateway in Bangladesh */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
+              PayStation
+            </h2>
+            <select
+              name="paystation_enabled"
+              value={form.paystation_enabled}
+              onChange={handleChange}
+              className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="true">Enabled</option>
+              <option value="false">Disabled</option>
+            </select>
+          </div>
+
+          {form.paystation_enabled === "true" && (
+            <>
+              <div>
+                <label className="text-sm font-medium text-slate-700">
+                  PayStation Merchant ID
+                </label>
+                <input
+                  name="paystation_merchant_id"
+                  value={form.paystation_merchant_id}
+                  onChange={handleChange}
+                  placeholder="PayStation Merchant ID"
+                  className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700">
+                  PayStation Password
+                </label>
+                <input
+                  name="paystation_password"
+                  value={form.paystation_password}
+                  onChange={handleChange}
+                  type="password"
+                  placeholder="PayStation Password"
+                  className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700">
+                  PayStation Callback URL
+                </label>
+                <input
+                  name="paystation_callback_url"
+                  value={form.paystation_callback_url}
+                  onChange={handleChange}
+                  placeholder="https://yourdomain.com/callback"
+                  className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700">
+                  PayStation Redirect URL
+                </label>
+                <input
+                  name="paystation_redirect_url"
+                  value={form.paystation_redirect_url}
+                  onChange={handleChange}
+                  placeholder="https://yourdomain.com/redirect"
+                  className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </>
+          )}
+        </div>
+
         {/* Stripe */}
         <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
           <div className="flex items-center justify-between">

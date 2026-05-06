@@ -17,10 +17,15 @@ import {
   Wallet,
   FileWarning,
   ChevronRight,
+  ChevronDown,
   LogOut,
   ShieldCheck,
   Settings,
   SlidersHorizontal,
+  BarChart2,
+  Trophy,
+  Award,
+  Atom
 } from "lucide-react";
 
 import {
@@ -37,7 +42,6 @@ const navItems: NavItem[] = [
   { icon: Users, label: "Students", href: "/admin/users" },
   { icon: GraduationCap, label: "Teachers", href: "/admin/teachers" },
   { icon: BookOpen, label: "Courses", href: "/admin/courses" },
-  { icon: ClipboardList, label: "Assignments", href: "/admin/assignments" },
   { icon: Tag, label: "Categories", href: "/admin/categories" },
   { icon: Ticket, label: "Coupons", href: "/admin/coupons" },
   { icon: CreditCard, label: "Payments", href: "/admin/payments" },
@@ -49,6 +53,13 @@ const navItems: NavItem[] = [
     href: "/admin/system-config",
   }, // adding new section
   { icon: FileWarning, label: "Reports", href: "/admin/reports" }, //new adding
+  { icon: Atom, label: "Simulations", href: "/admin/simulations" }, // simulations page
+];
+
+const adminEvaluationNav: NavItem[] = [
+  { icon: BarChart2, label: "Student Overview",  href: "/admin/evaluation/overview" },
+  { icon: Trophy,    label: "Self Evaluation & Leaderboard",        href: "/admin/evaluation/leaderboard" },
+  { icon: Award,     label: "House Competition",  href: "/admin/evaluation/house" },
 ];
 
 function NavLink({
@@ -96,7 +107,6 @@ export default function AdminSidebar({
   const pathname = usePathname();
   const router = useRouter();
   const [pendingCount, setPendingCount] = useState<number | null>(null);
-  const [assignmentPendingCount, setAssignmentPendingCount] = useState<number | null>(null);
 
   useEffect(() => {
     function fetchPending() {
@@ -153,7 +163,8 @@ export default function AdminSidebar({
 
       {/* Nav */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        {navItems.map(({ icon: Icon, label, href }) => {
+        {/* Dashboard → Withdrawals (indices 0-7) */}
+        {navItems.slice(0, 8).map(({ icon: Icon, label, href }) => {
           const active = pathname.startsWith(href);
           if (href === "/admin/courses") {
             return (
@@ -229,6 +240,51 @@ export default function AdminSidebar({
               </Link>
             );
           }
+          return (
+            <NavLink
+              key={href}
+              href={href}
+              icon={Icon}
+              label={label}
+              active={active}
+            />
+          );
+        })}
+
+        {/* Centralized Evaluation — expandable */}
+        <div>
+          <button
+            onClick={() => setEvalOpen(o => !o)}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              pathname.startsWith("/admin/evaluation")
+                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
+                : "text-slate-400 hover:text-white hover:bg-slate-800"
+            }`}
+          >
+            <BarChart2 className="w-5 h-5 flex-shrink-0" />
+            <span className="flex-1 text-left">Centralized Evaluation</span>
+            {evalOpen
+              ? <ChevronDown className="w-4 h-4 opacity-70" />
+              : <ChevronRight className="w-4 h-4 opacity-70" />}
+          </button>
+          {evalOpen && (
+            <div className="mt-1 ml-3 pl-4 border-l border-slate-700 space-y-0.5">
+              {adminEvaluationNav.map(({ icon: Icon, label, href }) => (
+                <NavLink
+                  key={href}
+                  href={href}
+                  icon={Icon}
+                  label={label}
+                  active={pathname === href}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Settings → Reports (indices 8-10) */}
+        {navItems.slice(8).map(({ icon: Icon, label, href }) => {
+          const active = pathname.startsWith(href);
           return (
             <NavLink
               key={href}

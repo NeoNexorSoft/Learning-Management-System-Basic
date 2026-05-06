@@ -8,18 +8,19 @@ import {
   ChevronUp, ChevronDown, BookOpen, FileText, HelpCircle,
   Upload, Eye, Send, Check, Bold, Italic, Underline,
   List, ListOrdered, ImageIcon, X, Loader2, AlertCircle,
-  Video, FileIcon, AlignLeft, PlayCircle,
+  Video, FileIcon, AlignLeft, PlayCircle, Sparkles
 } from "lucide-react"
 import TopBar from "@/components/shared/TopBar"
 import api from "@/lib/axios"
+import {GenerateQuizModal} from "@/components/teacher/GenerateQuizModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type LectureType = "video" | "text" | "document"
 
 type QOption = [string, string, string, string]
-type QItem   = { id: string; question: string; options: QOption; correctIndex: number }
-type Quiz    = { id: string; title: string; questions: QItem[] }
+type QItem   = { id: string; question: string; type: "MCQ" | "TRUE_FALSE"; options: QOption; correctIndex: number; correctTF: "True" | "False" }
+type Quiz    = { id: string; title: string; timer_seconds: number | ""; type: "MCQ" | "TRUE_FALSE"; questions: QItem[] }
 
 type Lecture = {
   id: string
@@ -273,37 +274,76 @@ function LectureForm({ lecture, onChange, onDelete, uploadConfig }: {
   lecture: Lecture; onChange: (l: Lecture) => void; onDelete: () => void; uploadConfig?: any
 }) {
   const fileRef = useRef<HTMLInputElement>(null)
-  const [uploading, setUploading]     = useState(false)
-  const [uploadError, setUploadError] = useState("")
+  const [uploading, setUploading]           = useState(false)
+  const [uploadError, setUploadError]       = useState("")
+  const [showQuizTypePicker, setShowQuizTypePicker] = useState(false)
 
   const isVideo = lecture.type === "video"
   const isDoc   = lecture.type === "document"
   const isText  = lecture.type === "text"
 
-  const accept    = isVideo ? "video/*" : "*/*"
+  const allowedDocFormats = uploadConfig?.document?.allowedFormats ?? ["pdf"]
+  const accept = isVideo ? "video/*" : allowedDocFormats.map((ext: string) => `.${ext}`).join(",")
   const endpoint  = isVideo ? "/api/upload/video" : "/api/upload/document"
   const fieldName = isVideo ? "video" : "document"
+
+    // add this state at the top of your lecture component
+    const [showGenerateModal, setShowGenerateModal] = useState(false);
+
+// this runs when the modal returns the generated quiz
+    function handleQuizGenerated(generatedQuiz: any) {
+        const quiz: Quiz = {
+            ...generatedQuiz,
+            type: "MCQ",
+            questions: (generatedQuiz.questions ?? []).map((q: any) => ({
+                ...q,
+                type: "MCQ",
+                correctTF: "True" as const,
+            })),
+        }
+        onChange({ ...lecture, quizzes: [...lecture.quizzes, quiz] });
+    }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    setUploading(true); setUploadError("")
+
+    // validate file type before sending to server
+    if (isDoc) {
+        const fileExt = file.name.split(".").pop()?.toLowerCase() ?? ""
+        if (!allowedDocFormats.includes(fileExt)) {
+            setUploadError(
+                `Invalid file type. Only ${allowedDocFormats.join(", ").toUpperCase()} files are allowed.`
+            )
+            if (fileRef.current) fileRef.current.value = ""
+            return
+        }
+    }
+
+    setUploading(true)
+    setUploadError("")
+
     try {
-      const fd = new FormData()
-      fd.append(fieldName, file)
-      const { data } = await api.post(endpoint, fd, { headers: { "Content-Type": "multipart/form-data" } })
-      onChange({ ...lecture, file_urls: [...(lecture.file_urls ?? []), data.data.url] })
+        const fd = new FormData()
+        fd.append(fieldName, file)
+        const { data } = await api.post(endpoint, fd, {
+            headers: { "Content-Type": "multipart/form-data" },
+        })
+        onChange({ ...lecture, file_urls: [...(lecture.file_urls ?? []), data.data.url] })
     } catch (err: any) {
-      setUploadError(err.response?.data?.message ?? "Upload failed.")
+        setUploadError(err.response?.data?.message ?? "Upload failed.")
     } finally {
-      setUploading(false)
-      if (fileRef.current) fileRef.current.value = ""
+        setUploading(false)
+        if (fileRef.current) fileRef.current.value = ""
     }
   }
 
-  const addQuiz = () => onChange({
+  const addQuiz = (quizType: "MCQ" | "TRUE_FALSE") => onChange({
     ...lecture,
-    quizzes: [...lecture.quizzes, { id: uid(), title: "", questions: [{ id: uid(), question: "", options: ["", "", "", ""], correctIndex: 0 }] }],
+    quizzes: [...lecture.quizzes, {
+      id: uid(), title: "", timer_seconds: "", type: quizType,
+      questions: [{ id: uid(), question: "", type: quizType, options: ["", "", "", ""], correctIndex: 0, correctTF: "True" as const }],
+    }],
   })
   const updQuiz = (qi: number, q: Quiz) => { const qs = [...lecture.quizzes]; qs[qi] = q; onChange({ ...lecture, quizzes: qs }) }
   const delQuiz = (qi: number) => onChange({ ...lecture, quizzes: lecture.quizzes.filter((_, i) => i !== qi) })
@@ -410,33 +450,96 @@ function LectureForm({ lecture, onChange, onDelete, uploadConfig }: {
         )}
 
         {/* Quiz section */}
-        <div className="space-y-3 pt-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">Quizzes ({lecture.quizzes.length})</span>
-            <button type="button" onClick={addQuiz} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100">
+        <div className="pt-1">
+          <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">Quizzes ({lecture.quizzes.length})</span>
+          <div className="space-y-3 mt-3">
+            {lecture.quizzes.map((q, qi) => (
+                <QuizForm key={q.id} quiz={q} onChange={u => updQuiz(qi, u)} onDelete={() => delQuiz(qi)} />
+            ))}
+          </div>
+          {showQuizTypePicker && (
+            <div className="border border-slate-200 rounded-xl p-4 bg-white space-y-3 mt-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-700">Select Quiz Type</span>
+                <button type="button" onClick={() => setShowQuizTypePicker(false)} className="p-1 text-slate-400 hover:text-red-500"><X className="w-3.5 h-3.5" /></button>
+              </div>
+              <div className="flex gap-2">
+                <button type="button"
+                  onClick={() => { addQuiz("MCQ"); setShowQuizTypePicker(false) }}
+                  className="flex-1 flex flex-col items-center gap-1 px-3 py-3 border border-indigo-200 rounded-xl bg-indigo-50 hover:bg-indigo-100 transition-colors">
+                  <span className="text-xs font-bold text-indigo-700">MCQ</span>
+                  <span className="text-[10px] text-indigo-500">Multiple choice questions</span>
+                </button>
+                <button type="button"
+                  onClick={() => { addQuiz("TRUE_FALSE"); setShowQuizTypePicker(false) }}
+                  className="flex-1 flex flex-col items-center gap-1 px-3 py-3 border border-amber-200 rounded-xl bg-amber-50 hover:bg-amber-100 transition-colors">
+                  <span className="text-xs font-bold text-amber-700">True / False</span>
+                  <span className="text-[10px] text-amber-500">True or False questions</span>
+                </button>
+                  {/* AI generate button */}
+                  <button
+                      type="button"
+                      onClick={() => setShowGenerateModal(true)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors"
+                  >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Generate Quiz by AI
+                  </button>
+              </div>
+            </div>
+          )}
+          <div className="flex justify-end mt-3">
+            <button type="button" onClick={() => setShowQuizTypePicker(true)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100">
               <Plus className="w-3.5 h-3.5" /> Add Quiz
             </button>
           </div>
-          {lecture.quizzes.map((q, qi) => (
-              <QuizForm key={q.id} quiz={q} onChange={u => updQuiz(qi, u)} onDelete={() => delQuiz(qi)} />
-          ))}
+
+            {/* AI generate modal */}
+            {showGenerateModal && (
+                <GenerateQuizModal
+                    onClose={() => setShowGenerateModal(false)}
+                    onGenerated={handleQuizGenerated}
+                />
+            )}
         </div>
       </div>
   )
 }
 
 function QuizForm({ quiz, onChange, onDelete }: { quiz: Quiz; onChange: (q: Quiz) => void; onDelete: () => void }) {
-  const addQ = () => onChange({ ...quiz, questions: [...quiz.questions, { id: uid(), question: "", options: ["", "", "", ""], correctIndex: 0 }] })
+  const addQ = () => onChange({ ...quiz, questions: [...quiz.questions, { id: uid(), question: "", type: quiz.type, options: ["", "", "", ""], correctIndex: 0, correctTF: "True" as const }] })
   const updQ = (qi: number, q: QItem) => { const qs = [...quiz.questions]; qs[qi] = q; onChange({ ...quiz, questions: qs }) }
   const delQ = (qi: number) => onChange({ ...quiz, questions: quiz.questions.filter((_, i) => i !== qi) })
 
   return (
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2"><HelpCircle className="w-4 h-4 text-amber-600" /><span className="text-xs font-bold text-amber-700 uppercase tracking-wide">Quiz</span></div>
+          <div className="flex items-center gap-2">
+            <HelpCircle className="w-4 h-4 text-amber-600" />
+            <span className="text-xs font-bold text-amber-700 uppercase tracking-wide">Quiz</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+              quiz.type === "MCQ" ? "bg-indigo-100 text-indigo-700" : "bg-amber-200 text-amber-800"
+            }`}>
+              {quiz.type === "MCQ" ? "MCQ" : "True / False"}
+            </span>
+          </div>
           <button type="button" onClick={onDelete} className="p-1 text-slate-400 hover:text-red-500"><X className="w-4 h-4" /></button>
         </div>
         <Input value={quiz.title} onChange={e => onChange({ ...quiz, title: e.target.value })} placeholder="Quiz title" className="bg-white" />
+        <div className="space-y-1">
+          <div className="flex items-center gap-1.5">
+            <label className="text-xs font-semibold text-slate-600">Timer (minutes)</label>
+            <span className="text-[10px] text-slate-400 font-medium">optional</span>
+          </div>
+          <Input
+            type="number"
+            min={1}
+            value={quiz.timer_seconds}
+            onChange={e => onChange({ ...quiz, timer_seconds: e.target.value === "" ? "" : Number(e.target.value) })}
+            placeholder="e.g. 5 (leave empty for no timer)"
+            className="bg-white"
+          />
+        </div>
         {quiz.questions.map((q, qi) => (
             <div key={q.id} className="bg-white border border-amber-200 rounded-xl p-4 space-y-3">
               <div className="flex items-center justify-between">
@@ -444,19 +547,41 @@ function QuizForm({ quiz, onChange, onDelete }: { quiz: Quiz; onChange: (q: Quiz
                 {quiz.questions.length > 1 && <button type="button" onClick={() => delQ(qi)} className="p-1 text-slate-400 hover:text-red-500"><X className="w-3.5 h-3.5" /></button>}
               </div>
               <Input value={q.question} onChange={e => updQ(qi, { ...q, question: e.target.value })} placeholder="Enter question" />
-              <div className="space-y-2">
-                {q.options.map((opt, oi) => (
-                    <div key={oi} className="flex items-center gap-2">
-                      <input type="radio" name={`correct-${q.id}`} checked={q.correctIndex === oi} onChange={() => updQ(qi, { ...q, correctIndex: oi })} className="accent-indigo-600" />
-                      <Input
-                          value={opt}
-                          onChange={e => { const opts = [...q.options] as QOption; opts[oi] = e.target.value; updQ(qi, { ...q, options: opts }) }}
-                          placeholder={`Option ${oi + 1}${oi === q.correctIndex ? " (correct)" : ""}`}
-                          className={oi === q.correctIndex ? "border-emerald-300 bg-emerald-50" : ""}
-                      />
-                    </div>
-                ))}
-              </div>
+              {quiz.type === "MCQ" ? (
+                <div className="space-y-2">
+                  {q.options.map((opt, oi) => (
+                      <div key={oi} className="flex items-center gap-2">
+                        <input type="radio" name={`correct-${q.id}`} checked={q.correctIndex === oi} onChange={() => updQ(qi, { ...q, correctIndex: oi })} className="accent-indigo-600" />
+                        <Input
+                            value={opt}
+                            onChange={e => { const opts = [...q.options] as QOption; opts[oi] = e.target.value; updQ(qi, { ...q, options: opts }) }}
+                            placeholder={`Option ${oi + 1}${oi === q.correctIndex ? " (correct)" : ""}`}
+                            className={oi === q.correctIndex ? "border-emerald-300 bg-emerald-50" : ""}
+                        />
+                      </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <span className="text-xs font-semibold text-slate-600">Correct Answer</span>
+                  <div className="flex gap-2">
+                    {(["True", "False"] as const).map(tf => (
+                      <button
+                        key={tf}
+                        type="button"
+                        onClick={() => updQ(qi, { ...q, correctTF: tf })}
+                        className={`flex-1 py-2 rounded-xl border text-sm font-semibold transition-colors ${
+                          q.correctTF === tf
+                            ? "bg-emerald-50 border-emerald-400 text-emerald-700 font-bold"
+                            : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        {tf}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
         ))}
         <button type="button" onClick={addQ} className="flex items-center gap-1.5 text-sm font-semibold text-amber-700 hover:text-amber-900"><Plus className="w-4 h-4" /> Add Question</button>
@@ -986,14 +1111,17 @@ function CreateCoursePage() {
 
           for (const quiz of lec.quizzes ?? []) {
             try {
-              const { data: qd } = await api.post(`/api/lessons/${lessonId}/quizzes`, { title: quiz.title })
+              const { data: qd } = await api.post(`/api/lessons/${lessonId}/quizzes`, {
+                title: quiz.title,
+                ...(quiz.timer_seconds ? { timer_seconds: Number(quiz.timer_seconds) * 60 } : {}),
+              })
               for (const q of quiz.questions ?? []) {
                 try {
                   await api.post(`/api/quizzes/${qd.data.quiz.id}/questions`, {
-                    type: "MCQ",
+                    type: q.type ?? "MCQ",
                     question: q.question,
-                    options: q.options,
-                    correct_answer: q.options[q.correctIndex],
+                    options: q.type === "TRUE_FALSE" ? ["True", "False"] : q.options,
+                    correct_answer: q.type === "TRUE_FALSE" ? q.correctTF : q.options[q.correctIndex],
                   })
                 } catch {}
               }
