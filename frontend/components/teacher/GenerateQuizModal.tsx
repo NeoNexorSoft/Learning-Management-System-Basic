@@ -6,8 +6,21 @@ import { Input } from "@/components/ui/input";
 import api from "@/lib/axios";
 
 type QOption = [string, string, string, string];
-type QItem = { id: string; question: string; options: QOption; correctIndex: number };
-type Quiz = { id: string; title: string; timer_seconds: number | ""; questions: QItem[] };
+type QItem = {
+    id: string;
+    question: string;
+    type: "MCQ";
+    options: QOption;
+    correctIndex: number;
+    correctTF: "True" | "False";
+};
+type Quiz = {
+    id: string;
+    title: string;
+    timer_seconds: number | "";
+    type: "MCQ";
+    questions: QItem[];
+};
 
 interface GenerateQuizModalProps {
     onClose: () => void;
@@ -23,13 +36,11 @@ const ANSWER_MAP: Record<string, number> = { a: 0, b: 1, c: 2, d: 3 };
 // Maps the flat API question list into our Quiz shape
 function buildQuiz(questions: any[], title: string): Quiz {
     const items: QItem[] = questions.map((q) => {
-        // options from API can be plain strings or "a) text" prefixed strings
         const rawOptions: string[] = q.options ?? [];
         const cleanedOptions = rawOptions.map((opt: string) =>
             opt.replace(/^[a-d]\)\s*/i, "").trim()
         ) as unknown as QOption;
 
-        // pad to exactly 4 options if API returns fewer
         while (cleanedOptions.length < 4) cleanedOptions.push("");
 
         const correctIndex = ANSWER_MAP[q.answer?.toLowerCase()] ?? 0;
@@ -37,8 +48,10 @@ function buildQuiz(questions: any[], title: string): Quiz {
         return {
             id: crypto.randomUUID(),
             question: q.question_text ?? q.question_text_en ?? "",
+            type: "MCQ",                    // API only returns MCQ for now
             options: cleanedOptions.slice(0, 4) as QOption,
             correctIndex,
+            correctTF: "True",              // default, not used for MCQ
         };
     });
 
@@ -46,6 +59,7 @@ function buildQuiz(questions: any[], title: string): Quiz {
         id: crypto.randomUUID(),
         title,
         timer_seconds: "",
+        type: "MCQ",                        // matches the questions generated
         questions: items,
     };
 }
@@ -59,7 +73,7 @@ export function GenerateQuizModal({ onClose, onGenerated }: GenerateQuizModalPro
         topic: "",
         exam: "",
         grade: "",
-        type: "mcq",
+        type: "mcq",                            // keep lowercase for API payload
         difficulty: "medium",
         count: 5,
         language: "mixed",

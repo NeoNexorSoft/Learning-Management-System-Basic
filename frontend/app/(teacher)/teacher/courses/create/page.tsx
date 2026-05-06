@@ -291,7 +291,16 @@ function LectureForm({ lecture, onChange, onDelete, uploadConfig }: {
     const [showGenerateModal, setShowGenerateModal] = useState(false);
 
 // this runs when the modal returns the generated quiz
-    function handleQuizGenerated(quiz: Quiz) {
+    function handleQuizGenerated(generatedQuiz: any) {
+        const quiz: Quiz = {
+            ...generatedQuiz,
+            type: "MCQ",
+            questions: (generatedQuiz.questions ?? []).map((q: any) => ({
+                ...q,
+                type: "MCQ",
+                correctTF: "True" as const,
+            })),
+        }
         onChange({ ...lecture, quizzes: [...lecture.quizzes, quiz] });
     }
 
