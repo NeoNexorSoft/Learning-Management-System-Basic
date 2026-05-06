@@ -13,7 +13,7 @@ import {
   Settings,
   ChevronRight,
   ChevronDown,
-  Users,
+  Atom,
   GraduationCap,
   CreditCard,
   Star,
@@ -23,6 +23,8 @@ import {
   History,
   Receipt,
   Award,
+  BarChart2,
+  Database,
 } from "lucide-react"
 import { BrandIcon, BRAND_NAME, BRAND_ICON_BG, BRAND_ICON_COLOR } from "@/lib/brand"
 import { useNotifications } from "@/hooks/useNotifications"
@@ -52,7 +54,14 @@ const studentLearningNav: NavItem[] = [
 const studentAccountNav: NavItem[] = [
   { icon: Bell,    label: "Notifications",   href: "/student/notifications" },
   { icon: Receipt, label: "Purchase History", href: "/student/deposit-history" },
+  { icon: Atom, label: "Simulations", href: "/student/simulations" },
   { icon: Settings, label: "Settings",       href: "/student/settings" },
+]
+
+const studentEvaluationNav: NavItem[] = [
+  { icon: BarChart2, label: "Student Overview",  href: "/student/evaluation/overview" },
+  { icon: Trophy,    label: "Self Evaluation & Leaderboard",        href: "/student/evaluation/leaderboard" },
+  { icon: Award,     label: "House Competition",  href: "/student/evaluation/house" },
 ]
 
 const teacherMainNav: NavItem[] = [
@@ -63,6 +72,7 @@ const teacherCourseNav: NavItem[] = [
   { icon: PlusCircle, label: "Create Course", href: "/teacher/courses/create" },
 ]
 const teacherBottomNav: NavItem[] = [
+  { icon: Database,      label: "Question Bank",   href: "/teacher/question-bank" },
   { icon: ClipboardList, label: "Enrollments",      href: "/teacher/enrollments" },
   { icon: GraduationCap, label: "Students",         href: "/teacher/students" },
   { icon: Wallet,        label: "Withdraw",         href: "/teacher/withdraw" },
@@ -70,6 +80,12 @@ const teacherBottomNav: NavItem[] = [
   { icon: Star,          label: "Reviews",          href: "/teacher/reviews" },
   { icon: CreditCard,    label: "Transactions",     href: "/teacher/transactions" },
   { icon: Settings,      label: "Settings",         href: "/teacher/settings" },
+]
+
+const teacherEvaluationNav: NavItem[] = [
+  { icon: BarChart2, label: "Student Overview",  href: "/teacher/evaluation/overview" },
+  { icon: Trophy,    label: "Self Evaluation & Leaderboard",        href: "/teacher/evaluation/leaderboard" },
+  { icon: Award,     label: "House Competition",  href: "/teacher/evaluation/house" },
 ]
 
 function NavLink({
@@ -93,7 +109,7 @@ function NavLink({
             : "text-slate-400 hover:bg-slate-700/50 hover:text-white"
         }`}
       >
-        <Icon className="w-4 h-4 flex-shrink-0" />
+        <Icon className="w-4 h-4 shrink-0" />
         {label}
       </Link>
     )
@@ -111,14 +127,14 @@ function NavLink({
       }`}
       aria-label={unreadCount > 0 ? `${label}, ${unreadCount} unread` : label}
     >
-      <Icon className={`${sub ? "w-4 h-4" : "w-5 h-5"} flex-shrink-0`} />
+      <Icon className={`${sub ? "w-4 h-4" : "w-5 h-5"} shrink-0`} />
 
       <span className="flex-1">{label}</span>
 
       {/* Notification badge on the nav item */}
       {unreadCount > 0 && (
         <span
-          className={`min-w-[18px] h-[18px] text-[10px] font-bold rounded-full flex items-center justify-center leading-none px-1 ${
+          className={`min-w-4.5 h-4.5 text-[10px] font-bold rounded-full flex items-center justify-center leading-none px-1 ${
             active ? "bg-white text-indigo-600" : "bg-red-500 text-white"
           }`}
           aria-hidden="true"
@@ -139,6 +155,12 @@ export default function Sidebar({ role }: { role: "student" | "teacher" }) {
   const [coursesOpen, setCoursesOpen] = useState(
     role === "teacher" && pathname.startsWith("/teacher/courses"),
   );
+  const [studentEvalOpen, setStudentEvalOpen] = useState(
+    pathname.startsWith("/student/evaluation"),
+  );
+  const [teacherEvalOpen, setTeacherEvalOpen] = useState(
+    pathname.startsWith("/teacher/evaluation"),
+  );
 
   // Safe — NotificationProvider wraps both student and teacher layouts
   const { unreadCount, isLoaded } = useNotifications();
@@ -156,7 +178,7 @@ export default function Sidebar({ role }: { role: "student" | "teacher" }) {
       .slice(0, 2) || "?";
 
   return (
-    <aside className="w-64 h-screen sticky top-0 bg-slate-900 flex flex-col flex-shrink-0 overflow-hidden border-r border-slate-700/50">
+    <aside className="w-64 h-screen sticky top-0 bg-slate-900 flex flex-col shrink-0 overflow-hidden border-r border-slate-700/50">
       {/* Logo — teacher only */}
       {role === "teacher" && (
         <div className="p-6 border-b border-slate-800">
@@ -187,6 +209,40 @@ export default function Sidebar({ role }: { role: "student" | "teacher" }) {
           ))}
 
           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-4 mb-2 mt-5">
+            Evaluation
+          </p>
+          <div>
+            <button
+              onClick={() => setStudentEvalOpen(o => !o)}
+              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                pathname.startsWith("/student/evaluation")
+                  ? "bg-indigo-600 text-white shadow-sm shadow-indigo-500/30"
+                  : "text-slate-400 hover:bg-slate-700/50 hover:text-white"
+              }`}
+            >
+              <BarChart2 className="w-4 h-4 flex-shrink-0" />
+              <span className="flex-1 text-left">Centralized Evaluation</span>
+              {studentEvalOpen
+                ? <ChevronDown className="w-4 h-4 opacity-70" />
+                : <ChevronRight className="w-4 h-4 opacity-70" />}
+            </button>
+            {studentEvalOpen && (
+              <div className="mt-1 ml-3 pl-4 border-l border-slate-700 space-y-0.5">
+                {studentEvaluationNav.map(({ icon, label, href }) => (
+                  <NavLink
+                    key={href}
+                    href={href}
+                    icon={icon}
+                    label={label}
+                    active={pathname === href}
+                    variant="student"
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-4 mb-2 mt-5">
             Account
           </p>
           {studentAccountNav.map(({ icon, label, href }) => (
@@ -202,7 +258,7 @@ export default function Sidebar({ role }: { role: "student" | "teacher" }) {
           ))}
         </nav>
       ) : (
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {teacherMainNav.map(({ icon, label, href }) => (
             <NavLink key={href} href={href} icon={icon} label={label} active={pathname === href} />
           ))}
@@ -217,7 +273,7 @@ export default function Sidebar({ role }: { role: "student" | "teacher" }) {
                   : "text-slate-400 hover:text-white hover:bg-slate-800"
               }`}
             >
-              <BookOpen className="w-5 h-5 flex-shrink-0" />
+              <BookOpen className="w-5 h-5 shrink-0" />
               <span className="flex-1 text-left">Courses</span>
               {coursesOpen
                 ? <ChevronDown className="w-4 h-4 opacity-70" />
@@ -226,6 +282,31 @@ export default function Sidebar({ role }: { role: "student" | "teacher" }) {
             {coursesOpen && (
               <div className="mt-1 ml-3 pl-4 border-l border-slate-700 space-y-0.5">
                 {teacherCourseNav.map(({ icon, label, href }) => (
+                  <NavLink key={href} href={href} icon={icon} label={label} active={pathname === href} sub />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Centralized Evaluation — expandable */}
+          <div>
+            <button
+              onClick={() => setTeacherEvalOpen(o => !o)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                pathname.startsWith("/teacher/evaluation")
+                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800"
+              }`}
+            >
+              <BarChart2 className="w-5 h-5 flex-shrink-0" />
+              <span className="flex-1 text-left">Centralized Evaluation</span>
+              {teacherEvalOpen
+                ? <ChevronDown className="w-4 h-4 opacity-70" />
+                : <ChevronRight className="w-4 h-4 opacity-70" />}
+            </button>
+            {teacherEvalOpen && (
+              <div className="mt-1 ml-3 pl-4 border-l border-slate-700 space-y-0.5">
+                {teacherEvaluationNav.map(({ icon, label, href }) => (
                   <NavLink key={href} href={href} icon={icon} label={label} active={pathname === href} sub />
                 ))}
               </div>
