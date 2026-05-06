@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import React, { useState, useRef, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import {
@@ -8,10 +8,11 @@ import {
   ChevronUp, ChevronDown, BookOpen, FileText, HelpCircle,
   Upload, Eye, Send, Check, Bold, Italic, Underline,
   List, ListOrdered, ImageIcon, X, Loader2, AlertCircle,
-  Video, FileIcon, AlignLeft, PlayCircle,
+  Video, FileIcon, AlignLeft, PlayCircle, Sparkles
 } from "lucide-react"
 import TopBar from "@/components/shared/TopBar"
 import api from "@/lib/axios"
+import {GenerateQuizModal} from "@/components/teacher/GenerateQuizModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -281,24 +282,59 @@ function LectureForm({ lecture, onChange, onDelete, uploadConfig }: {
   const isDoc   = lecture.type === "document"
   const isText  = lecture.type === "text"
 
-  const accept    = isVideo ? "video/*" : "*/*"
+  const allowedDocFormats = uploadConfig?.document?.allowedFormats ?? ["pdf"]
+  const accept = isVideo ? "video/*" : allowedDocFormats.map((ext: string) => `.${ext}`).join(",")
   const endpoint  = isVideo ? "/api/upload/video" : "/api/upload/document"
   const fieldName = isVideo ? "video" : "document"
+
+    // add this state at the top of your lecture component
+    const [showGenerateModal, setShowGenerateModal] = useState(false);
+
+// this runs when the modal returns the generated quiz
+    function handleQuizGenerated(generatedQuiz: any) {
+        const quiz: Quiz = {
+            ...generatedQuiz,
+            type: "MCQ",
+            questions: (generatedQuiz.questions ?? []).map((q: any) => ({
+                ...q,
+                type: "MCQ",
+                correctTF: "True" as const,
+            })),
+        }
+        onChange({ ...lecture, quizzes: [...lecture.quizzes, quiz] });
+    }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    setUploading(true); setUploadError("")
+
+    // validate file type before sending to server
+    if (isDoc) {
+        const fileExt = file.name.split(".").pop()?.toLowerCase() ?? ""
+        if (!allowedDocFormats.includes(fileExt)) {
+            setUploadError(
+                `Invalid file type. Only ${allowedDocFormats.join(", ").toUpperCase()} files are allowed.`
+            )
+            if (fileRef.current) fileRef.current.value = ""
+            return
+        }
+    }
+
+    setUploading(true)
+    setUploadError("")
+
     try {
-      const fd = new FormData()
-      fd.append(fieldName, file)
-      const { data } = await api.post(endpoint, fd, { headers: { "Content-Type": "multipart/form-data" } })
-      onChange({ ...lecture, file_urls: [...(lecture.file_urls ?? []), data.data.url] })
+        const fd = new FormData()
+        fd.append(fieldName, file)
+        const { data } = await api.post(endpoint, fd, {
+            headers: { "Content-Type": "multipart/form-data" },
+        })
+        onChange({ ...lecture, file_urls: [...(lecture.file_urls ?? []), data.data.url] })
     } catch (err: any) {
-      setUploadError(err.response?.data?.message ?? "Upload failed.")
+        setUploadError(err.response?.data?.message ?? "Upload failed.")
     } finally {
-      setUploading(false)
-      if (fileRef.current) fileRef.current.value = ""
+        setUploading(false)
+        if (fileRef.current) fileRef.current.value = ""
     }
   }
 
@@ -440,6 +476,15 @@ function LectureForm({ lecture, onChange, onDelete, uploadConfig }: {
                   <span className="text-xs font-bold text-amber-700">True / False</span>
                   <span className="text-[10px] text-amber-500">True or False questions</span>
                 </button>
+                  {/* AI generate button */}
+                  <button
+                      type="button"
+                      onClick={() => setShowGenerateModal(true)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors"
+                  >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Generate Quiz by AI
+                  </button>
               </div>
             </div>
           )}
@@ -448,6 +493,14 @@ function LectureForm({ lecture, onChange, onDelete, uploadConfig }: {
               <Plus className="w-3.5 h-3.5" /> Add Quiz
             </button>
           </div>
+
+            {/* AI generate modal */}
+            {showGenerateModal && (
+                <GenerateQuizModal
+                    onClose={() => setShowGenerateModal(false)}
+                    onGenerated={handleQuizGenerated}
+                />
+            )}
         </div>
       </div>
   )

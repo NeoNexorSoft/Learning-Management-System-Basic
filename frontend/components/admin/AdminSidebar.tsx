@@ -19,7 +19,7 @@ import {
   LogOut,
   ShieldCheck,
   Settings,
-  SlidersHorizontal,
+  SlidersHorizontal, Atom
 } from "lucide-react";
 
 import {
@@ -47,6 +47,7 @@ const navItems: NavItem[] = [
     href: "/admin/system-config",
   }, // adding new section
   { icon: FileWarning, label: "Reports", href: "/admin/reports" }, //new adding
+  { icon: Atom, label: "Simulations", href: "/admin/simulations" }, // simulations page
 ];
 
 function NavLink({

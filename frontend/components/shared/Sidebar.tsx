@@ -13,7 +13,7 @@ import {
   Settings,
   ChevronRight,
   ChevronDown,
-  Users,
+  Atom,
   GraduationCap,
   CreditCard,
   Star,
@@ -53,6 +53,7 @@ const studentLearningNav: NavItem[] = [
 const studentAccountNav: NavItem[] = [
   { icon: Bell,    label: "Notifications",   href: "/student/notifications" },
   { icon: Receipt, label: "Purchase History", href: "/student/deposit-history" },
+  { icon: Atom, label: "Simulations", href: "/student/simulations" },
   { icon: Settings, label: "Settings",       href: "/student/settings" },
 ]
 
