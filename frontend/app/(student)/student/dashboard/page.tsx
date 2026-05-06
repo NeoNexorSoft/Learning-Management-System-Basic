@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState , Suspense } from "react";
 import type { Assignment, Result } from "@/types/index";
 import {
   BookOpen,
@@ -404,7 +404,7 @@ function AnnouncementRow({
   );
 }
 
-export default function StudentDashboardPage() {
+function StudentDashboardPage() {
   const { user } = useAuth();
 
   const [stats, setStats] = useState<any>(null);
@@ -1085,4 +1085,12 @@ export default function StudentDashboardPage() {
       </main>
     </div>
   );
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <StudentDashboardPage />
+    </Suspense>
+  )
 }

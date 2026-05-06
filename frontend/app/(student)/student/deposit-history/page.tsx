@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState , Suspense } from "react"
 
 import PageHeader from "@/components/shared/PageHeader"
 import { CreditCard, Loader2 } from "lucide-react"
@@ -20,7 +20,7 @@ const statusStyles: Record<string, string> = {
   CANCELLED:  "bg-red-100 text-red-700",
 }
 
-export default function DepositHistoryPage() {
+function DepositHistoryPage() {
   const [rows, setRows]       = useState<EnrollmentRow[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -121,5 +121,13 @@ export default function DepositHistoryPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <DepositHistoryPage />
+    </Suspense>
   )
 }

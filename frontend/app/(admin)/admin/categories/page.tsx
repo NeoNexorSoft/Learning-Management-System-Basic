@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect , Suspense } from "react"
 import { Search, Plus, Pencil, Trash2, FolderOpen, FolderTree, Check, AlertCircle } from "lucide-react"
 import api from "@/lib/axios"
 import type { Category } from "@/types/admin"
@@ -78,7 +78,7 @@ function CategoryForm({
   )
 }
 
-export default function AdminCategoriesPage() {
+function AdminCategoriesPage() {
   const [categories,    setCategories]    = useState<Category[]>([])
   const [loading,       setLoading]       = useState(true)
   const [formLoading,   setFormLoading]   = useState(false)
@@ -314,5 +314,13 @@ export default function AdminCategoriesPage() {
             danger
         />
       </main>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <AdminCategoriesPage />
+    </Suspense>
   )
 }

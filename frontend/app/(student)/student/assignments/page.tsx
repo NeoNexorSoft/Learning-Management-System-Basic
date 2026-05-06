@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, Suspense } from "react";
+import { useEffect, useMemo, useState, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   CheckCircle2,
@@ -9,13 +9,24 @@ import {
   ClipboardList,
   Loader2,
   MessageSquareText,
+  Upload,
+  FileText,
+  Trash2,
+  Send,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 import PageHeader from "@/components/shared/PageHeader";
+import Modal from "@/components/admin/Modal";
+import dynamic from "next/dynamic"
+const PdfViewer = dynamic(() => import("@/components/shared/PdfViewer"), { ssr: false })
 import api from "@/lib/axios";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 type SubmissionStatus = "pending" | "submitted" | "graded" | "returned";
-type StatusFilter = "all" | "graded" | "pending";
+type StatusFilter     = "all" | "graded" | "pending";
 
 type StudentAssignmentFeedback = {
   id: string;
@@ -23,20 +34,21 @@ type StudentAssignmentFeedback = {
   course: string;
   submittedAt: string | null;
   dueDate: string;
+  createdAt: string;
+  target: "COURSE" | "ALL_ENROLLED";
+  description: string | null;
+  assignmentFileUrl: string | null;
   status: SubmissionStatus;
   marks: number | null;
   totalMarks: number;
   feedback: string | null;
 };
 
+// ─── Status config (unchanged) ────────────────────────────────────────────────
+
 const statusConfig: Record<
   SubmissionStatus,
-  {
-    label: string;
-    bg: string;
-    text: string;
-    Icon: typeof Clock;
-  }
+  { label: string; bg: string; text: string; Icon: typeof Clock }
 > = {
   pending: {
     label: "Pending",
@@ -64,13 +76,16 @@ const statusConfig: Record<
   },
 };
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 function formatDate(value: string | null) {
   if (!value) return "—";
-
-  return new Date(value).toLocaleDateString("en-US", {
+  return new Date(value).toLocaleString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
@@ -79,32 +94,38 @@ function getSubmissionStatus(
   grade: number | null,
 ): SubmissionStatus {
   const normalized = rawStatus?.toLowerCase();
-
   if (normalized === "returned") return "returned";
   if (grade !== null) return "graded";
   if (normalized === "submitted") return "submitted";
-
   return "pending";
 }
 
+// ─── Assignment row ───────────────────────────────────────────────────────────
+
 function AssignmentRow({
   assignment,
+  onSubmit,
+  onDelete,
+  deletingId,
 }: {
   assignment: StudentAssignmentFeedback;
+  onSubmit: (a: StudentAssignmentFeedback) => void;
+  onDelete: (id: string) => void;
+  deletingId: string | null;
 }) {
-  const cfg = statusConfig[assignment.status];
+  const cfg        = statusConfig[assignment.status];
   const StatusIcon = cfg.Icon;
-  const isOverdue =
-    assignment.status === "pending" &&
-    new Date(assignment.dueDate) < new Date();
+
+  const now            = new Date();
+  const isPastDeadline = new Date(assignment.dueDate) < now;
+  const canSubmit      = assignment.status === "pending" && !isPastDeadline;
+  const canDelete      = assignment.status === "submitted" && !isPastDeadline;
 
   return (
     <tr className="border-b border-slate-100 hover:bg-slate-50 transition-colors align-top">
+      {/* Assignment */}
       <td className="py-4 px-4">
         <div className="flex items-start gap-2">
-          {isOverdue && (
-            <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-          )}
           <div>
             <p className="font-semibold text-slate-800 text-sm">
               {assignment.title}
@@ -116,14 +137,34 @@ function AssignmentRow({
         </div>
       </td>
 
+      {/* Course */}
       <td className="py-4 px-4 text-sm text-slate-500 hidden sm:table-cell">
-        {assignment.course}
+        {assignment.target === "ALL_ENROLLED" ? "—" : assignment.course}
       </td>
 
+      {/* Target */}
+      <td className="py-4 px-4 hidden md:table-cell">
+  <span className="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
+    {assignment.target === "ALL_ENROLLED" ? "All Enrolled" : "Course"}
+  </span>
+      </td>
+
+      {/* Created */}
+      <td className="py-4 px-4 text-sm text-slate-500 hidden lg:table-cell">
+        {formatDate(assignment.createdAt)}
+      </td>
+
+      {/* Due Date */}
+      <td className="py-4 px-4 text-sm text-slate-500 hidden md:table-cell">
+        {formatDate(assignment.dueDate)}
+      </td>
+
+      {/* Submission Date */}
       <td className="py-4 px-4 text-sm text-slate-500 hidden md:table-cell">
         {formatDate(assignment.submittedAt)}
       </td>
 
+      {/* Status */}
       <td className="py-4 px-4">
         <span
           className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${cfg.bg} ${cfg.text}`}
@@ -133,13 +174,15 @@ function AssignmentRow({
         </span>
       </td>
 
+      {/* Marks */}
       <td className="py-4 px-4 text-sm font-semibold text-slate-700 hidden lg:table-cell">
         {assignment.marks !== null
           ? `${assignment.marks}/${assignment.totalMarks}`
-          : "Pending"}
+          : "—"}
       </td>
 
-      <td className="py-4 px-4 text-sm text-slate-500 min-w-[240px]">
+      {/* Feedback */}
+      <td className="py-4 px-4 text-sm text-slate-500 min-w-[200px]">
         {assignment.feedback ? (
           <div className="flex items-start gap-2">
             <MessageSquareText className="w-4 h-4 text-indigo-500 flex-shrink-0 mt-0.5" />
@@ -149,20 +192,64 @@ function AssignmentRow({
           <span className="text-slate-400">No feedback yet</span>
         )}
       </td>
+
+      {/* Actions */}
+      <td className="py-4 px-4">
+        <div className="flex flex-col gap-1.5">
+          {canSubmit && (
+            <button
+              onClick={() => onSubmit(assignment)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors whitespace-nowrap"
+            >
+              <Send className="w-3.5 h-3.5" />
+              Submit
+            </button>
+          )}
+          {canDelete && (
+            <button
+              onClick={() => onDelete(assignment.id)}
+              disabled={deletingId === assignment.id}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors whitespace-nowrap disabled:opacity-60"
+            >
+              {deletingId === assignment.id ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="w-3.5 h-3.5" />
+              )}
+              Delete
+            </button>
+          )}
+        </div>
+      </td>
     </tr>
   );
 }
 
-function StudentAssignmentsPage() {
-  const searchParams = useSearchParams();
-  const search = (searchParams.get("search") ?? "").toLowerCase();
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
-  const [assignments, setAssignments] = useState<StudentAssignmentFeedback[]>(
-    [],
-  );
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+function StudentAssignmentsPage() {
+  const searchParams  = useSearchParams();
+  const search        = (searchParams.get("search") ?? "").toLowerCase();
+
+  const [assignments,  setAssignments]  = useState<StudentAssignmentFeedback[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [error,        setError]        = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+
+  // ── Submission modal state ─────────────────────────────────────────────────
+  const [submittingAssignment, setSubmittingAssignment] =
+    useState<StudentAssignmentFeedback | null>(null);
+  const [submitContent,  setSubmitContent]  = useState("");
+  const [submitFileUrl,  setSubmitFileUrl]  = useState("");
+  const [submitFile,     setSubmitFile]     = useState<File | null>(null);
+  const [uploading,      setUploading]      = useState(false);
+  const [submitLoading,  setSubmitLoading]  = useState(false);
+  const [submitError,    setSubmitError]    = useState("");
+  const [deletingId,     setDeletingId]     = useState<string | null>(null);
+  const [showPdf,        setShowPdf]        = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  // ── Data fetching ──────────────────────────────────────────────────────────
 
   useEffect(() => {
     api
@@ -171,13 +258,16 @@ function StudentAssignmentsPage() {
         const raw: any[] = data.data?.assignments ?? data.data ?? [];
 
         if (raw.length === 0 && process.env.NODE_ENV === "development") {
-          // only for local testing (dev only)
           setAssignments([
             {
               id: "demo-1",
               title: "Demo Assignment - React Components",
               course: "Complete React Developer Bootcamp",
-              dueDate: new Date().toISOString(),
+              dueDate: new Date(Date.now() + 86400000).toISOString(),
+              createdAt: new Date().toISOString(),
+              target: "COURSE",
+              description: "Build a reusable button component with variants.",
+              assignmentFileUrl: null,
               submittedAt: new Date().toISOString(),
               status: "graded",
               marks: 85,
@@ -189,9 +279,13 @@ function StudentAssignmentsPage() {
               id: "demo-2",
               title: "Demo Assignment - Node.js API",
               course: "Node.js API Development Masterclass",
-              dueDate: new Date().toISOString(),
-              submittedAt: new Date().toISOString(),
-              status: "submitted",
+              dueDate: new Date(Date.now() + 172800000).toISOString(),
+              createdAt: new Date(Date.now() - 86400000).toISOString(),
+              target: "ALL_ENROLLED",
+              description: null,
+              assignmentFileUrl: null,
+              submittedAt: null,
+              status: "pending",
               marks: null,
               totalMarks: 100,
               feedback: null,
@@ -199,26 +293,28 @@ function StudentAssignmentsPage() {
           ]);
           return;
         }
-        const mapped: StudentAssignmentFeedback[] = raw.map(
-          (assignment: any) => {
-            const submission = assignment.submission ?? null;
-            const grade = submission?.grade ?? null;
-            const status = getSubmissionStatus(submission?.status, grade);
 
-            return {
-              id: assignment.id,
-              title: assignment.title,
-              course:
-                assignment.lesson?.section?.course?.title ?? "Unknown Course",
-              dueDate: assignment.due_date ?? new Date().toISOString(),
-              submittedAt: submission?.submitted_at ?? null,
-              status,
-              marks: grade,
-              totalMarks: assignment.total_marks ?? 100,
-              feedback: submission?.feedback ?? null,
-            };
-          },
-        );
+        const mapped: StudentAssignmentFeedback[] = raw.map((assignment: any) => {
+          const submission = assignment.my_submission ?? null;
+          const grade      = submission?.grade ?? null;
+          const status     = getSubmissionStatus(submission?.status, grade);
+
+          return {
+            id:                assignment.id,
+            title:             assignment.title,
+            course:            assignment.course?.title ?? "Unknown Course",
+            dueDate:           assignment.due_date ?? new Date().toISOString(),
+            createdAt:         assignment.created_at ?? new Date().toISOString(),
+            target:            assignment.target ?? "COURSE",
+            description:       assignment.description ?? null,
+            assignmentFileUrl: assignment.file_url ?? null,
+            submittedAt:       submission?.submitted_at ?? null,
+            status,
+            marks:             grade,
+            totalMarks:        assignment.total_marks ?? 100,
+            feedback:          submission?.feedback ?? null,
+          };
+        });
 
         setAssignments(mapped);
       })
@@ -226,45 +322,132 @@ function StudentAssignmentsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const counts = useMemo(() => {
-    const graded = assignments.filter(
-      (assignment) => assignment.status === "graded",
-    ).length;
-    const pending = assignments.filter(
-      (assignment) =>
-        assignment.status === "pending" || assignment.status === "submitted",
-    ).length;
+  // ── Submission handlers ────────────────────────────────────────────────────
 
-    return {
-      total: assignments.length,
-      graded,
-      pending,
-    };
+  function openSubmitModal(a: StudentAssignmentFeedback) {
+    setSubmittingAssignment(a);
+    setSubmitContent("");
+    setSubmitFileUrl("");
+    setSubmitFile(null);
+    setSubmitError("");
+    setShowPdf(false);
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
+  function closeSubmitModal() {
+    setSubmittingAssignment(null);
+    setSubmitContent("");
+    setSubmitFileUrl("");
+    setSubmitFile(null);
+    setSubmitError("");
+    setShowPdf(false);
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setSubmitFile(f);
+    setUploading(true);
+    setSubmitError("");
+    try {
+      const form = new FormData();
+      form.append("file", f);
+      const { data } = await api.post("/api/upload/document", form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setSubmitFileUrl(data.data?.url ?? "");
+    } catch (err: any) {
+      setSubmitError(err.response?.data?.message ?? "File upload failed");
+      setSubmitFile(null);
+      if (fileRef.current) fileRef.current.value = "";
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleSubmit() {
+    if (!submittingAssignment) return;
+    if (!submitContent.trim() && !submitFileUrl) {
+      setSubmitError("Please provide text content or upload a file.");
+      return;
+    }
+
+    setSubmitError("");
+    setSubmitLoading(true);
+    try {
+      await api.post(`/api/assignments/${submittingAssignment.id}/submit`, {
+        content:  submitContent.trim() || undefined,
+        file_url: submitFileUrl || undefined,
+      });
+      setAssignments(prev =>
+        prev.map(a =>
+          a.id === submittingAssignment.id
+            ? { ...a, status: "submitted" as SubmissionStatus, submittedAt: new Date().toISOString() }
+            : a
+        )
+      );
+      closeSubmitModal();
+    } catch (err: any) {
+      setSubmitError(
+        err.response?.data?.message ?? "Failed to submit assignment"
+      );
+    } finally {
+      setSubmitLoading(false);
+    }
+  }
+
+  async function handleDeleteSubmission(id: string) {
+    setDeletingId(id);
+    try {
+      await api.delete(`/api/assignments/${id}/submission`);
+      setAssignments(prev =>
+        prev.map(a =>
+          a.id === id
+            ? { ...a, status: "pending" as SubmissionStatus, submittedAt: null }
+            : a
+        )
+      );
+    } catch {
+      // no-op — row state unchanged on failure
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  // ── Derived data (unchanged logic) ────────────────────────────────────────
+
+  const counts = useMemo(() => {
+    const graded  = assignments.filter(a => a.status === "graded").length;
+    const pending = assignments.filter(
+      a => a.status === "pending" || a.status === "submitted"
+    ).length;
+    return { total: assignments.length, graded, pending };
   }, [assignments]);
 
   const filtered = useMemo(() => {
-    return assignments.filter((assignment) => {
+    return assignments.filter(a => {
       const matchesSearch =
         !search ||
-        assignment.title.toLowerCase().includes(search) ||
-        assignment.course.toLowerCase().includes(search) ||
-        assignment.feedback?.toLowerCase().includes(search);
+        a.title.toLowerCase().includes(search) ||
+        a.course.toLowerCase().includes(search) ||
+        a.feedback?.toLowerCase().includes(search);
 
       const matchesStatus =
         statusFilter === "all" ||
-        (statusFilter === "graded" && assignment.status === "graded") ||
+        (statusFilter === "graded" && a.status === "graded") ||
         (statusFilter === "pending" &&
-          (assignment.status === "pending" ||
-            assignment.status === "submitted"));
+          (a.status === "pending" || a.status === "submitted"));
 
       return matchesSearch && matchesStatus;
     });
   }, [assignments, search, statusFilter]);
 
+  // ── Loading state (unchanged) ─────────────────────────────────────────────
+
   if (loading) {
     return (
       <div className="flex flex-col flex-1">
-
         <main className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
         </main>
@@ -272,10 +455,10 @@ function StudentAssignmentsPage() {
     );
   }
 
+  // ── Render ────────────────────────────────────────────────────────────────
+
   return (
     <div className="flex flex-col flex-1">
-
-
       <main className="flex-1 p-6 overflow-y-auto">
         <PageHeader
           title="Assignments"
@@ -287,13 +470,14 @@ function StudentAssignmentsPage() {
           }
         />
 
+        {/* Filter buttons (unchanged) */}
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-2">
             {[
-              { key: "all", label: "All" },
-              { key: "graded", label: "Graded" },
+              { key: "all",     label: "All" },
+              { key: "graded",  label: "Graded" },
               { key: "pending", label: "Pending" },
-            ].map((item) => (
+            ].map(item => (
               <button
                 key={item.key}
                 type="button"
@@ -322,7 +506,7 @@ function StudentAssignmentsPage() {
         ) : (
           <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px]">
+              <table className="w-full min-w-[1300px]">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
                     <th className="py-3 px-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
@@ -332,7 +516,16 @@ function StudentAssignmentsPage() {
                       Course
                     </th>
                     <th className="py-3 px-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide hidden md:table-cell">
-                      Submission Date
+                      Target
+                    </th>
+                    <th className="py-3 px-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide hidden lg:table-cell">
+                      Created
+                    </th>
+                    <th className="py-3 px-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide hidden md:table-cell">
+                      Due Date
+                    </th>
+                    <th className="py-3 px-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide hidden md:table-cell">
+                      Submitted
                     </th>
                     <th className="py-3 px-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
                       Status
@@ -343,14 +536,19 @@ function StudentAssignmentsPage() {
                     <th className="py-3 px-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
                       Teacher Feedback
                     </th>
+                    <th className="py-3 px-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
-
                 <tbody>
-                  {filtered.map((assignment) => (
+                  {filtered.map(assignment => (
                     <AssignmentRow
                       key={assignment.id}
                       assignment={assignment}
+                      onSubmit={openSubmitModal}
+                      onDelete={handleDeleteSubmission}
+                      deletingId={deletingId}
                     />
                   ))}
                 </tbody>
@@ -359,9 +557,171 @@ function StudentAssignmentsPage() {
           </div>
         )}
       </main>
+
+      {/* ── Submission Modal ─────────────────────────────────────────────────── */}
+      <Modal
+        isOpen={!!submittingAssignment}
+        onClose={closeSubmitModal}
+        title="Submit Assignment"
+        size="lg"
+      >
+        {submittingAssignment && (
+          <div className="space-y-5">
+            {submitError && (
+              <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                {submitError}
+              </div>
+            )}
+
+            {/* Assignment info */}
+            <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+              <p className="text-sm font-semibold text-slate-800">
+                {submittingAssignment.title}
+              </p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {submittingAssignment.course}
+              </p>
+              <p className="text-xs text-slate-400 mt-1">
+                Due {formatDate(submittingAssignment.dueDate)}
+              </p>
+            </div>
+
+            {/* Assignment instructions */}
+            {submittingAssignment.description && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Assignment Instructions
+                </label>
+                <div className="px-3.5 py-2.5 bg-indigo-50 border border-indigo-100 rounded-xl text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+                  {submittingAssignment.description}
+                </div>
+              </div>
+            )}
+
+            {/* Assignment PDF */}
+            {submittingAssignment.assignmentFileUrl && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowPdf(prev => !prev)}
+                  className="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-xl hover:bg-indigo-100 transition-colors"
+                >
+                  <FileText className="w-4 h-4" />
+                  {showPdf ? "Hide PDF" : "View PDF"}
+                  {showPdf ? (
+                    <ChevronUp className="w-3.5 h-3.5" />
+                  ) : (
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  )}
+                </button>
+                {showPdf && (
+                  <div className="mt-3">
+                    <PdfViewer url={submittingAssignment.assignmentFileUrl} />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Text content */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                Your Answer{" "}
+                <span className="text-slate-400 font-normal">
+                  (optional if uploading a file)
+                </span>
+              </label>
+              <textarea
+                value={submitContent}
+                onChange={e => setSubmitContent(e.target.value)}
+                placeholder="Write your submission here…"
+                rows={5}
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+              />
+            </div>
+
+            {/* File upload */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                Attachment{" "}
+                <span className="text-slate-400 font-normal">
+                  (optional if providing text)
+                </span>
+              </label>
+              <input
+                ref={fileRef}
+                type="file"
+                onChange={handleFileChange}
+                accept=".pdf"
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                disabled={uploading}
+                className="flex items-center justify-center gap-2 w-full px-4 py-3 border border-dashed border-slate-300 rounded-xl text-sm text-slate-500 hover:border-indigo-400 hover:text-indigo-500 transition-colors disabled:opacity-60"
+              >
+                {uploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Uploading…
+                  </>
+                ) : submitFile ? (
+                  <>
+                    <FileText className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+                    <span className="truncate max-w-xs text-slate-700 font-medium">
+                      {submitFile.name}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4" />
+                    Click to upload file
+                  </>
+                )}
+              </button>
+              {submitFileUrl && !uploading && (
+                <p className="flex items-center gap-1 text-xs text-emerald-600 mt-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  File uploaded successfully
+                </p>
+              )}
+            </div>
+
+            {/* Modal actions */}
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
+              <button
+                onClick={closeSubmitModal}
+                className="px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={submitLoading || uploading}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-70"
+              >
+                {submitLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Submitting…
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Submit Assignment
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
+
+// ─── Export (unchanged) ───────────────────────────────────────────────────────
 
 export default function Page() {
   return (

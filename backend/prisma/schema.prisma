@@ -78,6 +78,17 @@ enum DiscountType {
   FIXED
 }
 
+enum AssignmentTarget {
+  COURSE
+  ALL_ENROLLED
+}
+
+enum AssignmentStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
 // ─── Models ───────────────────────────────────────────────────────────────────
 
 model User {
@@ -113,6 +124,7 @@ model User {
   blogs             Blog[]            @relation("BlogAuthor")
   questionBank      QuestionBank[]
   simulations       Simulation[]      @relation("createdBy")
+  assignments       Assignment[]
 
   @@map("users")
 }
@@ -164,6 +176,7 @@ model Course {
   certificates Certificate[]
   reviews      Review[]
   transactions Transaction[]
+  assignments  Assignment[]
 
   @@map("courses")
 }
@@ -273,15 +286,25 @@ model LessonProgress {
 }
 
 model Assignment {
-  id          String    @id @default(uuid())
-  lesson_id   String
-  title       String
-  description String?
-  due_date    DateTime?
-  total_marks Int       @default(100)
-  created_at  DateTime  @default(now())
+  id             String           @id @default(uuid())
+  teacher_id     String
+  course_id      String?
+  lesson_id      String?
+  title          String
+  description    String?
+  file_url       String?
+  target         AssignmentTarget @default(COURSE)
+  status         AssignmentStatus @default(PENDING_APPROVAL)
+  due_date       DateTime
+  total_marks    Int              @default(100)
+  score_released Boolean          @default(false)
+  is_deleted     Boolean          @default(false)
+  created_at     DateTime         @default(now())
+  updated_at     DateTime         @updatedAt
 
-  lesson      Lesson       @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
+  teacher     User         @relation(fields: [teacher_id], references: [id])
+  course      Course?      @relation(fields: [course_id], references: [id], onDelete: SetNull)
+  lesson      Lesson?      @relation(fields: [lesson_id], references: [id], onDelete: SetNull)
   submissions Submission[]
 
   @@map("assignments")
@@ -297,10 +320,13 @@ model Submission {
   feedback      String?
   status        SubmissionStatus @default(SUBMITTED)
   submitted_at  DateTime         @default(now())
+  updated_at    DateTime         @updatedAt
+  deleted_at    DateTime?
 
   assignment Assignment @relation(fields: [assignment_id], references: [id], onDelete: Cascade)
   student    User       @relation(fields: [student_id], references: [id])
 
+  @@unique([assignment_id, student_id])
   @@map("submissions")
 }
 
@@ -541,13 +567,13 @@ model Simulation {
   simulationUrl String // The third-party URL that will be embedded in the iframe
   thumbnailUrl  String? // Optional preview image stored on Cloudinary
   isPublished Boolean  @default(false)
- 
+
   createdById String
   createdBy   User   @relation("createdBy", fields: [createdById], references: [id])
- 
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
- 
+
   @@index([subject])
   @@index([gradeLevel])
   @@index([isPublished])

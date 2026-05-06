@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState , Suspense } from "react";
 import { Save, Loader2 } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -23,7 +23,7 @@ type FrontendForm = {
   announcement_bar_color: string;
 };
 
-export default function FrontendManagementPage() {
+function FrontendManagementPage() {
   const [form, setForm] = useState<FrontendForm>({
     hero_title: "",
     hero_subtitle: "",
@@ -384,4 +384,12 @@ export default function FrontendManagementPage() {
       </form>
     </div>
   );
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <FrontendManagementPage />
+    </Suspense>
+  )
 }

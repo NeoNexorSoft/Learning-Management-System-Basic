@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState , Suspense } from "react"
 import { Award, ExternalLink, Loader2, Download } from "lucide-react"
 
 import api from "@/lib/axios"
@@ -17,7 +17,7 @@ interface Certificate {
   }
 }
 
-export default function CertificatesPage() {
+function CertificatesPage() {
   const [certificates, setCertificates] = useState<Certificate[]>([])
   const [loading, setLoading]           = useState(true)
 
@@ -120,5 +120,13 @@ export default function CertificatesPage() {
         )}
       </main>
     </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <CertificatesPage />
+    </Suspense>
   )
 }

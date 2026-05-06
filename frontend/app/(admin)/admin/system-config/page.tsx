@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState , Suspense } from "react";
 import { useRouter } from "next/navigation";
 import {
   Settings,
@@ -73,7 +73,7 @@ const configCards = [
   },
 ];
 
-export default function SystemConfigPage() {
+function SystemConfigPage() {
   const router = useRouter();
   const [search, setSearch] = useState("");
 
@@ -131,4 +131,12 @@ export default function SystemConfigPage() {
       </div>
     </div>
   );
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <SystemConfigPage />
+    </Suspense>
+  )
 }

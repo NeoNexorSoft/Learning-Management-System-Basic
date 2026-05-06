@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState , Suspense } from "react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -31,7 +31,7 @@ function renderTemplate(template: string) {
     .replaceAll("{{certificate_code}}", SAMPLE_DATA.certificate_code);
 }
 
-export default function CertificateTemplatePage() {
+function CertificateTemplatePage() {
   const [template, setTemplate] = useState(DEFAULT_TEMPLATE);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -214,4 +214,12 @@ export default function CertificateTemplatePage() {
       </div>
     </main>
   );
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <CertificateTemplatePage />
+    </Suspense>
+  )
 }

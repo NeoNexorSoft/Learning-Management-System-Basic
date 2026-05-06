@@ -12,6 +12,7 @@ import {
   BookOpen,
   Tag,
   Ticket,
+  ClipboardList,
   CreditCard,
   Wallet,
   FileWarning,
@@ -37,15 +38,16 @@ import {
 type NavItem = { icon: LucideIcon; label: string; href: string };
 
 const navItems: NavItem[] = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/admin/dashboard" },
-  { icon: Users, label: "Students", href: "/admin/users" },
-  { icon: GraduationCap, label: "Teachers", href: "/admin/teachers" },
-  { icon: BookOpen, label: "Courses", href: "/admin/courses" },
-  { icon: Tag, label: "Categories", href: "/admin/categories" },
-  { icon: Ticket, label: "Coupons", href: "/admin/coupons" },
-  { icon: CreditCard, label: "Payments", href: "/admin/payments" },
-  { icon: Wallet, label: "Withdrawals", href: "/admin/withdrawals" },
-  { icon: Settings, label: "Settings", href: "/admin/settings" },
+  { icon: LayoutDashboard, label: "Dashboard",   href: "/admin/dashboard" },
+  { icon: Users,           label: "Students",    href: "/admin/users" },
+  { icon: GraduationCap,  label: "Teachers",    href: "/admin/teachers" },
+  { icon: BookOpen,        label: "Courses",     href: "/admin/courses" },
+  { icon: ClipboardList,   label: "Assignments", href: "/admin/assignments" },
+  { icon: Tag,             label: "Categories",  href: "/admin/categories" },
+  { icon: Ticket,          label: "Coupons",     href: "/admin/coupons" },
+  { icon: CreditCard,      label: "Payments",    href: "/admin/payments" },
+  { icon: Wallet,          label: "Withdrawals", href: "/admin/withdrawals" },
+  { icon: Settings,        label: "Settings",    href: "/admin/settings" },
   {
     icon: SlidersHorizontal,
     label: "System Config",
@@ -106,15 +108,17 @@ export default function AdminSidebar({
   const pathname = usePathname();
   const router = useRouter();
   const [pendingCount, setPendingCount] = useState<number | null>(null);
-  const [evalOpen, setEvalOpen] = useState(
-    pathname.startsWith("/admin/evaluation"),
-  );
+  const [assignmentPendingCount, setAssignmentPendingCount] = useState<number | null>(null); // ← add
+  const [evalOpen, setEvalOpen] = useState(false);                                           // ← add
 
   useEffect(() => {
     function fetchPending() {
       api.get("/api/admin/courses?status=PENDING&limit=1")
         .then(({ data }) => setPendingCount(data.total ?? 0))
         .catch(() => setPendingCount(0))
+      api.get("/api/assignments/admin", { params: { filter: "pending" } })
+        .then(({ data }) => setAssignmentPendingCount(data.data?.assignments?.length ?? 0))
+        .catch(() => setAssignmentPendingCount(0))
     }
     fetchPending()
     window.addEventListener("pendingCountChanged", fetchPending)
@@ -162,8 +166,8 @@ export default function AdminSidebar({
 
       {/* Nav */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        {/* Dashboard → Withdrawals (indices 0-7) */}
-        {navItems.slice(0, 8).map(({ icon: Icon, label, href }) => {
+        {/* Dashboard → Withdrawals (indices 0-8) */}
+        {navItems.slice(0, 9).map(({ icon: Icon, label, href }) => {
           const active = pathname.startsWith(href);
           if (href === "/admin/courses") {
             return (
@@ -196,6 +200,43 @@ export default function AdminSidebar({
                       marginLeft: "2px",
                     }}>
                       {pendingCount > 9 ? "9+" : pendingCount}
+                    </span>
+                  )}
+                </span>
+              </Link>
+            );
+          }
+          if (href === "/admin/assignments") {
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  active
+                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
+                    : "text-slate-400 hover:text-white hover:bg-slate-800"
+                }`}
+              >
+                <Icon className="w-5 h-5 flex-shrink-0" />
+                <span className="flex items-start gap-0.5">
+                  Assignments
+                  {assignmentPendingCount !== null && assignmentPendingCount > 0 && (
+                    <span style={{
+                      fontSize: "9px",
+                      fontWeight: "bold",
+                      backgroundColor: "#ef4444",
+                      color: "white",
+                      borderRadius: "9999px",
+                      minWidth: "14px",
+                      height: "14px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "0 3px",
+                      marginTop: "-4px",
+                      marginLeft: "2px",
+                    }}>
+                      {assignmentPendingCount > 9 ? "9+" : assignmentPendingCount}
                     </span>
                   )}
                 </span>
@@ -244,8 +285,8 @@ export default function AdminSidebar({
           )}
         </div>
 
-        {/* Settings → Reports (indices 8-10) */}
-        {navItems.slice(8).map(({ icon: Icon, label, href }) => {
+        {/* Settings → Simulations (indices 9+) */}
+        {navItems.slice(9).map(({ icon: Icon, label, href }) => {
           const active = pathname.startsWith(href);
           return (
             <NavLink

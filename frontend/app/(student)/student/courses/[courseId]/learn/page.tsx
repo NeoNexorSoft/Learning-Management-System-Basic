@@ -1,4 +1,5 @@
 "use client"
+import { useEffect, useState, Suspense } from "react"
 import { useEffect, useRef, useState } from "react"
 import { useParams, useSearchParams } from "next/navigation"
 import {
@@ -11,7 +12,7 @@ import api from "@/lib/axios"
 import RichTextRenderer from "@/components/ui/RichTextRenderer"
 import FilePreview from "@/components/shared/FilePreview"
 
-export default function LearnPage() {
+function LearnPage() {
     const { courseId } = useParams<{ courseId: string }>()
     const searchParams = useSearchParams()
     const [course, setCourse]             = useState<any>(null)
@@ -777,4 +778,12 @@ function QuizExaminer({
             )}
         </div>
     )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <LearnPage />
+    </Suspense>
+  )
 }

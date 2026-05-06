@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState , Suspense } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { ArrowLeft, Check, X, BookOpen, Users, Tag } from "lucide-react"
 import api from "@/lib/axios"
@@ -31,7 +31,7 @@ const STATUS_STYLES = {
   REJECTED: "bg-red-100 text-red-700",
 }
 
-export default function AdminCoursePreviewPage() {
+function AdminCoursePreviewPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
 
@@ -253,5 +253,13 @@ export default function AdminCoursePreviewPage() {
       )}
 
     </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <AdminCoursePreviewPage />
+    </Suspense>
   )
 }
