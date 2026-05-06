@@ -38,15 +38,16 @@ import {
 type NavItem = { icon: LucideIcon; label: string; href: string };
 
 const navItems: NavItem[] = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/admin/dashboard" },
-  { icon: Users, label: "Students", href: "/admin/users" },
-  { icon: GraduationCap, label: "Teachers", href: "/admin/teachers" },
-  { icon: BookOpen, label: "Courses", href: "/admin/courses" },
-  { icon: Tag, label: "Categories", href: "/admin/categories" },
-  { icon: Ticket, label: "Coupons", href: "/admin/coupons" },
-  { icon: CreditCard, label: "Payments", href: "/admin/payments" },
-  { icon: Wallet, label: "Withdrawals", href: "/admin/withdrawals" },
-  { icon: Settings, label: "Settings", href: "/admin/settings" },
+  { icon: LayoutDashboard, label: "Dashboard",   href: "/admin/dashboard" },
+  { icon: Users,           label: "Students",    href: "/admin/users" },
+  { icon: GraduationCap,  label: "Teachers",    href: "/admin/teachers" },
+  { icon: BookOpen,        label: "Courses",     href: "/admin/courses" },
+  { icon: ClipboardList,   label: "Assignments", href: "/admin/assignments" },
+  { icon: Tag,             label: "Categories",  href: "/admin/categories" },
+  { icon: Ticket,          label: "Coupons",     href: "/admin/coupons" },
+  { icon: CreditCard,      label: "Payments",    href: "/admin/payments" },
+  { icon: Wallet,          label: "Withdrawals", href: "/admin/withdrawals" },
+  { icon: Settings,        label: "Settings",    href: "/admin/settings" },
   {
     icon: SlidersHorizontal,
     label: "System Config",
@@ -107,6 +108,8 @@ export default function AdminSidebar({
   const pathname = usePathname();
   const router = useRouter();
   const [pendingCount, setPendingCount] = useState<number | null>(null);
+  const [assignmentPendingCount, setAssignmentPendingCount] = useState<number | null>(null); // ← add
+  const [evalOpen, setEvalOpen] = useState(false);                                           // ← add
 
   useEffect(() => {
     function fetchPending() {
@@ -163,8 +166,8 @@ export default function AdminSidebar({
 
       {/* Nav */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        {/* Dashboard → Withdrawals (indices 0-7) */}
-        {navItems.slice(0, 8).map(({ icon: Icon, label, href }) => {
+        {/* Dashboard → Withdrawals (indices 0-8) */}
+        {navItems.slice(0, 9).map(({ icon: Icon, label, href }) => {
           const active = pathname.startsWith(href);
           if (href === "/admin/courses") {
             return (
@@ -282,8 +285,8 @@ export default function AdminSidebar({
           )}
         </div>
 
-        {/* Settings → Reports (indices 8-10) */}
-        {navItems.slice(8).map(({ icon: Icon, label, href }) => {
+        {/* Settings → Simulations (indices 9+) */}
+        {navItems.slice(9).map(({ icon: Icon, label, href }) => {
           const active = pathname.startsWith(href);
           return (
             <NavLink

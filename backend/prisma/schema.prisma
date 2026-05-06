@@ -124,6 +124,7 @@ model User {
   blogs             Blog[]            @relation("BlogAuthor")
   questionBank      QuestionBank[]
   simulations       Simulation[]      @relation("createdBy")
+  assignments       Assignment[]
 
   @@map("users")
 }
@@ -175,6 +176,7 @@ model Course {
   certificates Certificate[]
   reviews      Review[]
   transactions Transaction[]
+  assignments  Assignment[]
 
   @@map("courses")
 }
@@ -287,6 +289,7 @@ model Assignment {
   id             String           @id @default(uuid())
   teacher_id     String
   course_id      String?
+  lesson_id      String?
   title          String
   description    String?
   file_url       String?
@@ -301,6 +304,7 @@ model Assignment {
 
   teacher     User         @relation(fields: [teacher_id], references: [id])
   course      Course?      @relation(fields: [course_id], references: [id], onDelete: SetNull)
+  lesson      Lesson?      @relation(fields: [lesson_id], references: [id], onDelete: SetNull)
   submissions Submission[]
 
   @@map("assignments")

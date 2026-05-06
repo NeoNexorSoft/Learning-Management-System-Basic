@@ -74,6 +74,7 @@ const teacherCourseNav: NavItem[] = [
   { icon: PlusCircle, label: "Create Course", href: "/teacher/courses/create" },
 ]
 const teacherBottomNav: NavItem[] = [
+  { icon: ClipboardList, label: "Assignments",      href: "/teacher/assignments" },
   { icon: Database,      label: "Question Bank",   href: "/teacher/question-bank" },
   { icon: ClipboardList, label: "Enrollments",      href: "/teacher/enrollments" },
   { icon: GraduationCap, label: "Students",         href: "/teacher/students" },

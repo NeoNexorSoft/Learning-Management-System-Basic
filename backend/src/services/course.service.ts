@@ -635,8 +635,8 @@ export const courseService = {
         title:      data.title,
         type:       data.type,
         content:    data.content,
-        video_urls: data.video_url ? [data.video_url] : [],
-        file_urls:  data.file_url  ? [data.file_url]  : [],
+        video_urls: data.video_urls ?? [],
+        file_urls:  data.file_urls  ?? [],
         duration:   data.duration ?? 0,
         order:      data.order ?? (last ? last.order + 1 : 0),
       },
@@ -659,8 +659,8 @@ export const courseService = {
     if (data.title     !== undefined) lessonUpdate.title     = data.title;
     if (data.type      !== undefined) lessonUpdate.type      = data.type;
     if (data.content   !== undefined) lessonUpdate.content   = data.content;
-    if (data.video_url !== undefined) lessonUpdate.video_urls = [data.video_url];
-    if (data.file_url  !== undefined) lessonUpdate.file_urls  = [data.file_url];
+    if (data.video_urls !== undefined) lessonUpdate.video_urls = data.video_urls;
+    if (data.file_urls  !== undefined) lessonUpdate.file_urls  = data.file_urls;
     if (data.duration !== undefined) lessonUpdate.duration = data.duration;
     if (data.order    !== undefined) lessonUpdate.order    = data.order;
 
