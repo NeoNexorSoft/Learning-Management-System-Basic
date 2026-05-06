@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import React, { useState, useRef, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import {
@@ -8,10 +8,11 @@ import {
   ChevronUp, ChevronDown, BookOpen, FileText, HelpCircle,
   Upload, Eye, Send, Check, Bold, Italic, Underline,
   List, ListOrdered, ImageIcon, X, Loader2, AlertCircle,
-  Video, FileIcon, AlignLeft, PlayCircle,
+  Video, FileIcon, AlignLeft, PlayCircle, Sparkles
 } from "lucide-react"
 import TopBar from "@/components/shared/TopBar"
 import api from "@/lib/axios"
+import {GenerateQuizModal} from "@/components/teacher/GenerateQuizModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -280,24 +281,50 @@ function LectureForm({ lecture, onChange, onDelete, uploadConfig }: {
   const isDoc   = lecture.type === "document"
   const isText  = lecture.type === "text"
 
-  const accept    = isVideo ? "video/*" : "*/*"
+  const allowedDocFormats = uploadConfig?.document?.allowedFormats ?? ["pdf"]
+  const accept = isVideo ? "video/*" : allowedDocFormats.map((ext: string) => `.${ext}`).join(",")
   const endpoint  = isVideo ? "/api/upload/video" : "/api/upload/document"
   const fieldName = isVideo ? "video" : "document"
+
+    // add this state at the top of your lecture component
+    const [showGenerateModal, setShowGenerateModal] = useState(false);
+
+// this runs when the modal returns the generated quiz
+    function handleQuizGenerated(quiz: Quiz) {
+        onChange({ ...lecture, quizzes: [...lecture.quizzes, quiz] });
+    }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    setUploading(true); setUploadError("")
+
+    // validate file type before sending to server
+    if (isDoc) {
+        const fileExt = file.name.split(".").pop()?.toLowerCase() ?? ""
+        if (!allowedDocFormats.includes(fileExt)) {
+            setUploadError(
+                `Invalid file type. Only ${allowedDocFormats.join(", ").toUpperCase()} files are allowed.`
+            )
+            if (fileRef.current) fileRef.current.value = ""
+            return
+        }
+    }
+
+    setUploading(true)
+    setUploadError("")
+
     try {
-      const fd = new FormData()
-      fd.append(fieldName, file)
-      const { data } = await api.post(endpoint, fd, { headers: { "Content-Type": "multipart/form-data" } })
-      onChange({ ...lecture, file_urls: [...(lecture.file_urls ?? []), data.data.url] })
+        const fd = new FormData()
+        fd.append(fieldName, file)
+        const { data } = await api.post(endpoint, fd, {
+            headers: { "Content-Type": "multipart/form-data" },
+        })
+        onChange({ ...lecture, file_urls: [...(lecture.file_urls ?? []), data.data.url] })
     } catch (err: any) {
-      setUploadError(err.response?.data?.message ?? "Upload failed.")
+        setUploadError(err.response?.data?.message ?? "Upload failed.")
     } finally {
-      setUploading(false)
-      if (fileRef.current) fileRef.current.value = ""
+        setUploading(false)
+        if (fileRef.current) fileRef.current.value = ""
     }
   }
 
@@ -409,18 +436,64 @@ function LectureForm({ lecture, onChange, onDelete, uploadConfig }: {
             </div>
         )}
 
-        {/* Quiz section */}
-        <div className="space-y-3 pt-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">Quizzes ({lecture.quizzes.length})</span>
-            <button type="button" onClick={addQuiz} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100">
-              <Plus className="w-3.5 h-3.5" /> Add Quiz
-            </button>
+        {/*/!* Quiz section *!/*/}
+        {/*<div className="space-y-3 pt-1">*/}
+        {/*  <div className="flex items-center justify-between">*/}
+        {/*    <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">Quizzes ({lecture.quizzes.length})</span>*/}
+        {/*    <button type="button" onClick={addQuiz} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100">*/}
+        {/*      <Plus className="w-3.5 h-3.5" /> Add Quiz*/}
+        {/*    </button>*/}
+        {/*  </div>*/}
+        {/*  {lecture.quizzes.map((q, qi) => (*/}
+        {/*      <QuizForm key={q.id} quiz={q} onChange={u => updQuiz(qi, u)} onDelete={() => delQuiz(qi)} />*/}
+        {/*  ))}*/}
+        {/*</div>*/}
+          {/* Quiz section */}
+          <div className="space-y-3 pt-1">
+              <div className="flex items-center justify-between">
+        <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">
+            Quizzes ({lecture.quizzes.length})
+        </span>
+
+                  <div className="flex items-center gap-2">
+                      {/* AI generate button */}
+                      <button
+                          type="button"
+                          onClick={() => setShowGenerateModal(true)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors"
+                      >
+                          <Sparkles className="w-3.5 h-3.5" />
+                          Generate Quiz by AI
+                      </button>
+
+                      {/* Manual add button */}
+                      <button
+                          type="button"
+                          onClick={addQuiz}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
+                      >
+                          <Plus className="w-3.5 h-3.5" /> Add Quiz
+                      </button>
+                  </div>
+              </div>
+
+              {lecture.quizzes.map((q, qi) => (
+                  <QuizForm
+                      key={q.id}
+                      quiz={q}
+                      onChange={(u) => updQuiz(qi, u)}
+                      onDelete={() => delQuiz(qi)}
+                  />
+              ))}
+
+              {/* AI generate modal */}
+              {showGenerateModal && (
+                  <GenerateQuizModal
+                      onClose={() => setShowGenerateModal(false)}
+                      onGenerated={handleQuizGenerated}
+                  />
+              )}
           </div>
-          {lecture.quizzes.map((q, qi) => (
-              <QuizForm key={q.id} quiz={q} onChange={u => updQuiz(qi, u)} onDelete={() => delQuiz(qi)} />
-          ))}
-        </div>
       </div>
   )
 }
