@@ -24,6 +24,7 @@ import {
   BarChart2,
   Trophy,
   Award,
+  Atom
 } from "lucide-react";
 
 import {
@@ -51,6 +52,7 @@ const navItems: NavItem[] = [
     href: "/admin/system-config",
   }, // adding new section
   { icon: FileWarning, label: "Reports", href: "/admin/reports" }, //new adding
+  { icon: Atom, label: "Simulations", href: "/admin/simulations" }, // simulations page
 ];
 
 const adminEvaluationNav: NavItem[] = [

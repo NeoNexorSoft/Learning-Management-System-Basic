@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import type { Metadata } from "next";
 import Sidebar from "@/components/shared/Sidebar";
 import { NotificationProvider } from "@/hooks/useNotifications";
