@@ -1,4 +1,5 @@
 const axios = require("axios");
+import { LOCAL_TAXONOMY } from "./local-taxonomy.data";
 
 class TaxonomyController {
   ragApiUrl: string | undefined;
@@ -7,145 +8,146 @@ class TaxonomyController {
   }
 
   /**
-   * Fetch all subjects from RAG API and store in database
-   * POST /api/taxonomy/subjects
+   * GET /api/taxonomy/subjects
+   * Returns subjects from RAG API, falls back to local data
    */
   fetchSubjects = async (req: any, res: any) => {
     try {
-      console.log("[Taxonomy] Starting subjects fetch...");
-
-      const response = await axios.get(
-        `${this.ragApiUrl}/api/taxonomy/subjects`,
-        {
-          timeout: 30000,
-        },
-      );
-
-      const subjects = response.data.data || response.data;
-
-      if (!Array.isArray(subjects)) {
-        throw new Error("Invalid response format from RAG API");
+      if (this.ragApiUrl) {
+        const response = await axios.get(
+          `${this.ragApiUrl}/api/taxonomy/subjects`,
+          { timeout: 8000 }
+        );
+        const ragSubjects: string[] = response.data.data || response.data;
+        if (Array.isArray(ragSubjects) && ragSubjects.length > 0) {
+          const localSubjects = Object.keys(LOCAL_TAXONOMY);
+          const merged = Array.from(new Set([...ragSubjects, ...localSubjects]));
+          return res.status(200).json({
+            success: true,
+            message: `Successfully fetched ${merged.length} subjects`,
+            data: { count: merged.length, subjects: merged },
+          });
+        }
       }
-      return res.status(200).json({
-        success: true,
-        message: `Successfully fetched ${subjects.length} subjects`,
-        data: {
-          count: subjects.length,
-          subjects: subjects,
-        },
-      });
     } catch (error: any) {
-      console.error("[Taxonomy] Error fetching subjects:", error.message);
-
-      return res.status(500).json({
-        success: false,
-        message: "Failed to fetch subjects",
-        error: error.message,
-      });
+      console.warn("[Taxonomy] RAG API unavailable, using local data:", error.message);
     }
+
+    const localSubjects = Object.keys(LOCAL_TAXONOMY);
+    return res.status(200).json({
+      success: true,
+      message: `Successfully fetched ${localSubjects.length} subjects (local)`,
+      data: { count: localSubjects.length, subjects: localSubjects },
+    });
   };
 
   /**
-   * Fetch topics for a specific subject from RAG API and store in database
-   * POST /api/taxonomy/topics
+   * POST /api/taxonomy/subjects/topics
    * Body: { subject: string }
+   * Always merges RAG + local topics
    */
   fetchTopics = async (req: any, res: any) => {
-    try {
-      const { subject } = req.body;
+    const { subject } = req.body;
 
-      if (!subject) {
-        return res.status(400).json({
-          success: false,
-          message: "subject is required in request body",
-        });
-      }
-
-      console.log(`[Taxonomy] Starting topics fetch for subject: ${subject}...`);
-
-      const response = await axios.post(
-        `${this.ragApiUrl}/api/subjects/topics`,
-        { subject: subject },
-        { timeout: 30000 },
-      );
-
-      const topics = response.data.data || response.data;
-
-      if (!Array.isArray(topics)) {
-        throw new Error("Invalid response format from RAG API");
-      }
-
-      return res.status(200).json({
-        success: true,
-        message: `Successfully fetched ${topics.length} topics for ${subject}`,
-        data: {
-          subject: subject,
-          count: topics.length,
-          topics: topics,
-        },
-      });
-    } catch (error: any) {
-      console.error("[Taxonomy] Error fetching topics:", error.message);
-
-      return res.status(500).json({
+    if (!subject) {
+      return res.status(400).json({
         success: false,
-        message: "Failed to fetch topics",
-        error: error.message,
+        message: "subject is required in request body",
       });
     }
+
+    // Always get local topics first
+    const localTopics: string[] = LOCAL_TAXONOMY[subject]
+      ? Object.keys(LOCAL_TAXONOMY[subject])
+      : [];
+
+    try {
+      if (this.ragApiUrl) {
+        const response = await axios.post(
+          `${this.ragApiUrl}/api/subjects/topics`,
+          { subject },
+          { timeout: 8000 }
+        );
+        const ragTopics: string[] = response.data.data || response.data;
+        if (Array.isArray(ragTopics) && ragTopics.length > 0) {
+          // Always merge RAG + local, local topics added at the end
+          const merged = Array.from(new Set([...ragTopics, ...localTopics]));
+          return res.status(200).json({
+            success: true,
+            message: `Successfully fetched ${merged.length} topics for ${subject}`,
+            data: { subject, count: merged.length, topics: merged },
+          });
+        }
+      }
+    } catch (error: any) {
+      console.warn("[Taxonomy] RAG API unavailable for topics, using local data:", error.message);
+    }
+
+    if (localTopics.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `No topics found for subject: ${subject}`,
+        data: { subject, count: 0, topics: [] },
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Successfully fetched ${localTopics.length} topics for ${subject} (local)`,
+      data: { subject, count: localTopics.length, topics: localTopics },
+    });
   };
 
   /**
-   * Fetch subtopics for a specific subject/topic from RAG API and store in database
-   * POST /api/taxonomy/subtopics
+   * POST /api/taxonomy/subjects/subtopics
    * Body: { subject: string, topic: string }
+   * Always merges RAG + local subtopics
    */
   fetchSubtopics = async (req: any, res: any) => {
-    try {
-      const { subject, topic } = req.body;
+    const { subject, topic } = req.body;
 
-      if (!subject || !topic) {
-        return res.status(400).json({
-          success: false,
-          message: "subject and topic are required in request body",
-        });
-      }
-
-      console.log(
-        `[Taxonomy] Starting subtopics fetch for ${subject}/${topic}...`,
-      );
-
-      const response = await axios.post(
-        `${this.ragApiUrl}/api/subjects/subtopics`,
-        { subject: subject, topic: topic },
-        { timeout: 30000 },
-      );
-
-      const subtopics = response.data.data || response.data;
-
-      if (!Array.isArray(subtopics)) {
-        throw new Error("Invalid response format from RAG API");
-      }
-
-      return res.status(200).json({
-        success: true,
-        message: `Successfully fetched ${subtopics.length} subtopics for ${subject}/${topic}`,
-        data: {
-          subject: subject,
-          topic: topic,
-          count: subtopics.length,
-          subtopics: subtopics,
-        },
-      });
-    } catch (error: any) {
-      console.error("[Taxonomy] Error fetching subtopics:", error.message);
-
-      return res.status(500).json({
+    if (!subject || !topic) {
+      return res.status(400).json({
         success: false,
-        message: "Failed to fetch subtopics",
-        error: error.message,
+        message: "subject and topic are required in request body",
       });
     }
+
+    // Always get local subtopics first
+    const localSubtopics: string[] = LOCAL_TAXONOMY[subject]?.[topic] ?? [];
+
+    try {
+      if (this.ragApiUrl) {
+        const response = await axios.post(
+          `${this.ragApiUrl}/api/subjects/subtopics`,
+          { subject, topic },
+          { timeout: 8000 }
+        );
+        const ragSubtopics: string[] = response.data.data || response.data;
+        if (Array.isArray(ragSubtopics) && ragSubtopics.length > 0) {
+          // Always merge RAG + local
+          const merged = Array.from(new Set([...ragSubtopics, ...localSubtopics]));
+          return res.status(200).json({
+            success: true,
+            message: `Successfully fetched ${merged.length} subtopics for ${subject}/${topic}`,
+            data: { subject, topic, count: merged.length, subtopics: merged },
+          });
+        }
+      }
+    } catch (error: any) {
+      console.warn("[Taxonomy] RAG API unavailable for subtopics, using local data:", error.message);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Successfully fetched ${localSubtopics.length} subtopics for ${subject}/${topic} (local)`,
+      data: {
+        subject,
+        topic,
+        count: localSubtopics.length,
+        subtopics: localSubtopics,
+      },
+    });
   };
 }
 

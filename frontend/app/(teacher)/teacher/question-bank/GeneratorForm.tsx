@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import api from "@/lib/axios"
+import api from "@/lib/axios";
+import CustomSelect from "@/components/ui/CustomSelect";
 
-export default function GenerateForm({ onGenerate, generating }:any) {
+export default function GenerateForm({ onGenerate, generating }: any) {
   const [subjects, setSubjects] = useState([]);
   const [topics, setTopics] = useState([]);
   const [subtopics, setSubtopics] = useState([]);
@@ -15,14 +16,14 @@ export default function GenerateForm({ onGenerate, generating }:any) {
   const [count, setCount] = useState(5);
   const [language, setLanguage] = useState("bn");
 
-  // Fetch subjects (now returns array of strings)
+  // Fetch subjects on mount
   useEffect(() => {
     api.get("/api/taxonomy/subjects")
       .then((res) => setSubjects(res.data.data.subjects || []))
       .catch(() => setSubjects([]));
   }, []);
 
-  // Fetch topics when subject changes (using subject name, not ID)
+  // Fetch topics when subject changes
   useEffect(() => {
     if (!selectedSubject) return;
     setSelectedTopic("");
@@ -30,18 +31,18 @@ export default function GenerateForm({ onGenerate, generating }:any) {
     setSubtopics([]);
 
     api
-      .post("/api/taxonomy/subjects/topics",{subject:selectedSubject})
+      .post("/api/taxonomy/subjects/topics", { subject: selectedSubject })
       .then((res) => setTopics(res.data.data.topics || []))
       .catch(() => setTopics([]));
   }, [selectedSubject]);
 
-  // Fetch subtopics when topic changes (using topic name)
+  // Fetch subtopics when topic changes
   useEffect(() => {
     if (!selectedSubject || !selectedTopic) return;
     setSelectedSubtopic("");
 
     api
-      .post("/api/taxonomy/subjects/subtopics",{subject:selectedSubject, topic:selectedTopic})
+      .post("/api/taxonomy/subjects/subtopics", { subject: selectedSubject, topic: selectedTopic })
       .then((res) => setSubtopics(res.data.data.subtopics || []))
       .catch(() => setSubtopics([]));
   }, [selectedSubject, selectedTopic]);
@@ -62,139 +63,150 @@ export default function GenerateForm({ onGenerate, generating }:any) {
     });
   };
 
-  const selectClass =
-    "w-full bg-bg-secondary border border-bg-tertiary rounded-lg px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent-primary transition-colors appearance-none cursor-pointer";
+  const labelClass = "block text-slate-400 text-xs font-medium tracking-wide uppercase mb-1.5";
   const inputClass =
-    "w-full bg-bg-secondary border border-bg-tertiary rounded-lg px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent-primary transition-colors";
-  const labelClass = "block text-xs text-text-secondary mb-1.5 font-mono";
+    "w-full bg-slate-900/60 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 hover:border-slate-500 transition-all duration-200";
 
   return (
-    <div className='bg-bg-secondary border border-bg-tertiary rounded-xl p-6'>
-      <h2 className='text-sm font-mono uppercase tracking-widest text-accent-primary mb-4'>
-        Generate Questions
-      </h2>
-      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+    <div className="relative overflow-hidden bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8">
+
+      {/* Ambient glow blobs — decorative only */}
+      <div className="absolute -top-24 -left-24 w-64 h-64 bg-indigo-600/20 rounded-full blur-[100px] -z-10 pointer-events-none" />
+      <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-violet-600/20 rounded-full blur-[100px] -z-10 pointer-events-none" />
+
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-700/50">
+        <h2 className="text-2xl font-bold bg-linear-to-r from-white to-slate-400 bg-clip-text text-transparent">
+          AI Question Generator
+        </h2>
+      </div>
+
+      {/* Section label */}
+      <div className="flex items-center gap-2 mb-6">
+        <div className="w-1 h-4 bg-indigo-500 rounded-full" />
+        <span className="text-indigo-400 tracking-widest text-xs font-semibold uppercase">
+          Generate Questions
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
         {/* Subject */}
         <div>
-          <label className={labelClass}>Subject *</label>
-          <select
+          <label className={labelClass}>
+            Subject <span className="text-indigo-400">*</span>
+          </label>
+          <CustomSelect
+            placeholder="Select subject…"
             value={selectedSubject}
-            onChange={(e) => setSelectedSubject(e.target.value)}
-            className={selectClass}
-            disabled={generating}>
-            <option value=''>Select subject…</option>
-            {subjects.map((subject) => (
-              <option key={subject} value={subject}>
-                {subject}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedSubject}
+            disabled={generating}
+            options={subjects.map((s) => ({ value: s, label: s }))}
+          />
         </div>
 
-        {/* Topic */}
+        {/* Topic — bangla font enabled */}
         <div>
-          <label className={labelClass}>Topic *</label>
-          <select
+          <label className={labelClass}>
+            Topic <span className="text-indigo-400">*</span>
+          </label>
+          <CustomSelect
+            placeholder="Select topic…"
             value={selectedTopic}
-            onChange={(e) => setSelectedTopic(e.target.value)}
+            onChange={setSelectedTopic}
             disabled={!selectedSubject || generating}
-            className={`${selectClass} disabled:opacity-40`}>
-            <option value=''>Select topic…</option>
-            {topics.map((topic) => (
-              <option key={topic} value={topic}>
-                {topic}
-              </option>
-            ))}
-          </select>
+            bangla={true}
+            options={topics.map((t) => ({ value: t, label: t }))}
+          />
         </div>
 
-        {/* Subtopic */}
+        {/* Subtopic — bangla font enabled */}
         <div>
           <label className={labelClass}>Subtopic</label>
-          <select
+          <CustomSelect
+            placeholder="Select subtopic…"
             value={selectedSubtopic}
-            onChange={(e) => setSelectedSubtopic(e.target.value)}
+            onChange={setSelectedSubtopic}
             disabled={!selectedTopic || generating}
-            className={`${selectClass} disabled:opacity-40`}>
-            <option value=''>Select subtopic…</option>
-            {subtopics.map((subtopic) => (
-              <option key={subtopic} value={subtopic}>
-                {subtopic}
-              </option>
-            ))}
-          </select>
+            bangla={true}
+            options={subtopics.map((s) => ({ value: s, label: s }))}
+          />
         </div>
 
         {/* Exam Type */}
         <div>
           <label className={labelClass}>Exam Type</label>
-          <select
+          <CustomSelect
             value={examType}
-            onChange={(e) => setExamType(e.target.value)}
-            className={selectClass}
-            disabled={generating}>
-            <option value='SSC'>SSC</option>
-            <option value='HSC'>HSC</option>
-            <option value='Admission'>Admission</option>
-            <option value='General'>General</option>
-          </select>
+            onChange={setExamType}
+            disabled={generating}
+            options={[
+              { value: "SSC", label: "SSC" },
+              { value: "HSC", label: "HSC" },
+              { value: "Admission", label: "Admission" },
+              { value: "General", label: "General" },
+            ]}
+          />
         </div>
 
         {/* Grade */}
         <div>
           <label className={labelClass}>Grade</label>
-          <select
+          <CustomSelect
             value={grade}
-            onChange={(e) => setGrade(e.target.value)}
-            className={selectClass}
-            disabled={generating}>
-            <option value='9'>Class 9</option>
-            <option value='10'>Class 10 (SSC)</option>
-            <option value='11'>Class 11</option>
-            <option value='12'>Class 12 (HSC)</option>
-          </select>
+            onChange={setGrade}
+            disabled={generating}
+            options={[
+              { value: "9", label: "Class 9" },
+              { value: "10", label: "Class 10 (SSC)" },
+              { value: "11", label: "Class 11" },
+              { value: "12", label: "Class 12 (HSC)" },
+            ]}
+          />
         </div>
 
         {/* Question Type */}
         <div>
           <label className={labelClass}>Question Type</label>
-          <select
+          <CustomSelect
             value={questionType}
-            onChange={(e) => setQuestionType(e.target.value)}
-            className={selectClass}
-            disabled={generating}>
-            <option value='mcq'>MCQ</option>
-            <option value='short'>Short Answer</option>
-            <option value='broad'>Broad Question</option>
-            <option value='creative'>Creative</option>
-          </select>
+            onChange={setQuestionType}
+            disabled={generating}
+            options={[
+              { value: "mcq", label: "MCQ" },
+              { value: "short", label: "Short Answer" },
+              { value: "broad", label: "Broad Question" },
+              { value: "creative", label: "Creative" },
+            ]}
+          />
         </div>
 
-        {/* Difficulty */}
+        {/* Difficulty — colored options */}
         <div>
           <label className={labelClass}>Difficulty</label>
-          <select
+          <CustomSelect
             value={difficulty}
-            onChange={(e) => setDifficulty(e.target.value)}
-            className={selectClass}
-            disabled={generating}>
-            <option value='easy'>Easy</option>
-            <option value='medium'>Medium</option>
-            <option value='hard'>Hard</option>
-          </select>
+            onChange={setDifficulty}
+            disabled={generating}
+            options={[
+              { value: "easy",   label: "Easy",   color: "text-emerald-400" },
+              { value: "medium", label: "Medium", color: "text-amber-400" },
+              { value: "hard",   label: "Hard",   color: "text-rose-400" },
+            ]}
+          />
         </div>
 
-        {/* Count */}
+        {/* Count — clamped between 1 and 8 */}
         <div>
           <label className={labelClass}>Count</label>
           <input
-            type='number'
+            type="number"
             value={count}
             onChange={(e) =>
               setCount(Math.max(1, Math.min(8, parseInt(e.target.value) || 1)))
             }
-            min='1'
-            max='8'
+            min="1"
+            max="8"
             className={inputClass}
             disabled={generating}
           />
@@ -203,32 +215,41 @@ export default function GenerateForm({ onGenerate, generating }:any) {
         {/* Language */}
         <div>
           <label className={labelClass}>Language</label>
-          <select
+          <CustomSelect
             value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-            className={selectClass}
-            disabled={generating}>
-            <option value='bn'>বাংলা (Bengali)</option>
-            <option value='en'>English</option>
-          </select>
+            onChange={setLanguage}
+            disabled={generating}
+            options={[
+              { value: "bn", label: "বাংলা (Bengali)" },
+              { value: "en", label: "English" },
+            ]}
+          />
         </div>
+
       </div>
 
-      <div className='flex justify-end mt-4'>
+      {/* Submit button */}
+      <div className="flex justify-end mt-8">
         <button
           onClick={handleSubmit}
           disabled={!selectedSubject || !selectedTopic || generating}
-          className='px-6 py-2.5 bg-accent-primary text-bg-primary rounded-lg text-sm font-bold hover:bg-accent-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2'>
+          className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+        >
           {generating ? (
             <>
-              <span className='animate-spin inline-block w-3.5 h-3.5 border-2 border-bg-primary border-t-transparent rounded-full' />
+              {/* Loading spinner */}
+              <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
               Generating…
             </>
           ) : (
-            "⚡ Generate Questions"
+            <>
+              <span>⚡</span>
+              <span>GENERATE QUESTIONS</span>
+            </>
           )}
         </button>
       </div>
+
     </div>
   );
 }
