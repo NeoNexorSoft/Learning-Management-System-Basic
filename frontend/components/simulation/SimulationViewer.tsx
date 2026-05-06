@@ -72,7 +72,7 @@ export function SimulationViewer({simulationUrl, title, provider}: SimulationVie
             <div
                 ref={containerRef}
                 onContextMenu={handleContextMenu}
-                className="relative w-full bg-gray-950 rounded-xl overflow-hidden"
+                className="relative w-3/4 mx-auto bg-gray-950 rounded-xl overflow-hidden"
                 style={{ aspectRatio: "16 / 9" }}
             >
                 {/* Loading overlay — shown while iframe is initializing */}
