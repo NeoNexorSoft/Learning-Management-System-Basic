@@ -65,7 +65,7 @@ export default function StudentSettingsPage() {
         const { data: upData } = await api.post("/api/upload/avatar", fd, { headers: { "Content-Type": "multipart/form-data" } })
         if (upData.data?.url) {
           avatarUrl = upData.data.url
-          setPreview(avatarUrl)
+          setPreview(avatarUrl || null)
         }
       }
       const name = `${form.firstName} ${form.lastName}`.trim()

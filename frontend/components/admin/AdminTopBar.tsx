@@ -31,7 +31,7 @@ export default function AdminTopBar({
   const [user, setUser] = useState<{ name?: string; avatar?: string } | null>(null);
 
   const profileRef = useRef<HTMLDivElement>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Sync user avatar/name from localStorage, updated by the settings page on save
   useEffect(() => {
