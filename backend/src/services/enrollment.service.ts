@@ -86,7 +86,7 @@ export const enrollmentService = {
                 },
               },
             },
-            teacher: { select: { id: true, name: true, avatar: true } }, // id needed for ownership check
+            teacher: { select: { id: true, name: true, avatar: true } },
           },
         },
         lessonProgress: {
@@ -97,11 +97,10 @@ export const enrollmentService = {
 
     if (!enrollment) throw Object.assign(new Error('Enrollment not found'), { statusCode: 404 });
 
-    const isOwner   = enrollment.student_id === viewerId;
-    const isAdmin   = viewerRole === 'ADMIN';
-    // A teacher may only see enrollments for courses they own, not every enrollment.
+    const isOwner = enrollment.student_id === viewerId;
+    const isAdmin = viewerRole === 'ADMIN';
     const isTeacherOfCourse =
-      viewerRole === 'TEACHER' && enrollment.course.teacher.id === viewerId;
+        viewerRole === 'TEACHER' && enrollment.course.teacher.id === viewerId;
 
     if (!isOwner && !isAdmin && !isTeacherOfCourse) {
       throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
@@ -166,9 +165,9 @@ export const enrollmentService = {
       });
       if (course) {
         notify(
-          studentId,
-          'Course Completed!',
-          `Congratulations! You've completed "${course.title}". Your certificate is ready.`,
+            studentId,
+            'Course Completed!',
+            `Congratulations! You've completed "${course.title}". Your certificate is ready.`,
         );
       }
     }
@@ -177,10 +176,10 @@ export const enrollmentService = {
   },
 
   async getEnrolledStudents(
-    courseId: string,
-    viewerId: string,
-    viewerRole: string,
-    { page = 1, limit = 20 }: { page?: number; limit?: number },
+      courseId: string,
+      viewerId: string,
+      viewerRole: string,
+      { page = 1, limit = 20 }: { page?: number; limit?: number },
   ) {
     const course = await prisma.course.findUnique({ where: { id: courseId } });
     if (!course) throw Object.assign(new Error('Course not found'), { statusCode: 404 });
@@ -219,9 +218,9 @@ export const enrollmentService = {
   // ─── Assignments ─────────────────────────────────────────────────────────────
 
   async createAssignment(
-    lessonId: string,
-    teacherId: string,
-    data: { title: string; description?: string; due_date?: Date; total_marks?: number },
+      lessonId: string,
+      teacherId: string,
+      data: { title: string; description?: string; due_date?: Date; total_marks?: number },
   ) {
     const lesson = await prisma.lesson.findUnique({
       where:   { id: lessonId },
@@ -232,8 +231,17 @@ export const enrollmentService = {
       throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
     }
 
+    // FIX 1: Added teacher_id which is required by Prisma schema
     return prisma.assignment.create({
-      data: { id: uuidv4(), lesson_id: lessonId, ...data },
+      data: {
+        id:         uuidv4(),
+        lesson_id:  lessonId,
+        teacher_id: teacherId,
+        title:      data.title,
+        description: data.description ?? null,
+        due_date:    data.due_date ?? null,
+        total_marks: data.total_marks ?? null,
+      } as any,
     });
   },
 
@@ -274,15 +282,18 @@ export const enrollmentService = {
   },
 
   async submitAssignment(
-    studentId: string,
-    assignmentId: string,
-    data: { content?: string; file_url?: string },
+      studentId: string,
+      assignmentId: string,
+      data: { content?: string; file_url?: string },
   ) {
     const assignment = await prisma.assignment.findUnique({
       where:   { id: assignmentId },
       include: { lesson: { include: { section: { select: { course_id: true } } } } },
     });
     if (!assignment) throw Object.assign(new Error('Assignment not found'), { statusCode: 404 });
+
+    // FIX 2: Guard against null lesson relation
+    if (!assignment.lesson) throw Object.assign(new Error('Lesson not found'), { statusCode: 404 });
 
     const courseId = assignment.lesson.section.course_id;
     const enrollment = await prisma.enrollment.findUnique({
@@ -310,6 +321,10 @@ export const enrollmentService = {
       },
     });
     if (!assignment) throw Object.assign(new Error('Assignment not found'), { statusCode: 404 });
+
+    // FIX 3: Guard against null lesson relation
+    if (!assignment.lesson) throw Object.assign(new Error('Lesson not found'), { statusCode: 404 });
+
     if (assignment.lesson.section.course.teacher_id !== teacherId) {
       throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
     }
@@ -324,9 +339,9 @@ export const enrollmentService = {
   },
 
   async gradeSubmission(
-    submissionId: string,
-    teacherId: string,
-    data: { grade: number; feedback?: string },
+      submissionId: string,
+      teacherId: string,
+      data: { grade: number; feedback?: string },
   ) {
     const submission = await prisma.submission.findUnique({
       where:   { id: submissionId },
@@ -343,6 +358,10 @@ export const enrollmentService = {
       },
     });
     if (!submission) throw Object.assign(new Error('Submission not found'), { statusCode: 404 });
+
+    // FIX 4: Guard against null lesson relation
+    if (!submission.assignment.lesson) throw Object.assign(new Error('Lesson not found'), { statusCode: 404 });
+
     if (submission.assignment.lesson.section.course.teacher_id !== teacherId) {
       throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
     }
@@ -357,9 +376,9 @@ export const enrollmentService = {
 
     const courseTitle = submission.assignment.lesson.section.course.title;
     notify(
-      submission.student_id,
-      'Assignment Graded',
-      `Your submission for "${submission.assignment.title}" in "${courseTitle}" has been graded. Grade: ${data.grade}/100`,
+        submission.student_id,
+        'Assignment Graded',
+        `Your submission for "${submission.assignment.title}" in "${courseTitle}" has been graded. Grade: ${data.grade}/100`,
     );
 
     return updated;
@@ -368,9 +387,9 @@ export const enrollmentService = {
   // ─── Reviews ─────────────────────────────────────────────────────────────────
 
   async createReview(
-    studentId: string,
-    courseId: string,
-    data: { rating: number; comment?: string },
+      studentId: string,
+      courseId: string,
+      data: { rating: number; comment?: string },
   ) {
     if (data.rating < 1 || data.rating > 5) {
       throw Object.assign(new Error('Rating must be between 1 and 5'), { statusCode: 400 });
