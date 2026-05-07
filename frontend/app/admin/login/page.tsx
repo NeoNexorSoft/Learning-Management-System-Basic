@@ -80,7 +80,7 @@ export default function AdminLoginPage() {
 
     try {
       const response = await axios.post<LoginResponse>(
-        `${API_BASE_URL}/api/auth/login`,
+        `${API_BASE_URL}api/auth/login`,
         { email, password },
         {
           headers: {
