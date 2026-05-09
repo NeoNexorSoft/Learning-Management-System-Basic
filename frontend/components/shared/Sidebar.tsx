@@ -24,6 +24,7 @@ import {
   Receipt,
   Award,
   BarChart2,
+  School,
   Database,
 } from "lucide-react"
 import { BrandIcon, BRAND_NAME, BRAND_ICON_BG, BRAND_ICON_COLOR } from "@/lib/brand"
@@ -59,9 +60,10 @@ const studentAccountNav: NavItem[] = [
 ]
 
 const studentEvaluationNav: NavItem[] = [
-  { icon: BarChart2, label: "Student Overview",  href: "/student/evaluation/overview" },
-  { icon: Trophy,    label: "Self Evaluation & Leaderboard",        href: "/student/evaluation/leaderboard" },
-  { icon: Award,     label: "House Competition",  href: "/student/evaluation/house" },
+  { icon: BarChart2, label: "Student Overview",              href: "/student/evaluation/overview" },
+  { icon: Trophy,    label: "Self Evaluation & Leaderboard", href: "/student/evaluation/leaderboard" },
+  { icon: Award,     label: "House Competition",             href: "/student/evaluation/house" },
+  { icon: School,    label: "Inter Cadet College Evaluation",        href: "/student/evaluation/inter-cadet" },
 ]
 
 const teacherMainNav: NavItem[] = [
@@ -83,9 +85,10 @@ const teacherBottomNav: NavItem[] = [
 ]
 
 const teacherEvaluationNav: NavItem[] = [
-  { icon: BarChart2, label: "Student Overview",  href: "/teacher/evaluation/overview" },
-  { icon: Trophy,    label: "Self Evaluation & Leaderboard",        href: "/teacher/evaluation/leaderboard" },
-  { icon: Award,     label: "House Competition",  href: "/teacher/evaluation/house" },
+  { icon: BarChart2, label: "Student Overview",              href: "/teacher/evaluation/overview" },
+  { icon: Trophy,    label: "Self Evaluation & Leaderboard", href: "/teacher/evaluation/leaderboard" },
+  { icon: Award,     label: "House Competition",             href: "/teacher/evaluation/house" },
+  { icon: School,    label: "Inter Cadet College Evaluation",        href: "/teacher/evaluation/inter-cadet" },
 ]
 
 function NavLink({

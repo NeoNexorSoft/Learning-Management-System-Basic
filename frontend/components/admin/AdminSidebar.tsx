@@ -24,7 +24,8 @@ import {
   BarChart2,
   Trophy,
   Award,
-  Atom
+  Atom,
+  School,
 } from "lucide-react";
 
 import {
@@ -56,9 +57,10 @@ const navItems: NavItem[] = [
 ];
 
 const adminEvaluationNav: NavItem[] = [
-  { icon: BarChart2, label: "Student Overview",  href: "/admin/evaluation/overview" },
-  { icon: Trophy,    label: "Self Evaluation & Leaderboard",        href: "/admin/evaluation/leaderboard" },
-  { icon: Award,     label: "House Competition",  href: "/admin/evaluation/house" },
+  { icon: BarChart2, label: "Student Overview",              href: "/admin/evaluation/overview" },
+  { icon: Trophy,    label: "Self Evaluation & Leaderboard", href: "/admin/evaluation/leaderboard" },
+  { icon: Award,     label: "House Competition",             href: "/admin/evaluation/house" },
+  { icon: School,    label: "Inter Cadet College Evaluation",        href: "/admin/evaluation/inter-cadet" },
 ];
 
 function NavLink({
