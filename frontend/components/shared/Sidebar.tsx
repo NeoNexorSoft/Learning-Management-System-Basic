@@ -220,7 +220,7 @@ export default function Sidebar({ role }: { role: "student" | "teacher" }) {
                   : "text-slate-400 hover:bg-slate-700/50 hover:text-white"
               }`}
             >
-              <BarChart2 className="w-4 h-4 flex-shrink-0" />
+              <BarChart2 className="w-4 h-4 shrink-0" />
               <span className="flex-1 text-left">Centralized Evaluation</span>
               {studentEvalOpen
                 ? <ChevronDown className="w-4 h-4 opacity-70" />
@@ -298,7 +298,7 @@ export default function Sidebar({ role }: { role: "student" | "teacher" }) {
                   : "text-slate-400 hover:text-white hover:bg-slate-800"
               }`}
             >
-              <BarChart2 className="w-5 h-5 flex-shrink-0" />
+              <BarChart2 className="w-5 h-5 shrink-0" />
               <span className="flex-1 text-left">Centralized Evaluation</span>
               {teacherEvalOpen
                 ? <ChevronDown className="w-4 h-4 opacity-70" />
