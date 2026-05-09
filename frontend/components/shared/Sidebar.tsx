@@ -25,6 +25,7 @@ import {
   Receipt,
   Award,
   BarChart2,
+  School,
   Database,
 } from "lucide-react"
 import { BrandIcon, BRAND_NAME, BRAND_ICON_BG, BRAND_ICON_COLOR } from "@/lib/brand"
@@ -61,9 +62,10 @@ const studentAccountNav: NavItem[] = [
 ]
 
 const studentEvaluationNav: NavItem[] = [
-  { icon: BarChart2, label: "Student Overview",  href: "/student/evaluation/overview" },
-  { icon: Trophy,    label: "Self Evaluation & Leaderboard",        href: "/student/evaluation/leaderboard" },
-  { icon: Award,     label: "House Competition",  href: "/student/evaluation/house" },
+  { icon: BarChart2, label: "Student Overview",              href: "/student/evaluation/overview" },
+  { icon: Trophy,    label: "Self Evaluation & Leaderboard", href: "/student/evaluation/leaderboard" },
+  { icon: Award,     label: "House Competition",             href: "/student/evaluation/house" },
+  { icon: School,    label: "Inter Cadet College Evaluation",        href: "/student/evaluation/inter-cadet" },
 ]
 
 const teacherMainNav: NavItem[] = [
@@ -86,9 +88,10 @@ const teacherBottomNav: NavItem[] = [
 ]
 
 const teacherEvaluationNav: NavItem[] = [
-  { icon: BarChart2, label: "Student Overview",  href: "/teacher/evaluation/overview" },
-  { icon: Trophy,    label: "Self Evaluation & Leaderboard",        href: "/teacher/evaluation/leaderboard" },
-  { icon: Award,     label: "House Competition",  href: "/teacher/evaluation/house" },
+  { icon: BarChart2, label: "Student Overview",              href: "/teacher/evaluation/overview" },
+  { icon: Trophy,    label: "Self Evaluation & Leaderboard", href: "/teacher/evaluation/leaderboard" },
+  { icon: Award,     label: "House Competition",             href: "/teacher/evaluation/house" },
+  { icon: School,    label: "Inter Cadet College Evaluation",        href: "/teacher/evaluation/inter-cadet" },
 ]
 
 function NavLink({
@@ -204,17 +207,15 @@ export default function Sidebar({ role }: { role: "student" | "teacher" }) {
 
   return (
     <aside className="w-64 h-screen sticky top-0 bg-slate-900 flex flex-col shrink-0 overflow-hidden border-r border-slate-700/50">
-      {/* Logo — teacher only */}
-      {role === "teacher" && (
-        <div className="p-6 border-b border-slate-800">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className={`w-9 h-9 ${BRAND_ICON_BG} rounded-xl flex items-center justify-center shadow-lg`}>
-              <BrandIcon className={`w-5 h-5 ${BRAND_ICON_COLOR}`} />
-            </div>
-            <span className="text-lg font-bold text-white">{BRAND_NAME}</span>
-          </Link>
-        </div>
-      )}
+      {/* Logo — both student and teacher */}
+      <div className="p-6 border-b border-slate-800">
+        <Link href="/" className="flex items-center gap-2.5">
+          <div className={`w-9 h-9 ${BRAND_ICON_BG} rounded-xl flex items-center justify-center shadow-lg`}>
+            <BrandIcon className={`w-5 h-5 ${BRAND_ICON_COLOR}`} />
+          </div>
+          <span className="text-lg font-bold text-white">{BRAND_NAME}</span>
+        </Link>
+      </div>
 
       {/* Navigation */}
       {role === "student" ? (
@@ -347,11 +348,24 @@ export default function Sidebar({ role }: { role: "student" | "teacher" }) {
 
       {/* Help card — student only */}
       {role === "student" && (
-        <div className="mx-3 mb-4 p-3 bg-slate-700/50 rounded-xl border border-slate-600/50">
+        <div className="mx-3 mb-2 p-3 bg-slate-700/50 rounded-xl border border-slate-600/50">
           <p className="text-xs font-semibold text-slate-300">Need help?</p>
           <p className="text-[11px] text-slate-500 mt-0.5">Contact support anytime</p>
         </div>
       )}
+
+      {/* User profile — bottom of sidebar */}
+      <div className="p-4 border-t border-slate-800">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-400 to-purple-600 flex items-center justify-center text-sm font-bold text-white shrink-0">
+            {initials}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-white truncate">{displayName}</p>
+            <p className="text-xs text-slate-400 truncate">{displayEmail}</p>
+          </div>
+        </div>
+      </div>
     </aside>
   )
 }
