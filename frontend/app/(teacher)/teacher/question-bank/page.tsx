@@ -283,7 +283,7 @@ function QuestionBankPage() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-extrabold text-slate-900">Question Bank</h1>
+              <h1 className="text-2xl font-extrabold text-slate-900">Question Generator</h1>
               <p className="text-slate-500 mt-1">
                 Manage and generate questions for your courses
               </p>
@@ -372,7 +372,7 @@ function QuestionBankPage() {
               data={questions}
               loading={loading}
               keyFn={(q) => q.id}
-              emptyMessage={search ? "No questions match your search filters." : "Your question bank is empty."}
+              emptyMessage={search ? "No questions match your search filters." : "Your question generator is empty."}
             />
             
             {pagination.totalPages > 1 && (
@@ -407,7 +407,7 @@ function QuestionBankPage() {
                   {editId ? "Edit Question" : "New Question"}
                 </h2>
                 <p className="text-xs text-slate-500 mt-1 uppercase tracking-wider font-semibold">
-                  {editId ? "Update existing entry" : "Add to question bank"}
+                  {editId ? "Update existing entry" : "Add to question generator"}
                 </p>
               </div>
               <button 
