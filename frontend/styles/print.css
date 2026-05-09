@@ -1,0 +1,31 @@
+/* globals.css এ বা layout.tsx এ import করো */
+
+@media print {
+  /* Hide everything except the paper */
+  body > *:not(#paper-print-wrapper) {
+    display: none !important;
+  }
+
+  #paper-print-area {
+    display: block !important;
+    margin: 0;
+    padding: 0;
+    transform: none !important;
+  }
+
+  /* Reset scale for print - A4 is handled by @page */
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  /* Ensure Bengali fonts render correctly */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
