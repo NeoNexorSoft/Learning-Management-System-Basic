@@ -1,7 +1,8 @@
+import { Suspense } from "react"
 import { MessageSquare } from "lucide-react"
 import PageHeader from "@/components/shared/PageHeader"
 
-export default function StudentMessagesPage() {
+function StudentMessagesPage() {
   return (
     <div className="flex flex-col flex-1">
 
@@ -16,5 +17,13 @@ export default function StudentMessagesPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <StudentMessagesPage />
+    </Suspense>
   )
 }

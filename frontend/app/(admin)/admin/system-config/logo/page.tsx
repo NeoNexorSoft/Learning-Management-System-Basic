@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState , Suspense } from "react";
 import { Save, Loader2, Upload, X } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
-export default function LogoFaviconPage() {
+function LogoFaviconPage() {
   const [logoPreview, setLogoPreview] = useState<string>("");
   const [faviconPreview, setFaviconPreview] = useState<string>("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -226,4 +226,12 @@ export default function LogoFaviconPage() {
       </form>
     </div>
   );
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <LogoFaviconPage />
+    </Suspense>
+  )
 }

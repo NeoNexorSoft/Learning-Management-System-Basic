@@ -80,8 +80,8 @@ export default function AreaChart({
               boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
             }}
             formatter={tooltipSuffix || tooltipLabel
-              ? (v: number) => [`${v}${tooltipSuffix ?? ""}`, tooltipLabel ?? ""]
-              : undefined}
+                ? (v: unknown) => [`${v}${tooltipSuffix ?? ""}`, tooltipLabel ?? ""]
+                : undefined}
           />
           <Area
             type="monotone"

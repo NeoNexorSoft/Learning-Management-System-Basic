@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ElementType } from "react";
+import { useEffect, useMemo, useState, type ElementType , Suspense } from "react";
 import {
   BookOpen,
   Users,
@@ -350,7 +350,7 @@ function TopPerformingCoursesSection({ courses }: { courses: any[] }) {
   );
 }
 
-export default function TeacherDashboardPage() {
+function TeacherDashboardPage() {
   const { user } = useAuth();
   const [stats, setStats] = useState<any>(null);
   const [courses, setCourses] = useState<any[]>([]);
@@ -596,4 +596,12 @@ export default function TeacherDashboardPage() {
       </main>
     </div>
   );
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <TeacherDashboardPage />
+    </Suspense>
+  )
 }

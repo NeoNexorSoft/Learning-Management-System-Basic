@@ -1,4 +1,4 @@
-import { Role, TransactionStatus, TransactionType, EnrollmentStatus } from '@prisma/client';
+import { Role, TransactionStatus, TransactionType, EnrollmentStatus, AssignmentStatus } from '@prisma/client';
 import { prisma } from '../config/db';
 import { comparePassword, hashPassword } from '../utils/password';
 
@@ -213,10 +213,10 @@ export const userService = {
       prisma.enrollment.count({ where: { student_id: userId, status: EnrollmentStatus.COMPLETED } }),
       prisma.assignment.count({
         where: {
-          lesson: {
-            section: {
-              course: { enrollments: { some: { student_id: userId } } },
-            },
+          status: AssignmentStatus.APPROVED,
+          is_deleted: false,
+          course: {
+            enrollments: { some: { student_id: userId } },
           },
           submissions: { none: { student_id: userId } },
         },

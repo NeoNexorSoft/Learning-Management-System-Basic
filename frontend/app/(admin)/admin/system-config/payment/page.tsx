@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState , Suspense } from "react";
 import { Save, Loader2 } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -23,7 +23,7 @@ type PaymentForm = {
   manual_payment_instructions: string;
 };
 
-export default function PaymentGatewaysPage() {
+function PaymentGatewaysPage() {
   const [form, setForm] = useState<PaymentForm>({
     currency: "BDT",
     currency_symbol: "৳",
@@ -335,4 +335,12 @@ export default function PaymentGatewaysPage() {
       </form>
     </div>
   );
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <PaymentGatewaysPage />
+    </Suspense>
+  )
 }

@@ -1,11 +1,11 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useState , Suspense } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Loader2, ShieldCheck, ArrowLeft } from "lucide-react"
 import api from "@/lib/axios"
 import Link from "next/link"
 
-export default function PaymentPage() {
+function PaymentPage() {
   const { courseId } = useParams<{ courseId: string }>()
   const router = useRouter()
   const [course, setCourse] = useState<any>(null)
@@ -120,5 +120,13 @@ export default function PaymentPage() {
         </div>
       </div>
     </main>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <PaymentPage />
+    </Suspense>
   )
 }
