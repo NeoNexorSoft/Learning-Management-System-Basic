@@ -1,153 +1,78 @@
-import { motion } from "framer-motion";
+﻿import { motion } from "framer-motion";
 
-export default function GeneratedQuestionCard({
-  question,
-  language = "bn",
-  onSave,
-  onRemove,
-  onEdit,
-}) {
-  // Get localized text
+const parseOptions = (options) => {
+  if (!options) return [];
+  try {
+    let parsed = options;
+    if (typeof parsed === "string") parsed = JSON.parse(parsed);
+    if (Array.isArray(parsed)) return parsed;
+    if (typeof parsed === "object") return Object.entries(parsed).map(([k, v]) => `${k}. ${v}`);
+    return [];
+  } catch {
+    return [];
+  }
+};
+
+export default function GeneratedQuestionCard({ question, language = "bn", onSave, onRemove, onEdit }) {
   const getLocalText = (field) => {
     if (!question) return "";
-    if (language === "bn" && question[`${field}_bn`]) {
-      return question[`${field}_bn`];
-    }
-    if (language === "en" && question[`${field}_en`]) {
-      return question[`${field}_en`];
-    }
+    if (language === "bn" && question[`${field}_bn`]) return question[`${field}_bn`];
+    if (language === "en" && question[`${field}_en`]) return question[`${field}_en`];
     return question[field] || "";
   };
 
   if (!question) return null;
 
-  const questionText = getLocalText("question_text");
-  const explanation = getLocalText("explanation");
+  const questionText = question.question_text || "";
+  const explanation = question.explanation || "";
   const isMCQ = question.type === "mcq";
 
-  // Status badge styling
   const getStatusBadge = () => {
-    if (question.error) {
-      return (
-        <span className='px-2 py-1 text-xs font-semibold bg-error/20 text-error rounded-full'>
-          Error
-        </span>
-      );
-    }
-    if (question.saving) {
-      return (
-        <span className='px-2 py-1 text-xs font-semibold bg-warning/20 text-warning rounded-full flex items-center gap-1'>
-          <svg className='animate-spin h-3 w-3' viewBox='0 0 24 24'>
-            <circle
-              className='opacity-25'
-              cx='12'
-              cy='12'
-              r='10'
-              stroke='currentColor'
-              strokeWidth='4'
-              fill='none'
-            />
-            <path
-              className='opacity-75'
-              fill='currentColor'
-              d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
-            />
-          </svg>
-          Saving
-        </span>
-      );
-    }
-    if (question.saved) {
-      return (
-        <span className='px-2 py-1 text-xs font-semibold bg-success/20 text-success rounded-full'>
-          ✓ Saved
-        </span>
-      );
-    }
-    return (
-      <span className='px-2 py-1 text-xs font-semibold bg-bg-tertiary text-text-secondary rounded-full'>
-        Unsaved
-      </span>
-    );
+    if (question.error) return <span className="px-2 py-1 text-xs font-semibold bg-red-500/20 text-red-400 rounded-full">Error</span>;
+    if (question.saving) return <span className="px-2 py-1 text-xs font-semibold bg-yellow-500/20 text-yellow-400 rounded-full">Saving...</span>;
+    if (question.saved) return <span className="px-2 py-1 text-xs font-semibold bg-green-500/20 text-green-400 rounded-full">Saved</span>;
+    return <span className="px-2 py-1 text-xs font-semibold bg-slate-700 text-slate-400 rounded-full">Unsaved</span>;
   };
 
-  // Type badge styling
   const getTypeColor = () => {
     switch (question.type) {
-      case "mcq":
-        return "bg-accent-primary/20 text-accent-primary";
-      case "short":
-        return "bg-accent-secondary/20 text-accent-secondary";
-      case "written":
-        return "bg-warning/20 text-warning";
-      default:
-        return "bg-bg-tertiary text-text-secondary";
+      case "mcq": return "bg-indigo-500/20 text-indigo-400";
+      case "short": return "bg-violet-500/20 text-violet-400";
+      case "broad": return "bg-yellow-500/20 text-yellow-400";
+      default: return "bg-slate-700 text-slate-400";
     }
   };
 
-  // Difficulty badge styling
   const getDifficultyColor = () => {
     switch (question.difficulty) {
-      case "easy":
-        return "bg-success/20 text-success";
-      case "medium":
-        return "bg-warning/20 text-warning";
-      case "hard":
-        return "bg-error/20 text-error";
-      default:
-        return "bg-bg-tertiary text-text-secondary";
+      case "easy": return "bg-green-500/20 text-green-400";
+      case "medium": return "bg-yellow-500/20 text-yellow-400";
+      case "hard": return "bg-red-500/20 text-red-400";
+      default: return "bg-slate-700 text-slate-400";
     }
   };
 
+  const options = parseOptions(question.options);
+  const correctAnswer = language === "bn" ? question.answer_bn : question.answer;
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className='bg-bg-secondary border border-bg-tertiary rounded-xl overflow-hidden'>
-      {/* Header */}
-      <div className='p-4 space-y-3'>
-        {/* Badges Row */}
-        <div className='flex items-center gap-2 flex-wrap'>
-          <span
-            className={`px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor()}`}>
-            {question.type?.toUpperCase() || "QUESTION"}
-          </span>
-          <span
-            className={`px-2 py-1 text-xs font-semibold rounded-full ${getDifficultyColor()}`}>
-            {question.difficulty || "Medium"}
-          </span>
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+      <div className="p-4 space-y-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor()}`}>{question.type?.toUpperCase() || "QUESTION"}</span>
+          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getDifficultyColor()}`}>{question.difficulty || "Medium"}</span>
           {getStatusBadge()}
         </div>
 
-        {/* Question Text */}
-        <p className='text-text-primary font-medium leading-relaxed'>
-          {questionText}
-        </p>
+        <p className="text-slate-100 font-medium leading-relaxed">{questionText}</p>
 
-        {/* MCQ Options */}
-        {isMCQ && question.options && (
-          <div className='space-y-2 mt-3'>
-            {(Array.isArray(question.options)
-              ? question.options
-              : JSON.parse(question.options || "[]")
-            ).map((option, idx) => {
-              const correctAnswer =
-                language === "bn" ? question.answer_bn : question.answer;
-              const isCorrect =
-                option.startsWith(correctAnswer) || option === correctAnswer;
-
+        {isMCQ && options.length > 0 && (
+          <div className="space-y-2 mt-3">
+            {options.map((option, idx) => {
+              const isCorrect = option === correctAnswer || option.includes(correctAnswer) || String(correctAnswer).toLowerCase() === String.fromCharCode(97 + idx);
               return (
-                <div
-                  key={idx}
-                  className={`p-2 rounded-lg text-sm ${
-                    isCorrect
-                      ? "bg-success/10 border border-success/30 text-success"
-                      : "bg-bg-primary border border-bg-tertiary text-text-secondary"
-                  }`}>
-                  <span className='font-medium mr-2'>
-                    {String.fromCharCode(65 + idx)}.
-                  </span>
+                <div key={idx} className={`p-2 rounded-lg text-sm ${isCorrect ? "bg-green-500/10 border border-green-500/30 text-green-400" : "bg-slate-900 border border-slate-700 text-slate-400"}`}>
+                  <span className="font-medium mr-2">{String.fromCharCode(65 + idx)}.</span>
                   {option}
                 </div>
               );
@@ -155,52 +80,25 @@ export default function GeneratedQuestionCard({
           </div>
         )}
 
-        {/* Explanation */}
         {explanation && (
-          <div className='bg-bg-primary border border-bg-tertiary rounded-lg p-3'>
-            <p className='text-[10px] font-mono uppercase text-text-tertiary mb-1'>
-              Explanation
-            </p>
-            <p className='text-xs text-text-secondary'>{explanation}</p>
+          <div className="bg-slate-900 border border-slate-700 rounded-lg p-3">
+            <p className="text-[10px] font-mono uppercase text-slate-500 mb-1">Explanation</p>
+            <p className="text-xs text-slate-400">{explanation}</p>
           </div>
         )}
 
-        {/* Error Message */}
         {question.error && (
-          <div className='bg-error/10 border border-error/30 rounded-lg p-3'>
-            <p className='text-xs text-error'>{question.error}</p>
+          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+            <p className="text-xs text-red-400">{question.error}</p>
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div className='flex gap-2 pt-2'>
-          <button
-            onClick={() => onEdit(question)}
-            className='flex-1 px-3 py-2 text-sm font-medium bg-bg-tertiary hover:bg-bg-primary text-text-secondary rounded-lg transition-colors'>
-            ✏️ Edit
+        <div className="flex gap-2 pt-2">
+          <button onClick={() => onEdit(question)} className="flex-1 px-3 py-2 text-sm font-medium bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors">Edit</button>
+          <button onClick={() => onSave(question)} disabled={question.saved || question.saving} className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${question.saved ? "bg-green-500/20 text-green-400 cursor-not-allowed" : question.saving ? "bg-yellow-500/20 text-yellow-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-500 text-white"}`}>
+            {question.saved ? "Saved" : question.saving ? "Saving..." : "Save"}
           </button>
-          <button
-            onClick={() => onSave(question)}
-            disabled={question.saved || question.saving}
-            className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-              question.saved
-                ? "bg-success/20 text-success cursor-not-allowed"
-                : question.saving
-                  ? "bg-warning/20 text-warning cursor-not-allowed"
-                  : "bg-accent-primary hover:bg-accent-hover text-bg-primary"
-            }`}>
-            {question.saved
-              ? "✓ Saved"
-              : question.saving
-                ? "Saving..."
-                : "💾 Save"}
-          </button>
-          <button
-            onClick={() => onRemove(question.id)}
-            disabled={question.saving}
-            className='px-3 py-2 text-sm font-medium bg-error/20 hover:bg-error/30 text-error rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed'>
-            🗑️
-          </button>
+          <button onClick={() => onRemove(question.id)} disabled={question.saving} className="px-3 py-2 text-sm font-medium bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors disabled:opacity-50">Del</button>
         </div>
       </div>
     </motion.div>

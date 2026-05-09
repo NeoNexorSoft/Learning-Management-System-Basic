@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import api from "@/lib/axios";
-import {API_BASE_URL} from "@/lib/axios";
 import { getToken } from "@/lib/auth";
 import GenerateForm from './GeneratorForm';
 import SlideOutSheet from './SlideOutSheet';
@@ -8,7 +7,8 @@ import GeneratedQuestionsPanel from './GeneratedQuestionsPanel';
 
 const streamQuestions = (data: any) => {
   const token = getToken();
-  return fetch(`${API_BASE_URL}/api/question-bank/questions/stream`, {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5002";
+  return fetch(`${baseUrl}/api/question-bank/questions/stream`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
