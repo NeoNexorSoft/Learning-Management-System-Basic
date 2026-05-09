@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState , Suspense } from "react"
 import { useRouter } from "next/navigation"
 import { Check, X, Eye, Search, Star, BookOpen, PlayCircle, HelpCircle, Users } from "lucide-react"
 import api from "@/lib/axios"
@@ -32,7 +32,7 @@ const STATUS_STYLES = {
   REJECTED: "bg-red-100 text-red-700",
 }
 
-export default function AdminCoursesPage() {
+function AdminCoursesPage() {
   const router = useRouter()
   const [courses, setCourses]      = useState<CoursePage>({ data: [], total: 0, page: 1, totalPages: 0 })
   const [loading, setLoading]      = useState(true)
@@ -264,5 +264,13 @@ export default function AdminCoursesPage() {
             </div>
         )}
       </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <AdminCoursesPage />
+    </Suspense>
   )
 }

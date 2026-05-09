@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState , Suspense } from "react";
 import { Save, Loader2 } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -16,7 +16,7 @@ type CertificateForm = {
   show_course_name: string;
 };
 
-export default function CertificateSetupPage() {
+function CertificateSetupPage() {
   const [form, setForm] = useState<CertificateForm>({
     certificate_title: "Certificate of Completion",
     certificate_subtitle: "This is to certify that",
@@ -261,4 +261,12 @@ export default function CertificateSetupPage() {
       </form>
     </div>
   );
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <CertificateSetupPage />
+    </Suspense>
+  )
 }

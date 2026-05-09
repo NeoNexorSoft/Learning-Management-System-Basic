@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState , Suspense } from "react";
 import { Save, Loader2 } from "lucide-react";
 import { CURRENCY_LIST, getCurrencyByCode } from "@/lib/currencyList";
 
@@ -26,7 +26,7 @@ const TIMEZONES = [
 ];
 const DATE_FORMATS = ["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"];
 
-export default function GeneralSettingsPage() {
+function GeneralSettingsPage() {
   const [form, setForm] = useState<GeneralForm>({
     site_name: "",
     site_email: "",
@@ -231,4 +231,12 @@ export default function GeneralSettingsPage() {
       </form>
     </div>
   );
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <GeneralSettingsPage />
+    </Suspense>
+  )
 }

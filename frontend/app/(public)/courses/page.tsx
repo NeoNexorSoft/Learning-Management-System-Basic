@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Search, Users, Star, Loader2 } from "lucide-react"
@@ -22,7 +22,7 @@ const emojis: Record<string, string> = {
   Business: "📊", Marketing: "📣",
 }
 
-export default function CoursesPage() {
+function CoursesPage() {
   const searchParams = useSearchParams()
   const router       = useRouter()
 
@@ -163,5 +163,13 @@ export default function CoursesPage() {
         )}
       </div>
     </main>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <CoursesPage />
+    </Suspense>
   )
 }

@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useEffect, type FormEvent } from "react"
+import { useState, useEffect, type FormEvent , Suspense } from "react"
 import { Wallet, AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
 import TopBar from "@/components/shared/TopBar"
 import api from "@/lib/axios"
 
 const METHODS = ["bKash", "Nagad", "Bank Transfer"]
 
-export default function WithdrawPage() {
+function WithdrawPage() {
   const [balance, setBalance]     = useState(0)
   const [amount, setAmount]       = useState("")
   const [method, setMethod]       = useState(METHODS[0])
@@ -125,5 +125,13 @@ export default function WithdrawPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <WithdrawPage />
+    </Suspense>
   )
 }

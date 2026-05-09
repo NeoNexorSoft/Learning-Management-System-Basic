@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState , Suspense } from "react";
 import { Save, Loader2 } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -18,7 +18,7 @@ type WithdrawalForm = {
   paypal_withdrawal_email: string;
 };
 
-export default function WithdrawalMethodsPage() {
+function WithdrawalMethodsPage() {
   const [form, setForm] = useState<WithdrawalForm>({
     min_withdrawal_amount: "500",
     max_withdrawal_amount: "50000",
@@ -294,4 +294,12 @@ export default function WithdrawalMethodsPage() {
       </form>
     </div>
   );
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <WithdrawalMethodsPage />
+    </Suspense>
+  )
 }
