@@ -2,9 +2,27 @@ import { Request, Response, NextFunction } from 'express';
 import { CourseLevel, CourseStatus, ObjectiveType } from '@prisma/client';
 import { courseService } from '../services/course.service';
 
+// ─────────────────────────────────────────────
+// Typed Param Interfaces
+// ─────────────────────────────────────────────
+// Instead of casting req.params.id "as string" everywhere (which is unsafe),
+// we define the exact shape of params for each route type.
+// Request<P> is an Express generic — P describes req.params.
+interface IdParam       { id: string }
+interface SlugParam     { slug: string }
+interface CourseIdParam { courseId: string }
+
+// ─────────────────────────────────────────────
+// Pagination Helpers
+// ─────────────────────────────────────────────
+const parsePage  = (val: string | undefined, def = 1):  number => { const n = parseInt(val ?? '', 10); return Number.isInteger(n) && n > 0 ? n : def; };
+const parseLimit = (val: string | undefined, def = 12, max = 100): number => { const n = parseInt(val ?? '', 10); return Number.isInteger(n) && n > 0 ? Math.min(n, max) : def; };
+
 export const courseController = {
+
   // ─── Public ─────────────────────────────────────────────────────────────────
 
+  // No params used here — plain Request is fine
   async listPublicCourses(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const level      = req.query.level      as string | undefined;
@@ -29,8 +47,8 @@ export const courseController = {
         price_max: price_max ? parseFloat(price_max) : undefined,
         search,
         sort,
-        page:  page  ? parseInt(page, 10) : 1,
-        limit: limit ? Math.min(parseInt(limit, 10), 100) : 12,
+        page:  parsePage(page),
+        limit: parseLimit(limit, 12),
         is_popular,
       });
 
@@ -40,12 +58,13 @@ export const courseController = {
     }
   },
 
-  async getCourseBySlug(req: Request, res: Response, next: NextFunction): Promise<void> {
+  // Request<SlugParam> — tells TS that req.params.slug is a guaranteed string
+  async getCourseBySlug(req: Request<SlugParam>, res: Response, next: NextFunction): Promise<void> {
     try {
       const course = await courseService.getCourseBySlug(
-          req.params.slug as string,
-          req.user?.userId,
-          req.user?.role,
+        req.params.slug,
+        req.user?.userId,
+        req.user?.role,
       );
       res.json({ status: 'success', data: { course } });
     } catch (err) {
@@ -55,35 +74,33 @@ export const courseController = {
 
   // ─── Teacher ────────────────────────────────────────────────────────────────
 
-  async getTeacherCourseById(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getTeacherCourseById(req: Request<IdParam>, res: Response, next: NextFunction): Promise<void> {
     try {
-      const course = await courseService.getTeacherCourseById(req.params.id as string, req.user!.userId);
+      const course = await courseService.getTeacherCourseById(req.params.id, req.user!.userId);
       res.json({ status: 'success', data: { course } });
     } catch (err) {
       next(err);
     }
   },
 
-  async getTeacherCoursePreview(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getTeacherCoursePreview(req: Request<SlugParam>, res: Response, next: NextFunction): Promise<void> {
     try {
-      const course = await courseService.getCourseBySlugTeacher(req.params.slug as string, req.user!.userId);
+      const course = await courseService.getCourseBySlugTeacher(req.params.slug, req.user!.userId);
       res.json({ status: 'success', data: { course } });
     } catch (err) {
       next(err);
     }
   },
 
+  // No params used here — plain Request is fine
   async listTeacherCourses(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const page  = req.query.page  as string | undefined;
       const limit = req.query.limit as string | undefined;
 
-      // Service returns { data: Course[], total, page, limit, totalPages }
-      // Spread it directly so frontend receives:
-      // { status, data: [...], total, page, limit, totalPages }
       const result = await courseService.listTeacherCourses(req.user!.userId, {
-        page:  page  ? parseInt(page, 10) : 1,
-        limit: limit ? Math.min(parseInt(limit, 10), 100) : 20,
+        page:  parsePage(page),
+        limit: parseLimit(limit, 20),
       });
 
       res.json({ status: 'success', ...result });
@@ -92,6 +109,7 @@ export const courseController = {
     }
   },
 
+  // No params used here — plain Request is fine
   async createCourse(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { title, category_id, level } = req.body;
@@ -112,12 +130,12 @@ export const courseController = {
     }
   },
 
-  async updateCourse(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async updateCourse(req: Request<IdParam>, res: Response, next: NextFunction): Promise<void> {
     try {
       const course = await courseService.updateCourse(
-          req.params.id as string,
-          req.user!.userId,
-          req.body,
+        req.params.id,
+        req.user!.userId,
+        req.body,
       );
       res.json({ status: 'success', data: { course } });
     } catch (err) {
@@ -125,16 +143,16 @@ export const courseController = {
     }
   },
 
-  async submitCourse(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async submitCourse(req: Request<IdParam>, res: Response, next: NextFunction): Promise<void> {
     try {
-      const course = await courseService.submitCourse(req.params.id as string, req.user!.userId);
+      const course = await courseService.submitCourse(req.params.id, req.user!.userId);
       res.json({ status: 'success', data: { course } });
     } catch (err) {
       next(err);
     }
   },
 
-  async replaceObjectives(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async replaceObjectives(req: Request<IdParam>, res: Response, next: NextFunction): Promise<void> {
     try {
       const { objectives } = req.body;
 
@@ -156,9 +174,9 @@ export const courseController = {
       }
 
       const result = await courseService.replaceObjectives(
-          req.params.id as string,
-          req.user!.userId,
-          objectives,
+        req.params.id,
+        req.user!.userId,
+        objectives,
       );
       res.json({ status: 'success', data: { objectives: result } });
     } catch (err) {
@@ -168,24 +186,25 @@ export const courseController = {
 
   // ─── Admin ──────────────────────────────────────────────────────────────────
 
-  async getCourseBySlugAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getCourseBySlugAdmin(req: Request<SlugParam>, res: Response, next: NextFunction): Promise<void> {
     try {
-      const course = await courseService.getCourseBySlugAdmin(req.params.slug as string);
+      const course = await courseService.getCourseBySlugAdmin(req.params.slug);
       res.json({ success: true, data: { course } });
     } catch (err: any) {
       res.status(err.statusCode ?? 500).json({ success: false, message: err.message });
     }
   },
 
-  async getAdminCourseById(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getAdminCourseById(req: Request<IdParam>, res: Response, next: NextFunction): Promise<void> {
     try {
-      const course = await courseService.getAdminCourseById(req.params.id as string);
+      const course = await courseService.getAdminCourseById(req.params.id);
       res.json({ status: 'success', data: { course } });
     } catch (err) {
       next(err);
     }
   },
 
+  // No params used here — plain Request is fine
   async listAllCourses(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const status = req.query.status as string | undefined;
@@ -201,8 +220,8 @@ export const courseController = {
       const result = await courseService.listAllCourses({
         status: status as CourseStatus | undefined,
         search,
-        page:  page  ? parseInt(page, 10) : 1,
-        limit: limit ? Math.min(parseInt(limit, 10), 100) : 20,
+        page:  parsePage(page),
+        limit: parseLimit(limit, 20),
       });
 
       res.json({ status: 'success', ...result });
@@ -211,46 +230,46 @@ export const courseController = {
     }
   },
 
-  async approveCourse(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async approveCourse(req: Request<IdParam>, res: Response, next: NextFunction): Promise<void> {
     try {
-      const course = await courseService.approveCourse(req.params.id as string);
+      const course = await courseService.approveCourse(req.params.id);
       res.json({ status: 'success', data: { course } });
     } catch (err) {
       next(err);
     }
   },
 
-  async rejectCourse(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async rejectCourse(req: Request<IdParam>, res: Response, next: NextFunction): Promise<void> {
     try {
       const { reason } = req.body;
       if (!reason) {
         res.status(400).json({ status: 'error', message: 'reason is required' });
         return;
       }
-      const course = await courseService.rejectCourse(req.params.id as string, reason);
+      const course = await courseService.rejectCourse(req.params.id, reason);
       res.json({ status: 'success', data: { course } });
     } catch (err) {
       next(err);
     }
   },
 
-  async adminDeleteCourse(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async adminDeleteCourse(req: Request<IdParam>, res: Response, next: NextFunction): Promise<void> {
     try {
-      await courseService.adminDeleteCourse(req.params.id as string);
+      await courseService.adminDeleteCourse(req.params.id);
       res.json({ status: 'success', message: 'Course deleted successfully' });
     } catch (err) {
       next(err);
     }
   },
 
-  async togglePopular(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async togglePopular(req: Request<IdParam>, res: Response, next: NextFunction): Promise<void> {
     try {
       const { is_popular } = req.body;
       if (typeof is_popular !== 'boolean') {
         res.status(400).json({ status: 'error', message: 'is_popular must be a boolean' });
         return;
       }
-      const course = await courseService.togglePopular(req.params.id as string, is_popular);
+      const course = await courseService.togglePopular(req.params.id, is_popular);
       res.json({ status: 'success', data: { course } });
     } catch (err) {
       next(err);
@@ -268,6 +287,7 @@ export const courseController = {
     }
   },
 
+  // No params used here — plain Request is fine
   async createCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { name, parent_id } = req.body;
@@ -282,47 +302,42 @@ export const courseController = {
     }
   },
 
-  async updateCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async updateCategory(req: Request<IdParam>, res: Response, next: NextFunction): Promise<void> {
     try {
-      const category = await courseService.updateCategory(req.params.id as string, req.body);
+      const category = await courseService.updateCategory(req.params.id, req.body);
       res.json({ status: 'success', data: { category } });
     } catch (err) {
       next(err);
     }
   },
 
-  async deleteCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async deleteCategory(req: Request<IdParam>, res: Response, next: NextFunction): Promise<void> {
     try {
-      await courseService.deleteCategory(req.params.id as string);
-      res.json({ status: 'success', message: 'Course deleted successfully' });
+      await courseService.deleteCategory(req.params.id);
+      res.json({ status: 'success', message: 'Category deleted successfully' }); // ✅ fixed: was 'Course deleted' — copy-paste bug
     } catch (err) {
       next(err);
     }
   },
 
-  async getLearnCourse(req: Request, res: Response): Promise<void> {
+  async getLearnCourse(req: Request<CourseIdParam>, res: Response): Promise<void> {
     try {
-      const studentId = req.user!.userId
       const result = await courseService.getLearnCourse(
-        req.params.courseId as string,
-        studentId
-      )
-      res.json({ success: true, data: { course: result.course, enrollment: result.enrollment } })
+        req.params.courseId,
+        req.user!.userId,
+      );
+      res.json({ success: true, data: { course: result } });
     } catch (err: any) {
-      res.status(err.statusCode ?? 500).json({
-        success: false, message: err.message
-      })
+      res.status(err.statusCode ?? 500).json({ success: false, message: err.message });
     }
   },
 
-  async getCourseById(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getCourseById(req: Request<IdParam>, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await courseService.getCourseById(req.params.id as string);
+      const result = await courseService.getCourseById(req.params.id);
       res.json({ success: true, data: { course: result } });
     } catch (err: any) {
-      res.status(err.statusCode ?? 500).json({
-        success: false, message: err.message
-      });
+      res.status(err.statusCode ?? 500).json({ success: false, message: err.message });
     }
   },
 };

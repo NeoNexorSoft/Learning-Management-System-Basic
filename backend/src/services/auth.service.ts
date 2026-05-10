@@ -139,10 +139,10 @@ export const authService = {
     const existing = await prisma.user.findUnique({ where: { email: payload.email } });
     if (existing) throw Object.assign(new Error('Email already in use'), { statusCode: 409 });
 
-    // this user create part will be moved to verify email api
+    // this user create part will be moved to verify email api //
     const username = await generateUsername(payload.name);
     const user = await prisma.user.create({
-      data: { id: uuidv4(), name: payload.name, username: username, email: payload.email, password_hash: payload.password, role: payload.role === 'teacher' ? Role.TEACHER : Role.STUDENT, email_verified: true },
+      data: { id: uuidv4(), name: payload.name, username: username, email: payload.email, password_hash: payload.password, role: payload.role.toUpperCase() === 'TEACHER' ? Role.TEACHER : Role.STUDENT, email_verified: true },
       select: SAFE_USER_SELECT,
     });
 
