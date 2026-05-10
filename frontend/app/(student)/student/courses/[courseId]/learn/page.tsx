@@ -3,8 +3,7 @@ import { useEffect, useRef, useState ,Suspense} from "react"
 import { useParams, useSearchParams } from "next/navigation"
 import {
     Loader2, PlayCircle, FileIcon, AlignLeft,
-    BookOpen, ChevronDown, ChevronUp,
-    ArrowLeft, ArrowRight, CheckCircle2, HelpCircle, X,
+    BookOpen, ChevronDown, ChevronUp, CheckCircle2, HelpCircle,
     Users, Award, Clock
 } from "lucide-react"
 import api from "@/lib/axios"

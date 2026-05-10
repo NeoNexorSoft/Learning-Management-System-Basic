@@ -62,12 +62,6 @@ export function SimulationCard({ simulation, basePath = "/simulations", }: Simul
                     {title}
                 </h3>
 
-                {description && (
-                    <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">
-                        {description}
-                    </p>
-                )}
-
                 {/* Tags */}
                 <div className="flex flex-wrap gap-1.5 mt-auto pt-2">
                     <Tag label={subject} color="blue" />

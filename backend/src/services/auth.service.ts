@@ -3,7 +3,6 @@ import { prisma } from '../config/db';
 import { hashPassword, comparePassword } from '../utils/password';
 import { signAccessToken, signRefreshToken, verifyRefreshToken, signEmailVerificationToken, verifyEmailVerificationToken } from '../utils/jwt';
 import { v4 as uuidv4 } from 'uuid';
-import { sendEmail } from '../utils/sendEmail';
 import { verifyEmailTemplate } from '../templates/verifyEmailTemplate';
 import { emailQueue } from '../queues/emailQueue';
 import QueueConfig from '../config/queue';
@@ -67,7 +66,7 @@ export const authService = {
 
     // create vefirification token and send email here, user will be created after they click the link in email
     // create token with name, email, password_hash, role and other info, and set a short expiration time (e.g. 15 minutes)
-    const tokenPayload = { name: input.name, email: input.email, password: password_hash, role: input.role };
+    const tokenPayload = { name: input?.name, email: input?.email, password: password_hash, role: input?.role?.toLowerCase() };
     const token = signEmailVerificationToken(tokenPayload);
 
     // send email with link to frontend, frontend will call verify email api with the token, and then we will create the user in that api

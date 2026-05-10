@@ -76,6 +76,7 @@ const teacherBottomNav: NavItem[] = [
   { icon: History,       label: "Withdraw History", href: "/teacher/withdraw/history" },
   { icon: Star,          label: "Reviews",          href: "/teacher/reviews" },
   { icon: CreditCard,    label: "Transactions",     href: "/teacher/transactions" },
+  { icon: Atom,          label: "Simulations",      href: "/teacher/simulations" },
   { icon: Settings,      label: "Settings",         href: "/teacher/settings" },
 ]
 

@@ -50,21 +50,21 @@ simulationRouter.delete(
 simulationRouter.get(
     "/meta/filters",
     authenticate,
-    requireRole("STUDENT"),
+    requireRole(Role.STUDENT, Role.TEACHER),
     simulationController.getSimulationFilters
 );
 
 simulationRouter.get(
     "/",
     authenticate,
-    requireRole("STUDENT"),
+    requireRole(Role.STUDENT, Role.TEACHER),
     simulationController.getPublishedSimulations
 );
 
 simulationRouter.get(
     "/:id",
     authenticate,
-    requireRole(Role.ADMIN, Role.STUDENT),
+    requireRole(Role.ADMIN, Role.STUDENT, Role.TEACHER),
     simulationController.getSimulationById
 );
 
