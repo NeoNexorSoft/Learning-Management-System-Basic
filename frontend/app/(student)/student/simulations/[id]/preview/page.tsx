@@ -7,7 +7,6 @@ import api from "@/lib/axios";
 import { SimulationViewer } from "@/components/simulation/SimulationViewer";
 import { Simulation } from "@/types/simulation.types";
 import RichTextRenderer from "@/components/ui/RichTextRenderer";
-import TopBar from "@/components/shared/TopBar";
 
 export default function StudentSimulationViewPage() {
     const params = useParams();
@@ -61,7 +60,6 @@ export default function StudentSimulationViewPage() {
 
     return (
         <div className="flex flex-col flex-1">
-            <TopBar placeholder="Search courses…" />
             <div className="p-6 space-y-6">
                 {/* Breadcrumb */}
                 <div className="flex items-center gap-2 text-sm">
