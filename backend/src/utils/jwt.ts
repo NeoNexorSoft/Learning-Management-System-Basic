@@ -1,12 +1,3 @@
-// ===================================================
-// JWT UTILITIES — Token Sign, Verify & Blacklist
-// ===================================================
-// This file handles everything related to JWTs:
-//   - Signing access & refresh tokens for auth
-//   - Verifying tokens on protected routes
-//   - Email verification tokens for new signups
-//   - Blacklisting tokens in Redis on logout
-// ===================================================
 
 import jwt, { SignOptions, JwtPayload } from 'jsonwebtoken';
 import { env } from '../config/env';
@@ -23,9 +14,6 @@ export interface TokenPayload {
   role: string;   // User's role (e.g. 'admin', 'user') — used for authorization
 }
 
-// Payload stored inside the email verification token.
-// Holds signup data temporarily until the user confirms their email.
-// This prevents saving unverified users to the database prematurely.
 export interface EmailVerificationPayload {
   name: string;
   email: string;
@@ -37,9 +25,9 @@ export interface EmailVerificationPayload {
 // Access Token
 // ─────────────────────────────────────────────
 // Short-lived token (default: 15m) attached to every API request.
-// Should be stored in memory on the client — NOT in localStorage.
 
-// Signs and returns a new access token for the given payload.
+
+
 export const signAccessToken = (payload: TokenPayload): string =>
   jwt.sign(payload, env.JWT_ACCESS_SECRET, { expiresIn: env.JWT_ACCESS_EXPIRES } as SignOptions);
 
@@ -94,11 +82,6 @@ export const verifyEmailVerificationToken = (token: string): EmailVerificationPa
 // remaining lifetime. Middleware checks this before every request.
 // When the TTL expires, Redis auto-deletes the entry — no cleanup needed.
 
-/**
- * Adds a refresh token to the Redis blacklist on logout.
- * TTL is set to the token's remaining lifetime so the entry
- * self-destructs exactly when the token would have expired anyway.
- */
 export const blacklistRefreshToken = async (token: string): Promise<void> => {
   try {
     const decoded = jwt.decode(token) as JwtPayload | null;
@@ -112,24 +95,14 @@ export const blacklistRefreshToken = async (token: string): Promise<void> => {
       await redisConnection.set(`blacklist:${token}`, '1', 'EX', ttl);
     }
   } catch {
-    // Non-fatal — if blacklisting fails, the token expires naturally.
-    // Swallowing this error is intentional to avoid crashing the logout flow.
   }
 };
 
-/**
- * Returns true if the token exists in the Redis blacklist.
- * Called in auth middleware before every protected route.
- * Fails open (returns false) on Redis errors to prevent a full outage.
- */
 export const isTokenBlacklisted = async (token: string): Promise<boolean> => {
   try {
     const result = await redisConnection.get(`blacklist:${token}`);
     return result !== null; // null = key not found = token is clean
   } catch {
-    // If Redis is unreachable, allow the request through (fail open).
-    // Tradeoff: briefly allows logged-out tokens during a Redis outage.
-    // For stricter security, return true here to block all requests instead.
     return false;
   }
 };

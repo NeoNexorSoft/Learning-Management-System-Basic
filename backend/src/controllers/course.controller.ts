@@ -2,12 +2,6 @@ import { Request, Response, NextFunction } from 'express';
 import { CourseLevel, CourseStatus, ObjectiveType } from '@prisma/client';
 import { courseService } from '../services/course.service';
 
-// ─────────────────────────────────────────────
-// Typed Param Interfaces
-// ─────────────────────────────────────────────
-// Instead of casting req.params.id "as string" everywhere (which is unsafe),
-// we define the exact shape of params for each route type.
-// Request<P> is an Express generic — P describes req.params.
 interface IdParam       { id: string }
 interface SlugParam     { slug: string }
 interface CourseIdParam { courseId: string }

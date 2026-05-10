@@ -1,15 +1,3 @@
-// ===================================================
-// AUTH CONTROLLER — HTTP Request & Response Handler
-// ===================================================
-// Controllers sit between the router and the service layer.
-// Their only jobs are:
-//   1. Validate the incoming request data
-//   2. Call the appropriate service method
-//   3. Send back a structured HTTP response
-//
-// Business logic lives in auth.service.ts — not here.
-// ===================================================
-
 import { Request, Response, NextFunction } from 'express';
 import { Role } from '@prisma/client';
 import { authService } from '../services/auth.service';
@@ -28,15 +16,7 @@ interface AuthenticatedRequest extends Request {
   };
 }
 
-// ─────────────────────────────────────────────
-// Helper: parseUserAgent
-// ─────────────────────────────────────────────
-// Extracts basic device info from the request headers.
-// This data is passed to the login service so it can be
-// stored in session/activity logs for security tracking.
-//
-// Note: User-Agent parsing via regex is lightweight but imprecise.
-// For production-grade parsing, consider a library like `ua-parser-js`.
+
 const parseUserAgent = (req: Request) => {
   const ua = req.headers['user-agent'] ?? '';
 
