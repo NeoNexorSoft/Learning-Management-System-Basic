@@ -15,6 +15,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "picsum.photos" },
       { protocol: "https", hostname: "placehold.co" },
       { protocol: "https", hostname: "phet.colorado.edu" },
+      { protocol: "https", hostname: "www.magnific.com" }, // ← added
     ],
   },
   typescript: {

@@ -345,6 +345,7 @@ export default function Sidebar({ role }: { role: "student" | "teacher" }) {
           ))}
         </nav>
       )}
+
       {/* User profile — bottom of sidebar */}
       <div className="p-4 border-t border-slate-800">
         <div className="flex items-center gap-3">
