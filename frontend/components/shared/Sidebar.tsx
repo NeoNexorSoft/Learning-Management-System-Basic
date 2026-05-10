@@ -28,6 +28,7 @@ import {
   School,
   Database,
   BrainCircuit,
+  Sparkles,
 } from "lucide-react"
 import { BrandIcon, BRAND_NAME, BRAND_ICON_BG, BRAND_ICON_COLOR } from "@/lib/brand"
 import { useNotifications } from "@/hooks/useNotifications"
@@ -89,6 +90,11 @@ const teacherEvaluationNav: NavItem[] = [
 ]
 
 // ── NavLink component ─────────────────────────────────────────────────────────
+
+const teacherAiNav: NavItem[] = [
+    { icon: Database,       label: "Question Bank",   href: "/teacher/question-bank" },
+    { icon: Sparkles,       label: "Create Exam Question", href: "/teacher/ai/exam-question/create" },
+]
 
 function NavLink({
                    href, icon: Icon, label, active, sub = false, variant = "teacher", unreadCount = 0,
@@ -242,6 +248,15 @@ export default function Sidebar({ role }: { role: "student" | "teacher" }) {
   const [studentEvalOpen, setStudentEvalOpen] = useState(
       pathname.startsWith("/student/evaluation"),
   )
+  const [coursesOpen, setCoursesOpen] = useState(
+    role === "teacher" && pathname.startsWith("/teacher/courses"),
+  );
+  const [aiExamOpen, setAiExamOpen] = useState(
+    role === "teacher" && pathname.startsWith("/teacher/ai-exam"),
+  );
+  const [aiModuleOpen, setAiModuleOpen] = useState(
+      role === "teacher" && pathname.startsWith("/teacher/ai-module"),
+  );
 
   // ── Teacher collapse state ──
   const [teacherContentOpen, setTeacherContentOpen] = useState(
@@ -427,6 +442,29 @@ export default function Sidebar({ role }: { role: "student" | "teacher" }) {
                 />
                 {teacherAiExamOpen && <SubNav items={teacherAiExamNav} pathname={pathname} />}
               </div>
+
+                {/* AI Exam and Question bank Module — expandable */}
+                <div>
+                    <button
+                        onClick={() => setAiModuleOpen(o => !o)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                            pathname.startsWith("/teacher/evaluation")
+                                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
+                                : "text-slate-400 hover:text-white hover:bg-slate-800"
+                        }`}
+                    >
+                        <Sparkles className="w-5 h-5 flex-shrink-0" />
+                        <span className="flex-1 text-left">AI Module</span>
+                        {aiModuleOpen ? <ChevronDown className="w-4 h-4 opacity-70" /> : <ChevronRight className="w-4 h-4 opacity-70" />}
+                    </button>
+                    {aiModuleOpen && (
+                        <div className="mt-1 ml-3 pl-4 border-l border-slate-700 space-y-0.5">
+                            {teacherAiNav.map(({ icon, label, href }) => (
+                                <NavLink key={href} href={href} icon={icon} label={label} active={pathname === href} sub />
+                            ))}
+                        </div>
+                    )}
+                </div>
 
               {/* 4. Simulations */}
               <NavLink
