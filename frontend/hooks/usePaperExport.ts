@@ -10,16 +10,120 @@ export function usePaperExport(state: PaperState) {
   // ------------------------------------------------------------------
   // Print
   // ------------------------------------------------------------------
-  const handlePrint = useCallback(() => {
-    const printContent = document.getElementById("paper-print-area");
-    if (!printContent) return;
+  // const handlePrint = useCallback(() => {
+  //   const printContent = document.getElementById("paper-print-area");
+  //   if (!printContent) return;
+  //
+  //   const originalContents = document.body.innerHTML;
+  //   document.body.innerHTML = printContent.innerHTML;
+  //   window.print();
+  //   document.body.innerHTML = originalContents;
+  //   window.location.reload();
+  // }, []);
+    const handlePrint = useCallback(() => {
+        const printContent = document.getElementById("paper-print-area");
+        if (!printContent) return;
 
-    const originalContents = document.body.innerHTML;
-    document.body.innerHTML = printContent.innerHTML;
-    window.print();
-    document.body.innerHTML = originalContents;
-    window.location.reload();
-  }, []);
+        // Clone the element so we can strip problematic attributes
+        // without touching the live DOM
+        const cloned = printContent.cloneNode(true) as HTMLElement;
+
+        // Walk every element in the clone and convert any inline style
+        // that might reference CSS variables or oklch into safe hex values.
+        // Our preview pages already use hex inline styles, so this is a
+        // safety net for any wrapper-level Tailwind classes.
+        cloned.querySelectorAll<HTMLElement>("*").forEach((el) => {
+            // Remove className entirely — no Tailwind in print window
+            el.removeAttribute("class");
+        });
+        cloned.removeAttribute("class");
+
+        // Only Google Fonts — no Tailwind, no app CSS
+        const fontLink = `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;600;700&display=swap" />`;
+
+        const printHtml = `<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="utf-8" />
+  <title>প্রশ্নপত্র</title>
+  ${fontLink}
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
+
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+      font-family: 'Noto Serif Bengali', 'Noto Serif', Georgia, serif;
+    }
+
+    /* Wrapper between pages */
+    #paper-print-area {
+      display: block;
+      background: #ffffff;
+    }
+
+    /* Each page wrapper — force A4 page break */
+    #paper-print-area > div {
+      display: block;
+      box-shadow: none;
+      border-radius: 0;
+      background: #ffffff;
+      page-break-after: always;
+      break-after: page;
+    }
+
+    #paper-print-area > div:last-child {
+      page-break-after: avoid;
+      break-after: avoid;
+    }
+
+    /* The actual content pages (MCQPreviewPage etc.) are already
+       794px wide with inline styles. Scale them to fit A4. */
+    #paper-print-area > div > div {
+      transform-origin: top left;
+      transform: scale(0.757); /* 794px * 0.757 ≈ 210mm at 96dpi */
+      width: 794px;
+    }
+  </style>
+</head>
+<body>
+  ${cloned.outerHTML}
+  <script>
+    // fonts সহ সব load হওয়ার পরে print করো
+    window.addEventListener('load', function () {
+      // document.fonts.ready ensures @font-face fonts are loaded
+      document.fonts.ready.then(function () {
+        window.print();
+        window.addEventListener('afterprint', function () {
+          window.close();
+        });
+      });
+    });
+  <\/script>
+</body>
+</html>`;
+
+        const printWindow = window.open("", "_blank", "width=900,height=700");
+
+        if (!printWindow) {
+            alert("পপআপ ব্লক হয়েছে। ব্রাউজারের পপআপ permission দিন এবং আবার চেষ্টা করুন।");
+            return;
+        }
+
+        printWindow.document.open();
+        printWindow.document.write(printHtml);
+        printWindow.document.close();
+    }, []);
 
   // ------------------------------------------------------------------
   // PDF download
@@ -40,141 +144,148 @@ export function usePaperExport(state: PaperState) {
   //      content is not ours, so Tailwind's oklch tokens never load
   //      inside the clone document at all.
   // ------------------------------------------------------------------
-  const handleDownloadPDF = useCallback(async () => {
-    const element = document.getElementById("paper-print-area");
-    if (!element) return;
+    const handleDownloadPDF = useCallback(async () => {
+        // Each paper page is captured individually so layout never distorts.
+        // The gap/shadow wrapper divs between pages are skipped.
+        const pages = document.querySelectorAll<HTMLElement>("[data-paper-page='true']");
 
-    try {
-      const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all(
-        [import("jspdf"), import("html2canvas")]
-      );
+        // Filter to only actual page content divs (not the wrapper itself)
+        // The wrapper also has data-paper-page="true", so we take children only
+        const printArea = document.getElementById("paper-print-area");
+        if (!printArea) return;
 
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        logging: false,
+        // Direct children of paper-print-area are the per-page wrapper divs
+        const pageWrappers = Array.from(
+            printArea.children
+        ) as HTMLElement[];
 
-        onclone: (_clonedDoc: Document, clonedElement: HTMLElement) => {
-          // ---- Layer 1: strip all external stylesheets from the clone ----
-          // This prevents Tailwind (and any other sheet using oklch/lab)
-          // from being parsed by html2canvas at all.
-          const clonedDocRef = clonedElement.ownerDocument;
-          if (clonedDocRef) {
-            // Remove <link rel="stylesheet"> tags
-            clonedDocRef
-              .querySelectorAll<HTMLLinkElement>("link[rel='stylesheet']")
-              .forEach((link) => link.remove());
+        if (pageWrappers.length === 0) return;
 
-            // Remove <style> tags that contain oklch or lab references
-            clonedDocRef
-              .querySelectorAll<HTMLStyleElement>("style")
-              .forEach((style) => {
-                if (
-                  style.textContent?.includes("oklch") ||
-                  style.textContent?.includes("lab(") ||
-                  style.textContent?.includes("--tw-")
-                ) {
-                  style.remove();
+        try {
+            const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+                import("jspdf"),
+                import("html2canvas"),
+            ]);
+
+            const pdf = new jsPDF({
+                orientation: "portrait",
+                unit: "mm",
+                format: "a4",
+            });
+
+            const A4_WIDTH_MM = 210;
+            const A4_HEIGHT_MM = 297;
+
+            // Shared onclone handler — strips oklch/lab from every captured page
+            const safeonClone = (_doc: Document, el: HTMLElement) => {
+                const docRef = el.ownerDocument;
+                if (!docRef) return;
+
+                // Strip Tailwind and any oklch-bearing stylesheets
+                docRef
+                    .querySelectorAll<HTMLLinkElement>("link[rel='stylesheet']")
+                    .forEach((l) => l.remove());
+
+                docRef.querySelectorAll<HTMLStyleElement>("style").forEach((s) => {
+                    if (
+                        s.textContent?.includes("oklch") ||
+                        s.textContent?.includes("lab(") ||
+                        s.textContent?.includes("--tw-")
+                    ) {
+                        s.remove();
+                    }
+                });
+
+                // Inject safe color reset
+                const safe = docRef.createElement("style");
+                safe.textContent = `
+        *, *::before, *::after {
+          color: #000000 !important;
+          background-color: transparent !important;
+          border-color: #000000 !important;
+          box-shadow: none !important;
+        }
+        table, td, th, tr { border-color: #000000 !important; }
+      `;
+                docRef.head.appendChild(safe);
+
+                // Force inline safe colors on every element
+                el.querySelectorAll<HTMLElement>("*").forEach((child) => {
+                    const cs = window.getComputedStyle(child);
+                    const bad = (v: string) =>
+                        v.includes("oklch") || v.includes("lab(") || v.includes("color(");
+
+                    if (bad(cs.color)) child.style.setProperty("color", "#000000", "important");
+                    if (bad(cs.backgroundColor)) {
+                        child.style.setProperty("background-color", "transparent", "important");
+                    }
+                    // Preserve explicit white backgrounds (the paper itself)
+                    if (
+                        child.style.backgroundColor === "#ffffff" ||
+                        child.style.backgroundColor === "white" ||
+                        child.getAttribute("data-paper-page") === "true"
+                    ) {
+                        child.style.setProperty("background-color", "#ffffff", "important");
+                    }
+                });
+
+                el.style.setProperty("background-color", "#ffffff", "important");
+                el.style.setProperty("color", "#000000", "important");
+            };
+
+            for (let i = 0; i < pageWrappers.length; i++) {
+                const wrapper = pageWrappers[i];
+
+                // The actual content div is the first child of the wrapper
+                // (wrapper = shadow/border div, child = MCQPreviewPage/CreativePage etc.)
+                const contentEl = (wrapper.firstElementChild as HTMLElement) ?? wrapper;
+
+                const canvas = await html2canvas(contentEl, {
+                    scale: 1.5,           // reduced from 2 — good quality, smaller file
+                    useCORS: true,
+                    backgroundColor: "#ffffff",
+                    logging: false,
+                    // Fix: tell html2canvas the exact pixel size to capture
+                    width: contentEl.scrollWidth,
+                    height: contentEl.scrollHeight,
+                    windowWidth: contentEl.scrollWidth,
+                    onclone: safeonClone,
+                });
+
+                // Convert to JPEG at 92% quality — 60-70% smaller than PNG
+                const imgData = canvas.toDataURL("image/jpeg", 0.92);
+
+                // Scale image to fill A4 exactly, maintaining aspect ratio
+                const canvasAspect = canvas.height / canvas.width;
+                const imgHeightMM = A4_WIDTH_MM * canvasAspect;
+
+                if (i > 0) pdf.addPage();
+
+                if (imgHeightMM <= A4_HEIGHT_MM) {
+                    // Content fits in one page — center vertically
+                    const topOffset = (A4_HEIGHT_MM - imgHeightMM) / 2;
+                    pdf.addImage(imgData, "JPEG", 0, topOffset, A4_WIDTH_MM, imgHeightMM);
+                } else {
+                    // Content taller than A4 — slice across multiple PDF pages
+                    let remaining = imgHeightMM;
+                    let yOffset = 0;
+
+                    while (remaining > 0) {
+                        pdf.addImage(imgData, "JPEG", 0, -yOffset, A4_WIDTH_MM, imgHeightMM);
+                        remaining -= A4_HEIGHT_MM;
+                        yOffset += A4_HEIGHT_MM;
+                        if (remaining > 0) pdf.addPage();
+                    }
                 }
-              });
-
-            // ---- Layer 2: inject a safe reset stylesheet ----
-            const safeStyle = clonedDocRef.createElement("style");
-            safeStyle.textContent = `
-              *, *::before, *::after {
-                color: #000000 !important;
-                background-color: transparent !important;
-                border-color: #000000 !important;
-                box-shadow: none !important;
-                text-shadow: none !important;
-                -webkit-print-color-adjust: exact !important;
-              }
-              table, td, th, tr {
-                border-color: #000000 !important;
-              }
-            `;
-            clonedDocRef.head.appendChild(safeStyle);
-          }
-
-          // ---- Layer 3: walk every element, force inline safe colors ----
-          // This is the most reliable layer — inline styles beat everything.
-          const all = clonedElement.querySelectorAll<HTMLElement>("*");
-          all.forEach((el) => {
-            const computed = window.getComputedStyle(el);
-
-            // Only override if the computed value is a problematic color space
-            const colorVal = computed.color;
-            const bgVal = computed.backgroundColor;
-
-            const isProblematic = (v: string) =>
-              v.startsWith("lab(") ||
-              v.startsWith("oklch(") ||
-              v.startsWith("color(") ||
-              v.includes("oklch") ||
-              v.includes("lab(");
-
-            if (isProblematic(colorVal)) {
-              el.style.setProperty("color", "#000000", "important");
             }
 
-            if (isProblematic(bgVal)) {
-              // Preserve explicit white backgrounds, clear everything else
-              el.style.setProperty("background-color", "transparent", "important");
-            }
-
-            // Force any element that visually has a white background
-            // (paper pages) to keep it
-            if (
-              el.getAttribute("data-paper-page") === "true" ||
-              el.style.backgroundColor === "#ffffff" ||
-              el.style.backgroundColor === "white"
-            ) {
-              el.style.setProperty("background-color", "#ffffff", "important");
-            }
-          });
-
-          // The root paper element itself must be white
-          clonedElement.style.setProperty(
-            "background-color",
-            "#ffffff",
-            "important"
-          );
-          clonedElement.style.setProperty("color", "#000000", "important");
-        },
-      });
-
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-      });
-
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      const pageHeight = pdf.internal.pageSize.getHeight();
-
-      let heightLeft = pdfHeight;
-      let position = 0;
-
-      pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
-      heightLeft -= pageHeight;
-
-      while (heightLeft > 0) {
-        position -= pageHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
-        heightLeft -= pageHeight;
-      }
-
-      const filename = `${state.info.subjectNameBn}_${state.info.boardName}_${state.info.year}.pdf`;
-      pdf.save(filename);
-    } catch (err) {
-      console.error("PDF generation failed:", err);
-      alert("PDF তৈরিতে সমস্যা হয়েছে। আবার চেষ্টা করুন।");
-    }
-  }, [state.info]);
+            const filename = `${state.info.subjectNameBn}_${state.info.boardName}_${state.info.year}.pdf`;
+            pdf.save(filename);
+        } catch (err) {
+            console.error("PDF generation failed:", err);
+            alert("PDF তৈরিতে সমস্যা হয়েছে। আবার চেষ্টা করুন।");
+        }
+    }, [state.info]);
 
   // ------------------------------------------------------------------
   // Word download

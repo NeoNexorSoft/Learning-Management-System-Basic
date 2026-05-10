@@ -3,13 +3,21 @@
 import { useState } from "react";
 import { Plus, Trash2, Database, PenLine, ChevronDown, ChevronUp } from "lucide-react";
 import { v4 as uuid } from "uuid";
+import {
+  CreativeQuestion,
+  CreativeSubQuestion,
+  CREATIVE_LABELS,
+  DBQuestion,
+} from "@/types/question-paper.types";
 import DBQuestionPicker from "../shared/DBQuestionPicker";
-import {CREATIVE_LABELS, CreativeQuestion, CreativeSubQuestion, DBQuestion} from "@/types/question-paper.types";
-import {QuestionPaperActions} from "@/hooks/useQuestionPaperState";
+import { QuestionPaperActions } from "@/hooks/useQuestionPaperState";
+import { CreativeAIPanel } from "../ai/AIGeneratePanel";
 
 interface CreativeStepProps {
   creativeQuestions: CreativeQuestion[];
   subjectCode: string;
+  subjectName: string;
+  creativeFullMarks: number;
   actions: Pick<
     QuestionPaperActions,
     | "addCreativeQuestion"
@@ -23,8 +31,12 @@ interface CreativeStepProps {
 export default function CreativeStep({
   creativeQuestions,
   subjectCode,
+  subjectName,
+  creativeFullMarks,
   actions,
 }: CreativeStepProps) {
+  // Creative: each question = 10 marks
+  const aiCount = Math.max(1, Math.round(creativeFullMarks / 10));
   const [showDBPicker, setShowDBPicker] = useState(false);
 
   const handleDBSelect = (dbQuestions: DBQuestion[]) => {
@@ -65,6 +77,13 @@ export default function CreativeStep({
           প্রশ্ন ব্যাংক
         </button>
       </div>
+
+      {/* AI generate panel */}
+      <CreativeAIPanel
+        subject={subjectName}
+        count={aiCount}
+        onAdd={(questions) => actions.addDBCreativeQuestions(questions)}
+      />
 
       {/* Summary */}
       {creativeQuestions.length > 0 && (

@@ -127,6 +127,7 @@ export interface DBQuestion {
 export interface SavePaperPayload {
   info: PaperInfo;
   mcqSection: MCQSection;
+  shortQuestions: ShortQuestion[];
   creativeQuestions: CreativeQuestion[];
   paperId?: string; // present on edit
 }

@@ -124,46 +124,46 @@ export default function PaperInfoStep({
       {/*  বিষয়বস্তু নির্ধারণ  */}
       <Divider />
 
-      <SectionHeading title="বিষয়বস্তু নির্ধারণ" />
+      {/*<SectionHeading title="বিষয়বস্তু নির্ধারণ" />*/}
 
-      <div className="grid grid-cols-2 gap-3">
-          <label className="flex items-center gap-3 cursor-pointer group col-span-2 bg-indigo-50 p-2 rounded-md">
-              <div className="relative flex items-center">
-                  <input
-                      type="checkbox"
-                      checked={isFullbook}
-                      onChange={toggleFullbook}
-                      className="peer h-5 w-5 cursor-pointer appearance-none rounded-xs border border-slate-300 transition-all checked:bg-indigo-600 checked:border-indigo-600"
-                  />
-                  <Check className="absolute h-3.5 w-3.5 text-white opacity-0 peer-checked:opacity-100 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-opacity" />
-              </div>
-              <span className="text-sm font-medium text-slate-700 group-hover:text-indigo-600 transition-colors">সম্পূর্ণ বই হতে প্রশ্ন চাই</span>
-          </label>
+      {/*<div className="grid grid-cols-2 gap-3">*/}
+      {/*    <label className="flex items-center gap-3 cursor-pointer group col-span-2 bg-indigo-50 p-2 rounded-md">*/}
+      {/*        <div className="relative flex items-center">*/}
+      {/*            <input*/}
+      {/*                type="checkbox"*/}
+      {/*                checked={isFullbook}*/}
+      {/*                onChange={toggleFullbook}*/}
+      {/*                className="peer h-5 w-5 cursor-pointer appearance-none rounded-xs border border-slate-300 transition-all checked:bg-indigo-600 checked:border-indigo-600"*/}
+      {/*            />*/}
+      {/*            <Check className="absolute h-3.5 w-3.5 text-white opacity-0 peer-checked:opacity-100 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-opacity" />*/}
+      {/*        </div>*/}
+      {/*        <span className="text-sm font-medium text-slate-700 group-hover:text-indigo-600 transition-colors">সম্পূর্ণ বই হতে প্রশ্ন চাই</span>*/}
+      {/*    </label>*/}
 
-          {!isFullbook && (
-              <>
-                  <FormField label="অধ্যায়">
-                      <input
-                          type="text"
-                          value={info.chapter}
-                          onChange={(e) => onUpdate({ chapter: e.target.value })}
-                          placeholder="গতি"
-                          className={inputClass}
-                      />
-                  </FormField>
+      {/*    {!isFullbook && (*/}
+      {/*        <>*/}
+      {/*            <FormField label="অধ্যায়">*/}
+      {/*                <input*/}
+      {/*                    type="text"*/}
+      {/*                    value={info.chapter}*/}
+      {/*                    onChange={(e) => onUpdate({ chapter: e.target.value })}*/}
+      {/*                    placeholder="গতি"*/}
+      {/*                    className={inputClass}*/}
+      {/*                />*/}
+      {/*            </FormField>*/}
 
-                  <FormField label="প্রসঙ্গ">
-                      <input
-                          type="text"
-                          value={info.topic}
-                          onChange={(e) => onUpdate({ topic: e.target.value })}
-                          placeholder="বৃত্তাকার গতি"
-                          className={inputClass}
-                      />
-                  </FormField>
-              </>
-          )}
-      </div>
+      {/*            <FormField label="প্রসঙ্গ">*/}
+      {/*                <input*/}
+      {/*                    type="text"*/}
+      {/*                    value={info.topic}*/}
+      {/*                    onChange={(e) => onUpdate({ topic: e.target.value })}*/}
+      {/*                    placeholder="বৃত্তাকার গতি"*/}
+      {/*                    className={inputClass}*/}
+      {/*                />*/}
+      {/*            </FormField>*/}
+      {/*        </>*/}
+      {/*    )}*/}
+      {/*</div>*/}
 
       {/* MCQ settings */}
       {["mcq", "mcq_short_creative", "mcq_creative"].includes(info.examType) && (

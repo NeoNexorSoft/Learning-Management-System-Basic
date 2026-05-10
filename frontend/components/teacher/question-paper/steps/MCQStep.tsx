@@ -3,13 +3,25 @@
 import { useState } from "react";
 import { Plus, Trash2, Database, PenLine, ChevronDown, ChevronUp } from "lucide-react";
 import { v4 as uuid } from "uuid";
+import {
+  MCQQuestion,
+  MCQSection,
+  MCQ_OPTION_LABELS,
+  DBQuestion,
+} from "@/types/question-paper.types";
 import DBQuestionPicker from "../shared/DBQuestionPicker";
-import {QuestionPaperActions} from "@/hooks/useQuestionPaperState";
-import {DBQuestion, MCQ_OPTION_LABELS, MCQQuestion, MCQSection} from "@/types/question-paper.types";
+import { QuestionPaperActions } from "@/hooks/useQuestionPaperState";
+import { MCQAIPanel } from "../ai/AIGeneratePanel";
+
+// ------------------------------------------------------------------
+// Props
+// ------------------------------------------------------------------
 
 interface MCQStepProps {
   mcqSection: MCQSection;
   subjectCode: string;
+  subjectName: string;    // English subject name for AI payload e.g. "Physics"
+  mcqFullMarks: number;   // drives AI question count
   actions: Pick<
     QuestionPaperActions,
     | "addMCQQuestion"
@@ -24,22 +36,38 @@ interface MCQStepProps {
   >;
 }
 
-export default function MCQStep({ mcqSection, subjectCode, actions }: MCQStepProps) {
+// ------------------------------------------------------------------
+// Step component
+// ------------------------------------------------------------------
+
+export default function MCQStep({
+  mcqSection,
+  subjectCode,
+  subjectName,
+  mcqFullMarks,
+  actions,
+}: MCQStepProps) {
+  // MCQ: 1 mark per question, so count = full marks
+  const aiCount = Math.max(1, mcqFullMarks);
   const [showDBPicker, setShowDBPicker] = useState(false);
 
-  // Convert DB questions to MCQQuestion shape before adding
   const handleDBSelect = (dbQuestions: DBQuestion[]) => {
     const converted: MCQQuestion[] = dbQuestions.map((dbQ) => ({
       id: uuid(),
-      serial: 0, // recalculated inside hook
+      serial: 0,
       text: dbQ.text,
-      options: (dbQ.options ?? [{ label: "ক", text: "" }, { label: "খ", text: "" }, { label: "গ", text: "" }, { label: "ঘ", text: "" }]).map(
-        (o, i) => ({
-          id: MCQ_OPTION_LABELS[i]?.id ?? uuid(),
-          label: MCQ_OPTION_LABELS[i]?.label ?? o.label,
-          text: o.text,
-        })
-      ),
+      options: (
+        dbQ.options ?? [
+          { label: "ক", text: "" },
+          { label: "খ", text: "" },
+          { label: "গ", text: "" },
+          { label: "ঘ", text: "" },
+        ]
+      ).map((o, i) => ({
+        id: MCQ_OPTION_LABELS[i]?.id ?? uuid(),
+        label: MCQ_OPTION_LABELS[i]?.label ?? o.label,
+        text: o.text,
+      })),
       correctOption: dbQ.correctOption ?? "ka",
       source: "database" as const,
       dbQuestionId: dbQ.id,
@@ -49,7 +77,8 @@ export default function MCQStep({ mcqSection, subjectCode, actions }: MCQStepPro
 
   return (
     <div className="space-y-4">
-      {/* Action bar */}
+
+      {/* Manual action bar */}
       <div className="flex gap-2 flex-wrap">
         <button
           type="button"
@@ -79,7 +108,14 @@ export default function MCQStep({ mcqSection, subjectCode, actions }: MCQStepPro
         </button>
       </div>
 
-      {/* Passages */}
+      {/* AI generation panel */}
+      <MCQAIPanel
+        subject={subjectName}
+        count={aiCount}
+        onAdd={(questions) => actions.addDBMCQQuestions(questions)}
+      />
+
+      {/* Passage blocks */}
       {mcqSection.passages.map((passage, pi) => (
         <div
           key={passage.id}
@@ -107,7 +143,7 @@ export default function MCQStep({ mcqSection, subjectCode, actions }: MCQStepPro
         </div>
       ))}
 
-      {/* Summary */}
+      {/* Question count badge */}
       {mcqSection.questions.length > 0 && (
         <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
           <span className="font-medium text-gray-700">
@@ -117,17 +153,21 @@ export default function MCQStep({ mcqSection, subjectCode, actions }: MCQStepPro
         </div>
       )}
 
-      {/* Question list */}
+      {/* Question cards */}
       <div className="space-y-3">
-        {mcqSection.questions.map((q, index) => (
+        {mcqSection.questions.map((q) => (
           <MCQQuestionCard
             key={q.id}
             question={q}
             passages={mcqSection.passages}
             onUpdate={(updates) => actions.updateMCQQuestion(q.id, updates)}
-            onUpdateOption={(optId, text) => actions.updateMCQOption(q.id, optId, text)}
+            onUpdateOption={(optId, text) =>
+              actions.updateMCQOption(q.id, optId, text)
+            }
             onRemove={() => actions.removeMCQQuestion(q.id)}
-            onAssignPassage={(passageId) => actions.assignQuestionToPassage(q.id, passageId)}
+            onAssignPassage={(passageId) =>
+              actions.assignQuestionToPassage(q.id, passageId)
+            }
           />
         ))}
       </div>
@@ -149,7 +189,7 @@ export default function MCQStep({ mcqSection, subjectCode, actions }: MCQStepPro
 }
 
 // ------------------------------------------------------------------
-// Single MCQ card
+// Single MCQ question card
 // ------------------------------------------------------------------
 
 interface MCQQuestionCardProps {
@@ -173,7 +213,7 @@ function MCQQuestionCard({
 
   return (
     <div className="border border-gray-200 rounded-lg overflow-hidden">
-      {/* Card header */}
+      {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 border-b border-gray-200">
         <span className="text-xs font-bold text-blue-600 bg-blue-100 rounded px-1.5 py-0.5 shrink-0">
           {question.serial}
@@ -207,10 +247,9 @@ function MCQQuestionCard({
         </div>
       </div>
 
-      {/* Card body */}
+      {/* Body */}
       {expanded && (
         <div className="p-3 space-y-3">
-          {/* Question text */}
           <textarea
             value={question.text}
             onChange={(e) => onUpdate({ text: e.target.value })}
@@ -219,7 +258,6 @@ function MCQQuestionCard({
             className={textareaClass}
           />
 
-          {/* Options 2x2 grid */}
           <div className="grid grid-cols-2 gap-2">
             {question.options.map((opt) => (
               <div key={opt.id} className="flex items-center gap-1.5">
@@ -237,7 +275,6 @@ function MCQQuestionCard({
             ))}
           </div>
 
-          {/* Correct answer + passage assignment row */}
           <div className="flex gap-3 flex-wrap">
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-500">সঠিক উত্তর:</span>
@@ -285,6 +322,10 @@ function MCQQuestionCard({
     </div>
   );
 }
+
+// ------------------------------------------------------------------
+// Helpers
+// ------------------------------------------------------------------
 
 function EmptyState({ message }: { message: string }) {
   return (

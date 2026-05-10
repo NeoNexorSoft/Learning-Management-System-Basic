@@ -31,10 +31,11 @@ export default function ReviewStep({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [pdfLoading, setPDFLoading] = useState(false);
 
-  const { info, mcqSection, creativeQuestions } = state;
+  const { info, mcqSection, creativeQuestions, shortQuestions } = state;
 
-  const hasMCQ = info.examType === "mcq" || info.examType === "both";
-  const hasCreative = info.examType === "creative" || info.examType === "both";
+    const hasMCQ = ["mcq", "mcq_creative", "mcq_short_creative"].includes(info.examType);
+    const hasShort = ["short", "short_creative", "mcq_short_creative"].includes(info.examType);
+    const hasCreative = ["creative", "mcq_creative", "short_creative", "mcq_short_creative"].includes(info.examType);
 
   const handleSave = async () => {
     setSaveStatus("saving");
@@ -43,6 +44,7 @@ export default function ReviewStep({
     const payload: SavePaperPayload = {
       info,
       mcqSection,
+      shortQuestions,
       creativeQuestions,
       paperId: state.existingPaperId,
     };
@@ -103,6 +105,16 @@ export default function ReviewStep({
               <SummaryRow label="MCQ সময়" value={info.mcqTime} />
             </>
           )}
+          {hasShort && (
+            <>
+                <SummaryRow
+                    label="সংক্ষিপ্ত প্রশ্ন"
+                    value={`${shortQuestions.length} টি`}
+                />
+                <SummaryRow label="সংক্ষিপ্ত পূর্ণমান" value={String(info.shortFullMarks)} />
+                <SummaryRow label="সংক্ষিপ্ত সময়" value={info.shortTime} />
+            </>
+          )}
           {hasCreative && (
             <>
               <SummaryRow
@@ -159,46 +171,46 @@ export default function ReviewStep({
       </div>
 
       {/* Save to DB */}
-      <div className="pt-2 border-t border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">
-          সংরক্ষণ করুন
-        </h3>
+      {/*<div className="pt-2 border-t border-gray-100">*/}
+      {/*  <h3 className="text-sm font-semibold text-gray-700 mb-3">*/}
+      {/*    সংরক্ষণ করুন*/}
+      {/*  </h3>*/}
 
-        {saveStatus === "success" ? (
-          <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 rounded-lg px-4 py-3 text-sm">
-            <CheckCircle2 size={16} />
-            <span className="font-medium">সফলভাবে সংরক্ষণ হয়েছে</span>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saveStatus === "saving"}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-          >
-            {saveStatus === "saving" ? (
-              <>
-                <Loader2 size={15} className="animate-spin" />
-                সংরক্ষণ হচ্ছে...
-              </>
-            ) : (
-              <>
-                <Save size={15} />
-                {state.mode === "edit"
-                  ? "পরিবর্তন সংরক্ষণ করুন"
-                  : "প্রশ্নপত্র সংরক্ষণ করুন"}
-              </>
-            )}
-          </button>
-        )}
+      {/*  {saveStatus === "success" ? (*/}
+      {/*    <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 rounded-lg px-4 py-3 text-sm">*/}
+      {/*      <CheckCircle2 size={16} />*/}
+      {/*      <span className="font-medium">সফলভাবে সংরক্ষণ হয়েছে</span>*/}
+      {/*    </div>*/}
+      {/*  ) : (*/}
+      {/*    <button*/}
+      {/*      type="button"*/}
+      {/*      onClick={handleSave}*/}
+      {/*      disabled={saveStatus === "saving"}*/}
+      {/*      className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"*/}
+      {/*    >*/}
+      {/*      {saveStatus === "saving" ? (*/}
+      {/*        <>*/}
+      {/*          <Loader2 size={15} className="animate-spin" />*/}
+      {/*          সংরক্ষণ হচ্ছে...*/}
+      {/*        </>*/}
+      {/*      ) : (*/}
+      {/*        <>*/}
+      {/*          <Save size={15} />*/}
+      {/*          {state.mode === "edit"*/}
+      {/*            ? "পরিবর্তন সংরক্ষণ করুন"*/}
+      {/*            : "প্রশ্নপত্র সংরক্ষণ করুন"}*/}
+      {/*        </>*/}
+      {/*      )}*/}
+      {/*    </button>*/}
+      {/*  )}*/}
 
-        {saveStatus === "error" && saveError && (
-          <div className="flex items-center gap-2 text-red-600 bg-red-50 rounded-lg px-4 py-3 text-sm mt-2">
-            <AlertCircle size={16} />
-            <span>{saveError}</span>
-          </div>
-        )}
-      </div>
+      {/*  {saveStatus === "error" && saveError && (*/}
+      {/*    <div className="flex items-center gap-2 text-red-600 bg-red-50 rounded-lg px-4 py-3 text-sm mt-2">*/}
+      {/*      <AlertCircle size={16} />*/}
+      {/*      <span>{saveError}</span>*/}
+      {/*    </div>*/}
+      {/*  )}*/}
+      {/*</div>*/}
     </div>
   );
 }

@@ -16,6 +16,7 @@ import {
   usePreviewControls,
 } from "./preview/PreviewControls";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import ShortStep from "@/components/teacher/question-paper/steps/ShortStep";
 
 interface QuestionPaperBuilderProps {
   mode: PaperMode;
@@ -109,19 +110,36 @@ export default function QuestionPaperBuilder({
               <MCQStep
                 mcqSection={state.mcqSection}
                 subjectCode={state.info.subjectCode}
+                subjectName={state.info.subjectName}
+                mcqFullMarks={state.info.mcqFullMarks}
                 actions={actions}
               />
             )}
 
-            {currentStepId === 2 && (
+              {currentStepId === 2 && visibleSteps[state.activeStep]?.title === "Short Questions" && (
+                  <ShortStep
+                      shortQuestions={state.shortQuestions}
+                      subjectCode={state.info.subjectCode}
+                      subjectName={state.info.subjectName}
+                      shortFullMarks={state.info.shortFullMarks}
+                      onAdd={actions.addShortQuestion}
+                      onUpdate={actions.updateShortQuestion}
+                      onRemove={actions.removeShortQuestion}
+                      onAddFromDB={actions.addDBShortQuestions}
+                  />
+              )}
+
+            {currentStepId === 3 && (
               <CreativeStep
                 creativeQuestions={state.creativeQuestions}
                 subjectCode={state.info.subjectCode}
+                subjectName={state.info.subjectName}
+                creativeFullMarks={state.info.creativeFullMarks}
                 actions={actions}
               />
             )}
 
-            {currentStepId === 3 && (
+            {currentStepId === 4 && (
               <ReviewStep
                 state={state}
                 onPrint={exportHandlers.handlePrint}
