@@ -635,8 +635,8 @@ export const courseService = {
         title:      data.title,
         type:       data.type,
         content:    data.content,
-        video_urls: data.video_urls,
-        file_urls:  data.file_urls,
+        video_urls: data.video_urls ?? [],
+        file_urls:  data.file_urls  ?? [],
         duration:   data.duration ?? 0,
         order:      data.order ?? (last ? last.order + 1 : 0),
       },
@@ -656,9 +656,9 @@ export const courseService = {
     if (lesson.section.course.teacher_id !== teacherId) throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
 
     const lessonUpdate: Prisma.LessonUpdateInput = {};
-    if (data.title    !== undefined) lessonUpdate.title    = data.title;
-    if (data.type     !== undefined) lessonUpdate.type     = data.type;
-    if (data.content  !== undefined) lessonUpdate.content  = data.content;
+    if (data.title     !== undefined) lessonUpdate.title     = data.title;
+    if (data.type      !== undefined) lessonUpdate.type      = data.type;
+    if (data.content   !== undefined) lessonUpdate.content   = data.content;
     if (data.video_urls !== undefined) lessonUpdate.video_urls = data.video_urls;
     if (data.file_urls  !== undefined) lessonUpdate.file_urls  = data.file_urls;
     if (data.duration !== undefined) lessonUpdate.duration = data.duration;
@@ -888,39 +888,15 @@ export const courseService = {
           include: {
             lessons: {
               orderBy: { order: "asc" },
-              include: {
-                lessonQuizzes: {
-                  orderBy: { order: "asc" },
-                  include: {
-                    questions: {
-                      orderBy: { order: "asc" },
-                      select: {
-                        id: true,
-                        type: true,
-                        question: true,
-                        options: true,
-                        order: true,
-                      }
-                    },
-                    attempts: {
-                      where: { student_id: studentId },
-                      select: {
-                        id: true,
-                        score: true,
-                        submitted_at: true,
-                      }
-                    }
-                  }
-                },
-                progress: {
-                  where: { enrollment_id: enrollment.id },
-                  select: { completed: true }
-                }
+              select: {
+                id: true, title: true,
+                type: true, duration: true,
+                order: true, content: true,
+                video_urls: true, file_urls: true
               }
             }
           }
-        },
-        _count: { select: { enrollments: true } }
+        }
       }
     })
 

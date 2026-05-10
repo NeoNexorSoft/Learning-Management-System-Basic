@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState , Suspense } from "react";
 import { Save, Loader2 } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -49,7 +49,7 @@ const DATE_LOCALES = [
   "zh-CN",
 ];
 
-export default function LanguageSettingsPage() {
+function LanguageSettingsPage() {
   const [form, setForm] = useState<LanguageForm>({
     default_language: "en",
     default_direction: "ltr",
@@ -308,4 +308,12 @@ export default function LanguageSettingsPage() {
       </form>
     </div>
   );
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <LanguageSettingsPage />
+    </Suspense>
+  )
 }

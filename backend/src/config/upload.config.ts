@@ -12,7 +12,7 @@ export const uploadConfig = {
   document: {
     maxSizeMB:    parseInt(process.env.DOCUMENT_MAX_SIZE_MB ?? "50"),
     maxSizeBytes: parseInt(process.env.DOCUMENT_MAX_SIZE_MB ?? "50") * 1024 * 1024,
-    allowedFormats: (process.env.DOCUMENT_ALLOWED_FORMATS ?? "pdf,doc,docx,ppt,pptx,xls,xlsx,csv,txt,zip,rar,7z").split(","),
+    allowedFormats: (process.env.DOCUMENT_ALLOWED_FORMATS ?? "pdf").split(","),
   },
   thumbnail: {
     maxSizeMB:    parseInt(process.env.THUMBNAIL_MAX_SIZE_MB ?? "5"),

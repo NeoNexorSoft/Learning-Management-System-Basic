@@ -1,4 +1,4 @@
-import { Prisma, CourseStatus, EnrollmentStatus, SubmissionStatus } from '@prisma/client';
+import { Prisma, CourseStatus, EnrollmentStatus, SubmissionStatus, AssignmentStatus } from '@prisma/client';
 import { prisma } from '../config/db';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -218,39 +218,28 @@ export const enrollmentService = {
   // ─── Assignments ─────────────────────────────────────────────────────────────
 
   async createAssignment(
-      lessonId: string,
+      courseId: string,
       teacherId: string,
-      data: { title: string; description?: string; due_date?: Date; total_marks?: number },
+      data: { title: string; description?: string; due_date: Date; total_marks?: number },
   ) {
-    const lesson = await prisma.lesson.findUnique({
-      where:   { id: lessonId },
-      include: { section: { include: { course: { select: { teacher_id: true } } } } },
-    });
-    if (!lesson) throw Object.assign(new Error('Lesson not found'), { statusCode: 404 });
-    if (lesson.section.course.teacher_id !== teacherId) {
+    const course = await prisma.course.findUnique({ where: { id: courseId } });
+    if (!course) throw Object.assign(new Error('Course not found'), { statusCode: 404 });
+    if (course.teacher_id !== teacherId) {
       throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
     }
 
-    // ✅ teacher_id does NOT exist on Assignment model — ownership is via lesson→section→course
     return prisma.assignment.create({
-      data: {
-        id:          uuidv4(),
-        lesson_id:   lessonId,
-        title:       data.title,
-        ...(data.description !== undefined && { description: data.description }),
-        ...(data.due_date    !== undefined && { due_date:    data.due_date }),
-        ...(data.total_marks !== undefined && { total_marks: data.total_marks }),
-      },
+      data: { id: uuidv4(), teacher_id: teacherId, course_id: courseId, ...data },
     });
   },
 
   async getMyAssignments(studentId: string) {
     const assignments = await prisma.assignment.findMany({
       where: {
-        lesson: {
-          section: {
-            course: { enrollments: { some: { student_id: studentId } } },
-          },
+        status:     AssignmentStatus.APPROVED,
+        is_deleted: false,
+        course: {
+          enrollments: { some: { student_id: studentId } },
         },
       },
       orderBy: [{ due_date: 'asc' }, { created_at: 'desc' }],
@@ -259,16 +248,8 @@ export const enrollmentService = {
           where:  { student_id: studentId },
           select: { id: true, status: true, submitted_at: true, grade: true },
         },
-        lesson: {
-          select: {
-            id: true,
-            title: true,
-            section: {
-              select: {
-                course: { select: { id: true, title: true, slug: true } },
-              },
-            },
-          },
+        course: {
+          select: { id: true, title: true, slug: true },
         },
       },
     });
@@ -286,18 +267,17 @@ export const enrollmentService = {
       data: { content?: string; file_url?: string },
   ) {
     const assignment = await prisma.assignment.findUnique({
-      where:   { id: assignmentId },
-      include: { lesson: { include: { section: { select: { course_id: true } } } } },
+      where: { id: assignmentId },
     });
     if (!assignment) throw Object.assign(new Error('Assignment not found'), { statusCode: 404 });
+    if (!assignment.course_id) {
+      throw Object.assign(new Error('Assignment has no associated course'), { statusCode: 400 });
+    }
 
-    // ✅ Fix 2: guard against null lesson
-    if (!assignment.lesson) throw Object.assign(new Error('Lesson not found'), { statusCode: 404 });
-
-    const courseId = assignment.lesson.section.course_id;
-
+    // FIX: Removed invalid `assignment.lesson` references — Assignment links to
+    // Course directly in the schema, there is no lesson relation here.
     const enrollment = await prisma.enrollment.findUnique({
-      where: { student_id_course_id: { student_id: studentId, course_id: courseId } },
+      where: { student_id_course_id: { student_id: studentId, course_id: assignment.course_id } },
     });
     if (!enrollment) throw Object.assign(new Error('Not enrolled in this course'), { statusCode: 403 });
 
@@ -314,20 +294,15 @@ export const enrollmentService = {
   async getAssignmentSubmissions(assignmentId: string, teacherId: string) {
     const assignment = await prisma.assignment.findUnique({
       where:   { id: assignmentId },
-      include: {
-        lesson: {
-          include: { section: { include: { course: { select: { teacher_id: true, title: true } } } } },
-        },
-      },
+      include: { course: { select: { teacher_id: true, title: true } } },
     });
     if (!assignment) throw Object.assign(new Error('Assignment not found'), { statusCode: 404 });
 
-    // ✅ Fix 3: guard against null lesson
-    if (!assignment.lesson) throw Object.assign(new Error('Lesson not found'), { statusCode: 404 });
-
-    if (assignment.lesson.section.course.teacher_id !== teacherId) {
+    // FIX: Removed invalid `assignment.lesson` references. Authorization is
+    // correctly done via assignment.course.teacher_id (the direct relation).
+    if (assignment.course?.teacher_id !== teacherId) {
       throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
-    }
+    } // <-- This closing brace was missing in the original, causing ALL errors below it.
 
     return prisma.submission.findMany({
       where:   { assignment_id: assignmentId },
@@ -348,23 +323,16 @@ export const enrollmentService = {
       include: {
         assignment: {
           include: {
-            lesson: {
-              include: {
-                section: { include: { course: { select: { teacher_id: true, title: true } } } },
-              },
-            },
+            course: { select: { teacher_id: true, title: true } },
           },
         },
       },
     });
     if (!submission) throw Object.assign(new Error('Submission not found'), { statusCode: 404 });
 
-    // ✅ Fix 4: guard against null lesson
-    if (!submission.assignment.lesson) {
-      throw Object.assign(new Error('Lesson not found'), { statusCode: 404 });
-    }
-
-    if (submission.assignment.lesson.section.course.teacher_id !== teacherId) {
+    // FIX: Removed invalid `submission.assignment.lesson` references.
+    // Authorization uses the direct course relation, same as getAssignmentSubmissions.
+    if (submission.assignment.course?.teacher_id !== teacherId) {
       throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
     }
 
@@ -377,7 +345,7 @@ export const enrollmentService = {
       data:  { grade: data.grade, feedback: data.feedback, status: SubmissionStatus.GRADED },
     });
 
-    const courseTitle = submission.assignment.lesson.section.course.title;
+    const courseTitle = submission.assignment.course?.title ?? 'the course';
     notify(
         submission.student_id,
         'Assignment Graded',

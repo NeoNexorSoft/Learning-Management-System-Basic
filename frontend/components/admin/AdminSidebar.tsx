@@ -12,14 +12,21 @@ import {
   BookOpen,
   Tag,
   Ticket,
+  ClipboardList,
   CreditCard,
   Wallet,
   FileWarning,
   ChevronRight,
+  ChevronDown,
   LogOut,
   ShieldCheck,
   Settings,
   SlidersHorizontal,
+  BarChart2,
+  Trophy,
+  Award,
+  Atom,
+  School,
 } from "lucide-react";
 
 import {
@@ -32,21 +39,30 @@ import {
 type NavItem = { icon: LucideIcon; label: string; href: string };
 
 const navItems: NavItem[] = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/admin/dashboard" },
-  { icon: Users, label: "Students", href: "/admin/users" },
-  { icon: GraduationCap, label: "Teachers", href: "/admin/teachers" },
-  { icon: BookOpen, label: "Courses", href: "/admin/courses" },
-  { icon: Tag, label: "Categories", href: "/admin/categories" },
-  { icon: Ticket, label: "Coupons", href: "/admin/coupons" },
-  { icon: CreditCard, label: "Payments", href: "/admin/payments" },
-  { icon: Wallet, label: "Withdrawals", href: "/admin/withdrawals" },
-  { icon: Settings, label: "Settings", href: "/admin/settings" },
+  { icon: LayoutDashboard, label: "Dashboard",   href: "/admin/dashboard" },
+  { icon: Users,           label: "Students",    href: "/admin/users" },
+  { icon: GraduationCap,  label: "Teachers",    href: "/admin/teachers" },
+  { icon: BookOpen,        label: "Courses",     href: "/admin/courses" },
+  { icon: ClipboardList,   label: "Assignments", href: "/admin/assignments" },
+  { icon: Tag,             label: "Categories",  href: "/admin/categories" },
+  { icon: Ticket,          label: "Coupons",     href: "/admin/coupons" },
+  { icon: CreditCard,      label: "Payments",    href: "/admin/payments" },
+  { icon: Wallet,          label: "Withdrawals", href: "/admin/withdrawals" },
+  { icon: Settings,        label: "Settings",    href: "/admin/settings" },
   {
     icon: SlidersHorizontal,
     label: "System Config",
     href: "/admin/system-config",
   }, // adding new section
   { icon: FileWarning, label: "Reports", href: "/admin/reports" }, //new adding
+  { icon: Atom, label: "Simulations", href: "/admin/simulations" }, // simulations page
+];
+
+const adminEvaluationNav: NavItem[] = [
+  { icon: BarChart2, label: "Student Overview",              href: "/admin/evaluation/overview" },
+  { icon: Trophy,    label: "Self Evaluation & Leaderboard", href: "/admin/evaluation/leaderboard" },
+  { icon: Award,     label: "House Competition",             href: "/admin/evaluation/house" },
+  { icon: School,    label: "Inter Cadet College Evaluation",        href: "/admin/evaluation/inter-cadet" },
 ];
 
 function NavLink({
@@ -94,12 +110,17 @@ export default function AdminSidebar({
   const pathname = usePathname();
   const router = useRouter();
   const [pendingCount, setPendingCount] = useState<number | null>(null);
+  const [assignmentPendingCount, setAssignmentPendingCount] = useState<number | null>(null); // ← add
+  const [evalOpen, setEvalOpen] = useState(false);                                           // ← add
 
   useEffect(() => {
     function fetchPending() {
       api.get("/api/admin/courses?status=PENDING&limit=1")
         .then(({ data }) => setPendingCount(data.total ?? 0))
         .catch(() => setPendingCount(0))
+      api.get("/api/assignments/admin", { params: { filter: "pending" } })
+        .then(({ data }) => setAssignmentPendingCount(data.data?.assignments?.length ?? 0))
+        .catch(() => setAssignmentPendingCount(0))
     }
     fetchPending()
     window.addEventListener("pendingCountChanged", fetchPending)
@@ -147,7 +168,8 @@ export default function AdminSidebar({
 
       {/* Nav */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        {navItems.map(({ icon: Icon, label, href }) => {
+        {/* Dashboard → Withdrawals (indices 0-8) */}
+        {navItems.slice(0, 9).map(({ icon: Icon, label, href }) => {
           const active = pathname.startsWith(href);
           if (href === "/admin/courses") {
             return (
@@ -186,6 +208,88 @@ export default function AdminSidebar({
               </Link>
             );
           }
+          if (href === "/admin/assignments") {
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  active
+                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
+                    : "text-slate-400 hover:text-white hover:bg-slate-800"
+                }`}
+              >
+                <Icon className="w-5 h-5 flex-shrink-0" />
+                <span className="flex items-start gap-0.5">
+                  Assignments
+                  {assignmentPendingCount !== null && assignmentPendingCount > 0 && (
+                    <span style={{
+                      fontSize: "9px",
+                      fontWeight: "bold",
+                      backgroundColor: "#ef4444",
+                      color: "white",
+                      borderRadius: "9999px",
+                      minWidth: "14px",
+                      height: "14px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "0 3px",
+                      marginTop: "-4px",
+                      marginLeft: "2px",
+                    }}>
+                      {assignmentPendingCount > 9 ? "9+" : assignmentPendingCount}
+                    </span>
+                  )}
+                </span>
+              </Link>
+            );
+          }
+          return (
+            <NavLink
+              key={href}
+              href={href}
+              icon={Icon}
+              label={label}
+              active={active}
+            />
+          );
+        })}
+
+        {/* Centralized Evaluation — expandable */}
+        <div>
+          <button
+            onClick={() => setEvalOpen(o => !o)}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              pathname.startsWith("/admin/evaluation")
+                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
+                : "text-slate-400 hover:text-white hover:bg-slate-800"
+            }`}
+          >
+            <BarChart2 className="w-5 h-5 flex-shrink-0" />
+            <span className="flex-1 text-left">Centralized Evaluation</span>
+            {evalOpen
+              ? <ChevronDown className="w-4 h-4 opacity-70" />
+              : <ChevronRight className="w-4 h-4 opacity-70" />}
+          </button>
+          {evalOpen && (
+            <div className="mt-1 ml-3 pl-4 border-l border-slate-700 space-y-0.5">
+              {adminEvaluationNav.map(({ icon: Icon, label, href }) => (
+                <NavLink
+                  key={href}
+                  href={href}
+                  icon={Icon}
+                  label={label}
+                  active={pathname === href}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Settings → Simulations (indices 9+) */}
+        {navItems.slice(9).map(({ icon: Icon, label, href }) => {
+          const active = pathname.startsWith(href);
           return (
             <NavLink
               key={href}

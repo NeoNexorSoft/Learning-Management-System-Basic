@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState , Suspense } from "react";
 import { Save, Loader2 } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -16,7 +16,7 @@ type SeoForm = {
   google_search_console: string;
 };
 
-export default function SeoSettingsPage() {
+function SeoSettingsPage() {
   const [form, setForm] = useState<SeoForm>({
     meta_title: "",
     meta_description: "",
@@ -248,4 +248,12 @@ export default function SeoSettingsPage() {
       </form>
     </div>
   );
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <SeoSettingsPage />
+    </Suspense>
+  )
 }

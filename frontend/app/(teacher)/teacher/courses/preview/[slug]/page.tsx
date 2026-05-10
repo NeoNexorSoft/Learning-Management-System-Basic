@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState , Suspense } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { ArrowLeft, Loader2 } from "lucide-react"
 import api from "@/lib/axios"
@@ -13,7 +13,7 @@ const STATUS_BADGE: Record<string, string> = {
   DRAFT:    "bg-slate-100 text-slate-600 border border-slate-200",
 }
 
-export default function TeacherCoursePreviewPage() {
+function TeacherCoursePreviewPage() {
   const { slug } = useParams<{ slug: string }>()
   const router   = useRouter()
   const [course, setCourse] = useState<any>(null)
@@ -69,5 +69,13 @@ export default function TeacherCoursePreviewPage() {
         />
       </div>
     </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <TeacherCoursePreviewPage />
+    </Suspense>
   )
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect, useCallback , Suspense } from "react"
 import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import {
@@ -272,24 +272,42 @@ function LectureForm({ lecture, onChange, onDelete, uploadConfig }: {
   const isDoc   = lecture.type === "document"
   const isText  = lecture.type === "text"
 
-  const accept    = isVideo ? "video/*" : "*/*"
+  const allowedDocFormats = uploadConfig?.document?.allowedFormats ?? ["pdf"]
+  const accept = isVideo ? "video/*" : allowedDocFormats.map((ext: string) => `.${ext}`).join(",")
   const endpoint  = isVideo ? "/api/upload/video" : "/api/upload/document"
   const fieldName = isVideo ? "video" : "document"
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    setUploading(true); setUploadError("")
+
+    // validate file type before sending to server
+    if (isDoc) {
+        const fileExt = file.name.split(".").pop()?.toLowerCase() ?? ""
+        if (!allowedDocFormats.includes(fileExt)) {
+            setUploadError(
+                `Invalid file type. Only ${allowedDocFormats.join(", ").toUpperCase()} files are allowed.`
+            )
+            if (fileRef.current) fileRef.current.value = ""
+            return
+        }
+    }
+
+    setUploading(true)
+    setUploadError("")
+
     try {
-      const fd = new FormData()
-      fd.append(fieldName, file)
-      const { data } = await api.post(endpoint, fd, { headers: { "Content-Type": "multipart/form-data" } })
-      onChange({ ...lecture, file_urls: [...(lecture.file_urls ?? []), data.data.url] })
+        const fd = new FormData()
+        fd.append(fieldName, file)
+        const { data } = await api.post(endpoint, fd, {
+            headers: { "Content-Type": "multipart/form-data" },
+        })
+        onChange({ ...lecture, file_urls: [...(lecture.file_urls ?? []), data.data.url] })
     } catch (err: any) {
-      setUploadError(err.response?.data?.message ?? "Upload failed.")
+        setUploadError(err.response?.data?.message ?? "Upload failed.")
     } finally {
-      setUploading(false)
-      if (fileRef.current) fileRef.current.value = ""
+        setUploading(false)
+        if (fileRef.current) fileRef.current.value = ""
     }
   }
 
@@ -832,7 +850,7 @@ function Step5({ w, set }: { w: Wizard; set: (p: Partial<Wizard>) => void }) {
 
 // ─── Main Wizard ──────────────────────────────────────────────────────────────
 
-export default function EditCoursePage() {
+function EditCoursePage() {
   const router = useRouter()
   const { id: courseId } = useParams<{ id: string }>()
   const [w, setW]                     = useState<Wizard>(initWizard)
@@ -1117,5 +1135,13 @@ export default function EditCoursePage() {
             </div>
         )}
       </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <EditCoursePage />
+    </Suspense>
   )
 }
