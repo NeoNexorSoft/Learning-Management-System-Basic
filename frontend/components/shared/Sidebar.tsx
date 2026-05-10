@@ -273,13 +273,18 @@ export default function Sidebar({ role }: { role: "student" | "teacher" }) {
         </nav>
       )}
 
-      {/* Help card — student only */}
-      {role === "student" && (
-        <div className="mx-3 mb-4 p-3 bg-slate-700/50 rounded-xl border border-slate-600/50">
-          <p className="text-xs font-semibold text-slate-300">Need help?</p>
-          <p className="text-[11px] text-slate-500 mt-0.5">Contact support anytime</p>
+      {/* User profile — bottom of sidebar */}
+      <div className="p-4 border-t border-slate-800">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-400 to-purple-600 flex items-center justify-center text-sm font-bold text-white shrink-0">
+            {initials}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-white truncate">{displayName}</p>
+            <p className="text-xs text-slate-400 truncate">{displayEmail}</p>
+          </div>
         </div>
-      )}
+      </div>
     </aside>
   )
 }
