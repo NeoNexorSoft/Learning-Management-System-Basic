@@ -421,7 +421,7 @@ export const enrollmentService = {
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit),
+      totalPages:      Math.ceil(total / limit),
       avgRating:       ratingAgg._avg.rating ?? 0,
       ratingBreakdown,
     };
