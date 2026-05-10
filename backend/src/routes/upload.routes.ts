@@ -36,6 +36,7 @@ const video      = handleMulterError(uploadVideoStorage)('video');
 const introVideo = handleMulterError(uploadIntroVideoStorage)('intro_video');
 const document   = handleMulterError(uploadDocumentStorage)('document');
 const logo       = handleMulterError(uploadLogoStorage)('logo');
+const simulationThumbnail  = handleMulterError(uploadThumbnailStorage)('thumbnailUrl');
 
 router.get('/config',                                                          uploadController.getUploadConfig);
 router.post('/avatar',      authenticate,                         avatar,      uploadController.uploadAvatar);
@@ -45,5 +46,6 @@ router.post('/intro-video', authenticate, requireRole('TEACHER'), introVideo,  u
 router.post('/document',    authenticate,                         document,    uploadController.uploadDocument);
 router.post('/logo',        authenticate, requireRole('ADMIN'),   logo,        uploadController.uploadLogo);
 router.delete('/delete',    authenticate,                                      uploadController.deleteUpload);
+router.post('/simulation-thumbnail', authenticate, requireRole('ADMIN'),   simulationThumbnail,        uploadController.uploadThumbnail);
 
 export default router;

@@ -14,7 +14,7 @@ export default function StudentSimulationsPage() {
                     </p>
                 </div>
 
-                <SimulationGrid cardBasePath="/student/simulations" />
+                <SimulationGrid cardBasePath="/teacher/simulations" />
             </div>
         </div>
     );
