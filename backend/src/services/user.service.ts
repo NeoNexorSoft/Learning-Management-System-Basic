@@ -1,4 +1,4 @@
-import { Role, TransactionStatus, TransactionType, EnrollmentStatus, AssignmentStatus } from '@prisma/client';
+import { Role, TransactionStatus, TransactionType, EnrollmentStatus } from '@prisma/client'; // ✅ removed AssignmentStatus
 import { prisma } from '../config/db';
 import { comparePassword, hashPassword } from '../utils/password';
 
@@ -70,14 +70,14 @@ export const userService = {
 
   async getUserStats() {
     const [totalUsers, bannedUsers, emailVerified, totalTeachers, activeTeachers, totalStudents] =
-      await Promise.all([
-        prisma.user.count(),
-        prisma.user.count({ where: { is_banned: true } }),
-        prisma.user.count({ where: { email_verified: true } }),
-        prisma.user.count({ where: { role: Role.TEACHER } }),
-        prisma.user.count({ where: { role: Role.TEACHER, is_banned: false } }),
-        prisma.user.count({ where: { role: Role.STUDENT } }),
-      ]);
+        await Promise.all([
+          prisma.user.count(),
+          prisma.user.count({ where: { is_banned: true } }),
+          prisma.user.count({ where: { email_verified: true } }),
+          prisma.user.count({ where: { role: Role.TEACHER } }),
+          prisma.user.count({ where: { role: Role.TEACHER, is_banned: false } }),
+          prisma.user.count({ where: { role: Role.STUDENT } }),
+        ]);
 
     return {
       totalUsers,
@@ -156,42 +156,42 @@ export const userService = {
     const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
     const [totalCourses, distinctStudents, totalEarningsAgg, monthEarningsAgg, pendingWithdrawalsAgg, approvedWithdrawalsAgg] =
-      await Promise.all([
-        prisma.course.count({ where: { teacher_id: userId } }),
-        prisma.enrollment.findMany({
-          where: { course: { teacher_id: userId } },
-          select: { student_id: true },
-          distinct: ['student_id'],
-        }),
-        prisma.transaction.aggregate({
-          where: {
-            course: { teacher_id: userId },
-            status: TransactionStatus.COMPLETED,
-            type: TransactionType.PURCHASE,
-          },
-          _sum: { amount: true },
-        }),
-        prisma.transaction.aggregate({
-          where: {
-            course: { teacher_id: userId },
-            status: TransactionStatus.COMPLETED,
-            type: TransactionType.PURCHASE,
-            completed_at: { gte: startOfMonth },
-          },
-          _sum: { amount: true },
-        }),
-        prisma.withdrawal.aggregate({
-          where: { teacher_id: userId, status: 'PENDING' },
-          _sum: { amount: true },
-        }),
-        prisma.withdrawal.aggregate({
-          where: { teacher_id: userId, status: 'APPROVED' },
-          _sum: { amount: true },
-        }),
-      ]);
+        await Promise.all([
+          prisma.course.count({ where: { teacher_id: userId } }),
+          prisma.enrollment.findMany({
+            where: { course: { teacher_id: userId } },
+            select: { student_id: true },
+            distinct: ['student_id'],
+          }),
+          prisma.transaction.aggregate({
+            where: {
+              course: { teacher_id: userId },
+              status: TransactionStatus.COMPLETED,
+              type: TransactionType.PURCHASE,
+            },
+            _sum: { amount: true },
+          }),
+          prisma.transaction.aggregate({
+            where: {
+              course: { teacher_id: userId },
+              status: TransactionStatus.COMPLETED,
+              type: TransactionType.PURCHASE,
+              completed_at: { gte: startOfMonth },
+            },
+            _sum: { amount: true },
+          }),
+          prisma.withdrawal.aggregate({
+            where: { teacher_id: userId, status: 'PENDING' },
+            _sum: { amount: true },
+          }),
+          prisma.withdrawal.aggregate({
+            where: { teacher_id: userId, status: 'APPROVED' },
+            _sum: { amount: true },
+          }),
+        ]);
 
-    const totalEarnings      = Number(totalEarningsAgg._sum.amount      ?? 0);
-    const pendingWithdrawals = Number(pendingWithdrawalsAgg._sum.amount  ?? 0);
+    const totalEarnings       = Number(totalEarningsAgg._sum.amount      ?? 0);
+    const pendingWithdrawals  = Number(pendingWithdrawalsAgg._sum.amount  ?? 0);
     const approvedWithdrawals = Number(approvedWithdrawalsAgg._sum.amount ?? 0);
 
     return {
@@ -211,12 +211,16 @@ export const userService = {
     const [enrolledCourses, completedCourses, pendingAssignments] = await Promise.all([
       prisma.enrollment.count({ where: { student_id: userId } }),
       prisma.enrollment.count({ where: { student_id: userId, status: EnrollmentStatus.COMPLETED } }),
+      // ✅ Fixed: use correct relation chain (Assignment → Lesson → Section → Course)
+      //           removed non-existent fields: status, is_deleted, course (direct relation)
       prisma.assignment.count({
         where: {
-          status: AssignmentStatus.APPROVED,
-          is_deleted: false,
-          course: {
-            enrollments: { some: { student_id: userId } },
+          lesson: {
+            section: {
+              course: {
+                enrollments: { some: { student_id: userId } },
+              },
+            },
           },
           submissions: { none: { student_id: userId } },
         },
