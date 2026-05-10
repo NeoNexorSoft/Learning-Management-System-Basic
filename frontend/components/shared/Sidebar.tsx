@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useContext, useEffect } from "react"
+import { useState, useContext } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import type { LucideIcon } from "lucide-react"
@@ -14,7 +14,6 @@ import {
   ChevronRight,
   ChevronDown,
   Users,
-  Atom,
   GraduationCap,
   CreditCard,
   Star,
@@ -24,14 +23,11 @@ import {
   History,
   Receipt,
   Award,
-  BarChart2,
-  School,
-  Database,
+  BrainCircuit,
 } from "lucide-react"
 import { BrandIcon, BRAND_NAME, BRAND_ICON_BG, BRAND_ICON_COLOR } from "@/lib/brand"
 import { useNotifications } from "@/hooks/useNotifications"
 import { useAuth } from "@/hooks/useAuth"
-import api from "@/lib/axios"
 
 
 // ─── Nav item types ──────────────────────────────────────────────────────────
@@ -57,15 +53,7 @@ const studentLearningNav: NavItem[] = [
 const studentAccountNav: NavItem[] = [
   { icon: Bell,    label: "Notifications",   href: "/student/notifications" },
   { icon: Receipt, label: "Purchase History", href: "/student/deposit-history" },
-  { icon: Atom, label: "Simulations", href: "/student/simulations" },
   { icon: Settings, label: "Settings",       href: "/student/settings" },
-]
-
-const studentEvaluationNav: NavItem[] = [
-  { icon: BarChart2, label: "Student Overview",              href: "/student/evaluation/overview" },
-  { icon: Trophy,    label: "Self Evaluation & Leaderboard", href: "/student/evaluation/leaderboard" },
-  { icon: Award,     label: "House Competition",             href: "/student/evaluation/house" },
-  { icon: School,    label: "Inter Cadet College Evaluation",        href: "/student/evaluation/inter-cadet" },
 ]
 
 const teacherMainNav: NavItem[] = [
@@ -75,9 +63,13 @@ const teacherCourseNav: NavItem[] = [
   { icon: List,       label: "All Courses",   href: "/teacher/courses" },
   { icon: PlusCircle, label: "Create Course", href: "/teacher/courses/create" },
 ]
+const teacherAiExamNav: NavItem[] = [
+  { icon: BrainCircuit, label: "Question Generator", href: "/teacher/ai-exam/questions" },
+  { icon: ClipboardList, label: "Quiz Module",       href: "/teacher/ai-exam/quiz" },
+  { icon: Trophy,        label: "Assignment",        href: "/teacher/ai-exam/assignment" },
+  { icon: Award,         label: "Self Test",         href: "/teacher/ai-exam/self-test" },
+]
 const teacherBottomNav: NavItem[] = [
-  { icon: ClipboardList, label: "Assignments",      href: "/teacher/assignments" },
-  { icon: Database,      label: "Question Bank",   href: "/teacher/question-bank" },
   { icon: ClipboardList, label: "Enrollments",      href: "/teacher/enrollments" },
   { icon: GraduationCap, label: "Students",         href: "/teacher/students" },
   { icon: Wallet,        label: "Withdraw",         href: "/teacher/withdraw" },
@@ -85,13 +77,6 @@ const teacherBottomNav: NavItem[] = [
   { icon: Star,          label: "Reviews",          href: "/teacher/reviews" },
   { icon: CreditCard,    label: "Transactions",     href: "/teacher/transactions" },
   { icon: Settings,      label: "Settings",         href: "/teacher/settings" },
-]
-
-const teacherEvaluationNav: NavItem[] = [
-  { icon: BarChart2, label: "Student Overview",              href: "/teacher/evaluation/overview" },
-  { icon: Trophy,    label: "Self Evaluation & Leaderboard", href: "/teacher/evaluation/leaderboard" },
-  { icon: Award,     label: "House Competition",             href: "/teacher/evaluation/house" },
-  { icon: School,    label: "Inter Cadet College Evaluation",        href: "/teacher/evaluation/inter-cadet" },
 ]
 
 function NavLink({
@@ -114,20 +99,9 @@ function NavLink({
             ? "bg-indigo-600 text-white shadow-sm shadow-indigo-500/30"
             : "text-slate-400 hover:bg-slate-700/50 hover:text-white"
         }`}
-        aria-label={unreadCount > 0 ? `${label}, ${unreadCount} unread` : label}
       >
-        <Icon className="w-4 h-4 flex-shrink-0" />
-        <span className="flex-1">{label}</span>
-        {unreadCount > 0 && (
-          <span
-            className={`min-w-[18px] h-[18px] text-[10px] font-bold rounded-full flex items-center justify-center leading-none px-1 ${
-              active ? "bg-white text-indigo-600" : "bg-red-500 text-white"
-            }`}
-            aria-hidden="true"
-          >
-            {unreadCount > 99 ? "99+" : unreadCount}
-          </span>
-        )}
+        <Icon className="w-4 h-4 shrink-0" />
+        {label}
       </Link>
     )
   }
@@ -172,27 +146,13 @@ export default function Sidebar({ role }: { role: "student" | "teacher" }) {
   const [coursesOpen, setCoursesOpen] = useState(
     role === "teacher" && pathname.startsWith("/teacher/courses"),
   );
-  const [studentEvalOpen, setStudentEvalOpen] = useState(
-    pathname.startsWith("/student/evaluation"),
-  );
-  const [teacherEvalOpen, setTeacherEvalOpen] = useState(
-    pathname.startsWith("/teacher/evaluation"),
+  const [aiExamOpen, setAiExamOpen] = useState(
+    role === "teacher" && pathname.startsWith("/teacher/ai-exam"),
   );
 
   // Safe — NotificationProvider wraps both student and teacher layouts
   const { unreadCount, isLoaded } = useNotifications();
   const { user: authUser } = useAuth();
-
-  const [assignmentCount, setAssignmentCount] = useState(0);
-
-  // Refresh unread assignment count on every navigation (student only)
-  useEffect(() => {
-    if (role !== "student") return;
-    api
-      .get("/api/assignments/count")
-      .then(({ data }) => setAssignmentCount(data.data?.count ?? 0))
-      .catch(() => {});
-  }, [pathname, role]);
 
   const displayName =
     authUser?.name ?? (role === "student" ? "Student" : "Teacher");
@@ -207,15 +167,17 @@ export default function Sidebar({ role }: { role: "student" | "teacher" }) {
 
   return (
     <aside className="w-64 h-screen sticky top-0 bg-slate-900 flex flex-col shrink-0 overflow-hidden border-r border-slate-700/50">
-      {/* Logo — both student and teacher */}
-      <div className="p-6 border-b border-slate-800">
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className={`w-9 h-9 ${BRAND_ICON_BG} rounded-xl flex items-center justify-center shadow-lg`}>
-            <BrandIcon className={`w-5 h-5 ${BRAND_ICON_COLOR}`} />
-          </div>
-          <span className="text-lg font-bold text-white">{BRAND_NAME}</span>
-        </Link>
-      </div>
+      {/* Logo — teacher only */}
+      {role === "teacher" && (
+        <div className="p-6 border-b border-slate-800">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className={`w-9 h-9 ${BRAND_ICON_BG} rounded-xl flex items-center justify-center shadow-lg`}>
+              <BrandIcon className={`w-5 h-5 ${BRAND_ICON_COLOR}`} />
+            </div>
+            <span className="text-lg font-bold text-white">{BRAND_NAME}</span>
+          </Link>
+        </div>
+      )}
 
       {/* Navigation */}
       {role === "student" ? (
@@ -229,45 +191,10 @@ export default function Sidebar({ role }: { role: "student" | "teacher" }) {
               href={href}
               icon={icon}
               label={label}
-              active={pathname.startsWith(href) && (href !== "/student/dashboard" || pathname === href)}
+              active={pathname === href}
               variant="student"
-              unreadCount={href === "/student/assignments" ? assignmentCount : 0}
             />
           ))}
-
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-4 mb-2 mt-5">
-            Evaluation
-          </p>
-          <div>
-            <button
-              onClick={() => setStudentEvalOpen(o => !o)}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                pathname.startsWith("/student/evaluation")
-                  ? "bg-indigo-600 text-white shadow-sm shadow-indigo-500/30"
-                  : "text-slate-400 hover:bg-slate-700/50 hover:text-white"
-              }`}
-            >
-              <BarChart2 className="w-4 h-4 flex-shrink-0" />
-              <span className="flex-1 text-left">Centralized Evaluation</span>
-              {studentEvalOpen
-                ? <ChevronDown className="w-4 h-4 opacity-70" />
-                : <ChevronRight className="w-4 h-4 opacity-70" />}
-            </button>
-            {studentEvalOpen && (
-              <div className="mt-1 ml-3 pl-4 border-l border-slate-700 space-y-0.5">
-                {studentEvaluationNav.map(({ icon, label, href }) => (
-                  <NavLink
-                    key={href}
-                    href={href}
-                    icon={icon}
-                    label={label}
-                    active={pathname === href}
-                    variant="student"
-                  />
-                ))}
-              </div>
-            )}
-          </div>
 
           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-4 mb-2 mt-5">
             Account
@@ -285,7 +212,7 @@ export default function Sidebar({ role }: { role: "student" | "teacher" }) {
           ))}
         </nav>
       ) : (
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 p-4 space-y-1">
           {teacherMainNav.map(({ icon, label, href }) => (
             <NavLink key={href} href={href} icon={icon} label={label} active={pathname === href} />
           ))}
@@ -315,25 +242,25 @@ export default function Sidebar({ role }: { role: "student" | "teacher" }) {
             )}
           </div>
 
-          {/* Centralized Evaluation — expandable */}
+          {/* AI Generated Exam — expandable */}
           <div>
             <button
-              onClick={() => setTeacherEvalOpen(o => !o)}
+              onClick={() => setAiExamOpen(o => !o)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                pathname.startsWith("/teacher/evaluation")
+                pathname.startsWith("/teacher/ai-exam")
                   ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
                   : "text-slate-400 hover:text-white hover:bg-slate-800"
               }`}
             >
-              <BarChart2 className="w-5 h-5 flex-shrink-0" />
-              <span className="flex-1 text-left">Centralized Evaluation</span>
-              {teacherEvalOpen
+              <BrainCircuit className="w-5 h-5 shrink-0" />
+              <span className="flex-1 text-left">AI Exam Module</span>
+              {aiExamOpen
                 ? <ChevronDown className="w-4 h-4 opacity-70" />
                 : <ChevronRight className="w-4 h-4 opacity-70" />}
             </button>
-            {teacherEvalOpen && (
+            {aiExamOpen && (
               <div className="mt-1 ml-3 pl-4 border-l border-slate-700 space-y-0.5">
-                {teacherEvaluationNav.map(({ icon, label, href }) => (
+                {teacherAiExamNav.map(({ icon, label, href }) => (
                   <NavLink key={href} href={href} icon={icon} label={label} active={pathname === href} sub />
                 ))}
               </div>
