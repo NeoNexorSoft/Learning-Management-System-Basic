@@ -27,7 +27,7 @@ export default function QuizPreview({
     )
   }
 
-  const total = quiz.questions?.length ?? 0
+  const total = quiz.questions?.length ?? quiz._count?.questions ?? 0
 
   return (
     <div className="mt-2 border border-amber-200 rounded-xl overflow-hidden">

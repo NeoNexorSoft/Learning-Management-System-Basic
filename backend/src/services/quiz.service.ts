@@ -167,7 +167,7 @@ export const quizService = {
 
     await prisma.quizAttempt.update({
       where: { quiz_id_student_id: { quiz_id: quizId, student_id: studentId } },
-      data: { answers, score, graded: true, submitted: true, is_late, time_taken_seconds },
+      data: { answers, score, graded: true, submitted: true, submitted_at: new Date(), is_late, time_taken_seconds },
     })
 
     return { score, correct, total, is_late, time_taken_seconds, result }
