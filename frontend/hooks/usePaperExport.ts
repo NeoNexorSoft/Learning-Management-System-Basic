@@ -91,7 +91,7 @@ export function usePaperExport(state: PaperState) {
        794px wide with inline styles. Scale them to fit A4. */
     #paper-print-area > div > div {
       transform-origin: top left;
-      transform: scale(0.757); /* 794px * 0.757 ≈ 210mm at 96dpi */
+      transform: scale(1.0); /* 794px * 0.757 ≈ 210mm at 96dpi */
       width: 794px;
     }
   </style>
