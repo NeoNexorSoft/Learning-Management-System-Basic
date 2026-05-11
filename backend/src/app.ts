@@ -23,11 +23,7 @@ import {
   enrolledStudentsRouter,
   reviewRouter,
 } from "./routes/enrollment.routes";
-import {
-  assignmentRouter,
-  submissionRouter,
-  lessonAssignmentRouter,
-} from "./routes/assignment.routes";
+import { assignmentRouter } from "./routes/assignment.routes";
 import { certificateRouter } from "./routes/certificate.routes";
 import uploadRoutes from "./routes/upload.routes";
 import { notificationRouter } from "./routes/notification.routes";
@@ -93,14 +89,12 @@ app.use("/api/sections", sectionRouter);
 
 app.use("/api/lessons", lessonRouter);
 app.use("/api/lessons", lessonProgressRouter);
-app.use("/api/lessons", lessonAssignmentRouter);
 
 app.use("/api/courses", enrolledStudentsRouter);
 app.use("/api/courses", reviewRouter);
 
 app.use("/api/enrollments", enrollmentRouter);
 app.use("/api/assignments", assignmentRouter);
-app.use("/api/submissions", submissionRouter);
 app.use("/api/withdrawals", withdrawalRouter);
 app.use("/api/certificates", certificateRouter);
 app.use("/api/notifications", notificationRouter);

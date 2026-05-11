@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -13,6 +13,7 @@ import {
   BookOpen,
   Award,
 } from "lucide-react";
+import api from "@/lib/axios";
 import axios from "axios";
 import {
   BrandIcon,
@@ -44,7 +45,6 @@ type LoginResponse = {
   refreshToken?: string;
 };
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -79,15 +79,10 @@ export default function AdminLoginPage() {
     }
 
     try {
-      const response = await axios.post<LoginResponse>(
-        `${API_BASE_URL}api/auth/login`,
-        { email, password },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        },
-      );
+      const response = await api.post<LoginResponse>("/api/auth/login", {
+        email,
+        password,
+      });
 
       const payload = response.data.data ?? response.data;
       const user = payload.user;

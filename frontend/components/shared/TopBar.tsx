@@ -8,14 +8,14 @@
  * Sidebar's notification nav-item badge — one fetch, zero duplication.
  */
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { Bell, Search, LogOut, User, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotifications } from "@/hooks/useNotifications";
 
-export default function TopBar({
+function TopBarInner({
   placeholder = "Search…",
 }: {
   placeholder?: string;
@@ -269,5 +269,21 @@ export default function TopBar({
         </div>
       </div>
     </header>
+  );
+}
+
+export default function TopBar({
+  placeholder = "Search…",
+}: {
+  placeholder?: string;
+}) {
+  return (
+    <Suspense
+      fallback={
+        <header className="sticky top-0 z-10 bg-white border-b border-slate-200 h-[65px] flex-shrink-0" />
+      }
+    >
+      <TopBarInner placeholder={placeholder} />
+    </Suspense>
   );
 }

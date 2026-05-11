@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, {useEffect, useState} from "react";
 import { useRouter } from "next/navigation";
 import { SimulationFormValues } from "@/types/simulation.types";
 import api from "@/lib/axios";
 import NeoRichTextEditor from "@/components/ui/NeoRichTextEditor";
+import {Upload, X} from "lucide-react";
 
 // Suggested providers shown in the dropdown to guide the admin.
 // The admin can also type a custom provider name.
@@ -77,6 +78,10 @@ export function SimulationForm({ initialValues, simulationId }: SimulationFormPr
     const [errors, setErrors] = useState<FieldError>({});
     const [submitting, setSubmitting] = useState(false);
     const [serverError, setServerError] = useState("");
+    const [thumbnailOption, setThumbnailOption] = useState<"upload" | "url">("upload");
+    const [thumbPreview, setThumbPreview] = useState<string>("");
+    const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+    const [uploading, setUploading] = useState(false);
 
     function set<K extends keyof SimulationFormValues>(key: K, value: SimulationFormValues[K]) {
         setValues((prev) => ({ ...prev, [key]: value }));
@@ -131,7 +136,10 @@ export function SimulationForm({ initialValues, simulationId }: SimulationFormPr
         const endpoint = isEditMode ? `/api/simulations/${simulationId}` : "/api/simulations";
 
         try {
-            const payload = { ...values, thumbnailUrl: values.thumbnailUrl.trim() || null };
+            const payload = {
+                ...values,
+                thumbnailUrl: values.thumbnailUrl.trim() || null
+            };
 
             isEditMode ? await api.put(endpoint, payload) : await api.post(endpoint, payload);
 
@@ -142,6 +150,33 @@ export function SimulationForm({ initialValues, simulationId }: SimulationFormPr
         } finally {
             setSubmitting(false);
         }
+    }
+
+    const handleThumbnailUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setThumbnailFile(file);
+        setThumbPreview(URL.createObjectURL(file));
+    }
+
+    useEffect(() => {
+        if (thumbnailFile) uploadThumbnail();
+    }, [thumbnailFile]);
+
+    const uploadThumbnail = async () => {
+        setUploading(true)
+        const formData = new FormData();
+        // @ts-ignore
+        formData.append("thumbnailUrl", thumbnailFile);
+        const { data } = await api.post(
+            "/api/upload/simulation-thumbnail",
+            formData,
+            {
+                headers: { "Content-Type": "multipart/form-data" }
+            }
+        )
+        if (data) setValues((prev) => ({ ...prev, thumbnailUrl: data.data.url }))
+        setUploading(false)
     }
 
     return (
@@ -221,7 +256,7 @@ export function SimulationForm({ initialValues, simulationId }: SimulationFormPr
                 />
                 <datalist id="provider-suggestions">
                     {KNOWN_PROVIDERS.map((p) => (
-                        <option key={p} value={p} />
+                        <option key={p} value={p}/>
                     ))}
                 </datalist>
             </Field>
@@ -242,19 +277,80 @@ export function SimulationForm({ initialValues, simulationId }: SimulationFormPr
                 />
             </Field>
 
+            <div className="flex items-center gap-3">
+                <button
+                    type="button"
+                    role="switch"
+                    aria-checked={thumbnailOption === "url"}
+                    onClick={() => thumbnailOption === "url" ? setThumbnailOption("upload") : setThumbnailOption("url")}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                        thumbnailOption === "url" ? "bg-blue-600" : "bg-gray-300"
+                    }`}
+                >
+                  <span
+                      className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transform transition-transform ${
+                          thumbnailOption === "url" ? "translate-x-6" : "translate-x-1"
+                      }`}
+                  />
+                </button>
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-gray-700">Submit thumbnail URL instead of Upload</span>
+                </div>
+            </div>
+
             {/* Thumbnail URL */}
             <Field
-                label="Thumbnail URL"
+                label={thumbnailOption === "upload" ? "Thumbnail Upload" : "Thumbnail URL"}
                 error={errors.thumbnailUrl}
                 hint="Optional preview image. Use a Cloudinary URL or leave blank."
             >
-                <input
-                    type="url"
-                    value={values.thumbnailUrl}
-                    onChange={(e) => set("thumbnailUrl", e.target.value)}
-                    placeholder="https://res.cloudinary.com/..."
-                    className={inputClass(!!errors.thumbnailUrl)}
-                />
+                {thumbnailOption === "upload" && (
+                    <>
+                        {thumbPreview ? (
+                            <div className="relative inline-block">
+                                <img
+                                    src={thumbPreview}
+                                    alt="Logo Preview"
+                                    className="w-1/2 mx-auto object-contain border border-slate-200 rounded-lg p-2 bg-slate-50"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setThumbPreview("");
+                                        setThumbnailFile(null);
+                                    }}
+                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center cursor-pointer"
+                                >
+                                    <X className="w-3 h-3"/>
+                                </button>
+                            </div>
+                        ) : (
+                            <label
+                                className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition-all">
+                                <Upload className="w-6 h-6 text-slate-400 mb-2"/>
+                                <span className="text-sm text-slate-500">Click to upload thumbnail</span>
+                                <input
+                                    type="file"
+                                    accept=".jpg,.jpeg,.png,.svg,.webp"
+                                    onChange={handleThumbnailUpload}
+                                    className="hidden"
+                                />
+                            </label>
+                        )}
+                    </>
+                )}
+
+                {thumbnailOption === "url" && (
+                    <input
+                        type="url"
+                        value={values.thumbnailUrl}
+                        onChange={(e) => set("thumbnailUrl", e.target.value)}
+                        placeholder="https://res.cloudinary.com/..."
+                        className={inputClass(!!errors.thumbnailUrl)}
+                    />
+                )}
+
+                {uploading && <span className="text-gray-600 text-sm">Uploading thumbnail, please wait...</span>}
             </Field>
 
             {/* Published toggle */}
@@ -290,7 +386,7 @@ export function SimulationForm({ initialValues, simulationId }: SimulationFormPr
             <div className="flex gap-3 pt-2 border-t border-gray-100">
                 <button
                     type="submit"
-                    disabled={submitting}
+                    disabled={submitting || uploading}
                     className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-60 transition-colors"
                 >
                     {submitting
@@ -305,7 +401,7 @@ export function SimulationForm({ initialValues, simulationId }: SimulationFormPr
                 <button
                     type="button"
                     onClick={() => router.back()}
-                    disabled={submitting}
+                    disabled={submitting || uploading}
                     className="px-5 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 disabled:opacity-60 transition-colors"
                 >
                     Cancel

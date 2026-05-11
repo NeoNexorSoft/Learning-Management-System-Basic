@@ -35,7 +35,7 @@ const buildRatingsMap = async (courseIds: string[]) => {
     _count: { _all: true },
   });
   return Object.fromEntries(
-    rows.map(r => [r.course_id, { avgRating: r._avg.rating ?? 0, totalReviews: r._count._all }]),
+      rows.map(r => [r.course_id, { avgRating: r._avg.rating ?? 0, totalReviews: r._count._all }]),
   ) as Record<string, { avgRating: number; totalReviews: number }>;
 };
 
@@ -76,8 +76,8 @@ export const courseService = {
   // ─── Public ───────────────────────────────────────────────────────────────
 
   async listPublicCourses({
-    category, level, price_min, price_max, search, sort = 'newest', page = 1, limit = 12, is_popular,
-  }: ListPublicCoursesQuery) {
+                            category, level, price_min, price_max, search, sort = 'newest', page = 1, limit = 12, is_popular,
+                          }: ListPublicCoursesQuery) {
     const skip = (page - 1) * limit;
 
     const priceFilter: Prisma.DecimalFilter = {};
@@ -183,18 +183,13 @@ export const courseService = {
     if (!course) throw Object.assign(new Error('Course not found'), { statusCode: 404 });
 
     let canAccessContent =
-      viewerRole === 'ADMIN' || course.teacher_id === viewerUserId;
-
-      // console.log(`Viewer role: ${viewerRole}, viewerUserId: ${viewerUserId}, course.teacher_id: ${course.teacher_id}, canAccessContent: ${canAccessContent}`)
+        viewerRole === 'ADMIN' || course.teacher_id === viewerUserId;
 
     if (!canAccessContent && viewerUserId) {
-      // console.log(`Checking enrollment for user ${viewerUserId} on course ${course.id}`)
       const enrollment = await prisma.enrollment.findUnique({
         where: { student_id_course_id: { student_id: viewerUserId, course_id: course.id } },
       });
-      // console.log(`Enrollment found for user ${viewerUserId} on course ${course.id}: ${!!enrollment}`);
       canAccessContent = !!enrollment;
-      // console.log(`Updated canAccessContent for user ${viewerUserId} on course ${course.id}: ${canAccessContent}`);
     }
 
     const [ratingAgg] = await Promise.all([
@@ -222,7 +217,7 @@ export const courseService = {
       totalSections: course.sections?.length ?? 0,
       totalLessons:  course.sections?.reduce((sum, s) => sum + s.lessons.length, 0) ?? 0,
       totalQuizzes:  course.sections?.reduce((sum, s) =>
-        sum + s.lessons.reduce((ls, l) => ls + (l.lessonQuizzes?.length ?? 0), 0), 0) ?? 0,
+          sum + s.lessons.reduce((ls, l) => ls + (l.lessonQuizzes?.length ?? 0), 0), 0) ?? 0,
       avgRating:    ratingAgg._avg.rating ?? 0,
       totalReviews: ratingAgg._count._all,
       canAccessContent,
@@ -261,7 +256,7 @@ export const courseService = {
       totalSections: course.sections?.length ?? 0,
       totalLessons:  course.sections?.reduce((sum, s) => sum + s.lessons.length, 0) ?? 0,
       totalQuizzes:  course.sections?.reduce((sum, s) =>
-        sum + s.lessons.reduce((ls, l) => ls + (l.lessonQuizzes?.length ?? 0), 0), 0) ?? 0,
+          sum + s.lessons.reduce((ls, l) => ls + (l.lessonQuizzes?.length ?? 0), 0), 0) ?? 0,
     };
   },
 
@@ -278,7 +273,12 @@ export const courseService = {
             lessons: {
               orderBy: { order: 'asc' },
               include: {
-                lessonQuizzes: { select: { id: true, title: true } },
+                lessonQuizzes: {
+                  orderBy: { order: 'asc' },
+                  include: {
+                    questions: { orderBy: { order: 'asc' } },
+                  },
+                },
               },
             },
           },
@@ -293,7 +293,7 @@ export const courseService = {
       totalSections: course.sections?.length ?? 0,
       totalLessons:  course.sections?.reduce((sum, s) => sum + s.lessons.length, 0) ?? 0,
       totalQuizzes:  course.sections?.reduce((sum, s) =>
-        sum + s.lessons.reduce((ls, l) => ls + (l.lessonQuizzes?.length ?? 0), 0), 0) ?? 0,
+          sum + s.lessons.reduce((ls, l) => ls + (l.lessonQuizzes?.length ?? 0), 0), 0) ?? 0,
     };
   },
 
@@ -341,18 +341,6 @@ export const courseService = {
     const skip = (page - 1) * limit;
 
     const [courses, total] = await Promise.all([
-      /*prisma.course.findMany({
-        where:   { teacher_id: teacherId },
-        skip,
-        take:    limit,
-        orderBy: { created_at: 'desc' },
-        select: {
-          id: true, title: true, slug: true, thumbnail: true,
-          price: true, level: true, status: true, created_at: true, updated_at: true,
-          category: { select: { id: true, name: true, slug: true } },
-          _count:   { select: { enrollments: true } },
-        },
-      }),*/
       prisma.course.findMany({
         where:   { teacher_id: teacherId },
         skip,
@@ -371,17 +359,17 @@ export const courseService = {
     const [ratingsMap, earningsRows] = await Promise.all([
       buildRatingsMap(courseIds),
       courseIds.length
-        ? prisma.transaction.groupBy({
+          ? prisma.transaction.groupBy({
             by: ['course_id'],
             where: { course_id: { in: courseIds }, status: 'COMPLETED', type: 'PURCHASE' },
             _sum: { amount: true },
           })
-        : Promise.resolve([]),
+          : Promise.resolve([]),
     ]);
 
     const earningsMap = Object.fromEntries(
-      (earningsRows as Array<{ course_id: string | null; _sum: { amount: Prisma.Decimal | null } }>)
-        .map(e => [e.course_id, e._sum.amount ?? 0]),
+        (earningsRows as Array<{ course_id: string | null; _sum: { amount: Prisma.Decimal | null } }>)
+            .map(e => [e.course_id, e._sum.amount ?? 0]),
     );
 
     const [lessonCounts, quizCounts, sectionRows, lessonRows] = await Promise.all([
@@ -460,7 +448,13 @@ export const courseService = {
     });
     if (!course) throw Object.assign(new Error('Not found'), { statusCode: 404 });
     if (course.teacher_id !== teacherId) throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
-    return course;
+    return {
+      ...course,
+      totalSections: course.sections?.length ?? 0,
+      totalLessons:  course.sections?.reduce((sum, s) => sum + s.lessons.length, 0) ?? 0,
+      totalQuizzes:  course.sections?.reduce((sum, s) =>
+          sum + s.lessons.reduce((ls, l) => ls + (l.lessonQuizzes?.length ?? 0), 0), 0) ?? 0,
+    };
   },
 
   async createCourse(teacherId: string, input: CreateCourseInput) {
@@ -501,7 +495,6 @@ export const courseService = {
     if (!course) throw Object.assign(new Error('Course not found'), { statusCode: 404 });
     if (course.teacher_id !== teacherId) throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
 
-    // Build an explicit whitelist so unknown request-body fields never reach Prisma
     const update: Prisma.CourseUpdateInput = {};
     if (data.title            !== undefined) update.title            = data.title;
     if (data.subtitle         !== undefined) update.subtitle         = data.subtitle;
@@ -518,8 +511,8 @@ export const courseService = {
     if (data.congrats_message !== undefined) update.congrats_message = data.congrats_message;
     if (data.category_id !== undefined) {
       update.category = data.category_id
-        ? { connect: { id: data.category_id } }
-        : { disconnect: true };
+          ? { connect: { id: data.category_id } }
+          : { disconnect: true };
     }
 
     return prisma.course.update({
@@ -544,9 +537,9 @@ export const courseService = {
   },
 
   async replaceObjectives(
-    courseId: string,
-    teacherId: string,
-    objectives: Array<{ type: ObjectiveType; content: string; order?: number }>,
+      courseId: string,
+      teacherId: string,
+      objectives: Array<{ type: ObjectiveType; content: string; order?: number }>,
   ) {
     const course = await prisma.course.findUnique({ where: { id: courseId } });
     if (!course) throw Object.assign(new Error('Course not found'), { statusCode: 404 });
@@ -615,9 +608,9 @@ export const courseService = {
   // ─── Lessons ──────────────────────────────────────────────────────────────
 
   async createLesson(
-    sectionId: string,
-    teacherId: string,
-    data: { title: string; type: LessonType; content?: string; video_urls?: string[]; file_urls?: string[]; duration?: number; order?: number },
+      sectionId: string,
+      teacherId: string,
+      data: { title: string; type: LessonType; content?: string; video_urls?: string[]; file_urls?: string[]; duration?: number; order?: number },
   ) {
     const section = await prisma.section.findUnique({
       where:   { id: sectionId },
@@ -635,8 +628,8 @@ export const courseService = {
         title:      data.title,
         type:       data.type,
         content:    data.content,
-        video_urls: data.video_urls,
-        file_urls:  data.file_urls,
+        video_urls: data.video_urls ?? [],
+        file_urls:  data.file_urls  ?? [],
         duration:   data.duration ?? 0,
         order:      data.order ?? (last ? last.order + 1 : 0),
       },
@@ -644,9 +637,9 @@ export const courseService = {
   },
 
   async updateLesson(
-    lessonId: string,
-    teacherId: string,
-    data: { title?: string; type?: LessonType; content?: string; video_urls?: string[]; file_urls?: string[]; duration?: number; order?: number },
+      lessonId: string,
+      teacherId: string,
+      data: { title?: string; type?: LessonType; content?: string; video_urls?: string[]; file_urls?: string[]; duration?: number; order?: number },
   ) {
     const lesson = await prisma.lesson.findUnique({
       where:   { id: lessonId },
@@ -656,13 +649,13 @@ export const courseService = {
     if (lesson.section.course.teacher_id !== teacherId) throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
 
     const lessonUpdate: Prisma.LessonUpdateInput = {};
-    if (data.title    !== undefined) lessonUpdate.title    = data.title;
-    if (data.type     !== undefined) lessonUpdate.type     = data.type;
-    if (data.content  !== undefined) lessonUpdate.content  = data.content;
+    if (data.title      !== undefined) lessonUpdate.title      = data.title;
+    if (data.type       !== undefined) lessonUpdate.type       = data.type;
+    if (data.content    !== undefined) lessonUpdate.content    = data.content;
     if (data.video_urls !== undefined) lessonUpdate.video_urls = data.video_urls;
     if (data.file_urls  !== undefined) lessonUpdate.file_urls  = data.file_urls;
-    if (data.duration !== undefined) lessonUpdate.duration = data.duration;
-    if (data.order    !== undefined) lessonUpdate.order    = data.order;
+    if (data.duration   !== undefined) lessonUpdate.duration   = data.duration;
+    if (data.order      !== undefined) lessonUpdate.order      = data.order;
 
     return prisma.lesson.update({ where: { id: lessonId }, data: lessonUpdate });
   },
@@ -705,8 +698,8 @@ export const courseService = {
   },
 
   async listAllCourses({
-    status, search, page = 1, limit = 20,
-  }: { status?: CourseStatus; search?: string; page?: number; limit?: number }) {
+                         status, search, page = 1, limit = 20,
+                       }: { status?: CourseStatus; search?: string; page?: number; limit?: number }) {
     const skip = (page - 1) * limit;
 
     const where: Prisma.CourseWhereInput = {
@@ -853,80 +846,67 @@ export const courseService = {
   },
 
   async getLearnCourse(courseId: string, studentId: string) {
-    console.log("Fetching enrollment for studentId:", studentId, "and courseId:", courseId)
     const enrollment = await prisma.enrollment.findUnique({
       where: {
         student_id_course_id: {
           student_id: studentId,
-          course_id:  courseId
-        }
-      }
-    })
-    console.log("Enrollment:", enrollment)
-    if (!enrollment) throw Object.assign(
-      new Error("Not enrolled"), { statusCode: 403 }
-    )
+          course_id:  courseId,
+        },
+      },
+    });
+    if (!enrollment) throw Object.assign(new Error('Not enrolled'), { statusCode: 403 });
 
     const course = await prisma.course.findUnique({
       where: { id: courseId },
       include: {
         teacher: {
-          select: {
-            id: true, name: true,
-            avatar: true, bio: true
-          }
+          select: { id: true, name: true, avatar: true, bio: true },
         },
         category: {
           select: {
             id: true, name: true,
-            parent: { select: { name: true } }
-          }
+            parent: { select: { name: true } },
+          },
         },
-        objectives: { orderBy: { order: "asc" } },
+        objectives: { orderBy: { order: 'asc' } },
         sections: {
-          orderBy: { order: "asc" },
+          orderBy: { order: 'asc' },
           include: {
             lessons: {
-              orderBy: { order: "asc" },
+              orderBy: { order: 'asc' },
               include: {
                 lessonQuizzes: {
-                  orderBy: { order: "asc" },
+                  orderBy: { order: 'asc' },
                   include: {
                     questions: {
-                      orderBy: { order: "asc" },
+                      orderBy: { order: 'asc' },
                       select: {
                         id: true,
                         type: true,
                         question: true,
                         options: true,
                         order: true,
-                      }
+                      },
                     },
                     attempts: {
                       where: { student_id: studentId },
                       select: {
                         id: true,
                         score: true,
+                        submitted: true,
                         submitted_at: true,
-                      }
-                    }
-                  }
+                      },
+                    },
+                  },
                 },
-                progress: {
-                  where: { enrollment_id: enrollment.id },
-                  select: { completed: true }
-                }
-              }
-            }
-          }
+              },
+            },
+          },
         },
-        _count: { select: { enrollments: true } }
-      }
-    })
+      },
+    });
 
-    if (!course) throw Object.assign(
-      new Error("Course not found"), { statusCode: 404 }
-    )
+    if (!course) throw Object.assign(new Error('Course not found'), { statusCode: 404 });
 
     return {
       course,
@@ -934,8 +914,8 @@ export const courseService = {
         id:       enrollment.id,
         progress: enrollment.progress,
         status:   enrollment.status,
-      }
-    }
+      },
+    };
   },
 
   async getCourseById(courseId: string) {
@@ -945,11 +925,9 @@ export const courseService = {
         id: true, title: true, slug: true,
         subtitle: true, thumbnail: true, price: true,
         discount_price: true, discount_type: true, discount_ends_at: true,
-      }
+      },
     });
-    if (!course) throw Object.assign(
-      new Error("Course not found"), { statusCode: 404 }
-    );
+    if (!course) throw Object.assign(new Error('Course not found'), { statusCode: 404 });
     return course;
   },
 };

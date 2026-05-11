@@ -1,12 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState , Suspense } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { ArrowLeft, Loader2 } from "lucide-react"
 import api from "@/lib/axios"
 import CourseViewer from "@/components/shared/CourseViewer"
 
-export default function TeacherCoursePreviewPage() {
+function TeacherCoursePreviewPage() {
   const { id }  = useParams<{ id: string }>()
   const router  = useRouter()
   const [course, setCourse] = useState<any>(null)
@@ -17,7 +17,7 @@ export default function TeacherCoursePreviewPage() {
     api.get(`/api/teacher/courses/${id}`)
       .then(({ data }) => {
         const slug = data.data.course.slug
-        return api.get(`/api/admin/courses/preview/${slug}`)
+        return api.get(`/api/teacher/courses/preview/${slug}`)
       })
       .then(({ data }) => setCourse(data.data.course))
       .catch(() => setCourse(null))
@@ -69,5 +69,13 @@ export default function TeacherCoursePreviewPage() {
         />
       </div>
     </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <TeacherCoursePreviewPage />
+    </Suspense>
   )
 }

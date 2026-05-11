@@ -29,20 +29,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const storedUser = getUser()
-    const token      = getToken()
-    if (storedUser && token) setUserState(storedUser)
+    const token = getToken()
+    if (storedUser && token) {
+      setUserState(storedUser)
+      const role = storedUser.role.toLowerCase() as "student" | "teacher"
+      if (role === "student" || role === "teacher") {
+        const cookieExists = document.cookie
+            .split("; ")
+            .some(r => r.startsWith("demo_role="))
+        if (!cookieExists) {
+          document.cookie = `demo_role=${role}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`
+        }
+      }
+    }
     setLoading(false)
   }, [])
 
-  // Guard against back-button navigation landing a user on a panel they no longer
-  // have a valid session for (e.g. student presses back into /teacher/* or vice versa).
   useEffect(() => {
     function handlePopState() {
       const path = window.location.pathname
       const cookieRole = document.cookie
-        .split("; ")
-        .find((r) => r.startsWith("demo_role="))
-        ?.split("=")[1] as "student" | "teacher" | undefined
+          .split("; ")
+          .find((r) => r.startsWith("demo_role="))
+          ?.split("=")[1] as "student" | "teacher" | undefined
 
       const onStudent = path.startsWith("/student")
       const onTeacher = path.startsWith("/teacher")
@@ -61,8 +70,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router])
 
   async function login(email: string, password: string, role: "student" | "teacher") {
-    // Always wipe any previous session before starting a new one so stale tokens
-    // from a different role never bleed into the incoming session.
     removeToken()
     removeUser()
     document.cookie = "demo_role=; path=/; max-age=0; SameSite=Lax"
@@ -107,9 +114,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, refreshUser }}>
-      {children}
-    </AuthContext.Provider>
+      <AuthContext.Provider value={{ user, loading, login, logout, refreshUser }}>
+        {children}
+      </AuthContext.Provider>
   )
 }
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect , Suspense } from "react"
 import {
   Search, Plus, Pencil, Trash2, Tag, ToggleLeft, ToggleRight,
   Check, AlertCircle, Percent, DollarSign,
@@ -148,7 +148,7 @@ function CouponForm({
   )
 }
 
-export default function AdminCouponsPage() {
+function AdminCouponsPage() {
   const [coupons,       setCoupons]       = useState<Coupon[]>([])
   const [loading,       setLoading]       = useState(true)
   const [formLoading,   setFormLoading]   = useState(false)
@@ -426,5 +426,13 @@ export default function AdminCouponsPage() {
         danger
       />
     </main>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <AdminCouponsPage />
+    </Suspense>
   )
 }

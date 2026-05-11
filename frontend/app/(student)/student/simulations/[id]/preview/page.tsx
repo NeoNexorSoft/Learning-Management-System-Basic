@@ -6,6 +6,7 @@ import Link from "next/link";
 import api from "@/lib/axios";
 import { SimulationViewer } from "@/components/simulation/SimulationViewer";
 import { Simulation } from "@/types/simulation.types";
+import RichTextRenderer from "@/components/ui/RichTextRenderer";
 
 export default function StudentSimulationViewPage() {
     const params = useParams();
@@ -58,44 +59,42 @@ export default function StudentSimulationViewPage() {
     }
 
     return (
-        <div className="flex flex-col gap-5 p-6">
-            {/* Breadcrumb */}
-            <div className="flex items-center gap-2 text-sm">
-                <Link
-                    href="/student/simulations"
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                    Simulations
-                </Link>
-                <span className="text-gray-300">/</span>
-                <span className="text-gray-700 font-medium line-clamp-1">
-                    {simulation.title}
-                </span>
+        <div className="flex flex-col flex-1">
+            <div className="p-6 space-y-6">
+                {/* Breadcrumb */}
+                <div className="flex items-center gap-2 text-sm">
+                    <Link
+                        href="/student/simulations"
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                        Simulations
+                    </Link>
+                    <span className="text-gray-300">/</span>
+                    <span className="text-gray-700 font-medium line-clamp-1">
+                        {simulation.title}
+                    </span>
+                </div>
+
+                {/* Meta tags */}
+                <div className="flex flex-wrap gap-2 items-center">
+                    <span className="text-xs bg-blue-50 text-blue-700 border border-blue-100 px-2.5 py-1 rounded-full font-medium">
+                        {simulation.subject}
+                    </span>
+                    <span className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-medium">
+                        {simulation.gradeLevel}
+                    </span>
+                </div>
+
+                {/* Description */}
+                {simulation.description && (<RichTextRenderer html={simulation.description} title="Descrition" />)}
+
+                {/* Simulation iframe */}
+                <SimulationViewer
+                    simulationUrl={simulation.simulationUrl}
+                    title={simulation.title}
+                    provider={simulation.provider}
+                />
             </div>
-
-            {/* Meta tags */}
-            <div className="flex flex-wrap gap-2 items-center">
-                <span className="text-xs bg-blue-50 text-blue-700 border border-blue-100 px-2.5 py-1 rounded-full font-medium">
-                    {simulation.subject}
-                </span>
-                <span className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-medium">
-                    {simulation.gradeLevel}
-                </span>
-            </div>
-
-            {/* Description */}
-            {simulation.description && (
-                <p className="text-sm text-gray-600 max-w-2xl leading-relaxed">
-                    {simulation.description}
-                </p>
-            )}
-
-            {/* Simulation iframe */}
-            <SimulationViewer
-                simulationUrl={simulation.simulationUrl}
-                title={simulation.title}
-                provider={simulation.provider}
-            />
         </div>
     );
 }

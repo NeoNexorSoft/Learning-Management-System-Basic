@@ -4,10 +4,11 @@ import { useEffect, useRef, useState } from "react";
 
 interface RichTextRendererProps {
   html: string;
+  title?: string;
   allowFullscreen?: boolean;
 }
 
-export default function RichTextRenderer({ html, allowFullscreen = false }: RichTextRendererProps) {
+export default function RichTextRenderer({ html, title = "Lesson Content", allowFullscreen = false }: RichTextRendererProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -38,7 +39,7 @@ export default function RichTextRenderer({ html, allowFullscreen = false }: Rich
       {/* Top bar — same pattern as the PDF / Video shells */}
       <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b border-slate-200 shrink-0">
         <span className="font-mono text-[10px] tracking-widest uppercase text-slate-400">
-          Lesson Content
+          {title || "Lesson Content"}
         </span>
 
         {allowFullscreen && (

@@ -203,10 +203,10 @@ export default function GenerateForm({ onGenerate, generating }: any) {
             type="number"
             value={count}
             onChange={(e) =>
-              setCount(Math.max(1, Math.min(8, parseInt(e.target.value) || 1)))
+              setCount(Math.max(1, Math.min(25, parseInt(e.target.value) || 1)))
             }
             min="1"
-            max="8"
+            max="25"
             className={inputClass}
             disabled={generating}
           />

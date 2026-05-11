@@ -304,8 +304,8 @@ export const courseController = {
     try {
       const studentId = req.user!.userId
       const result = await courseService.getLearnCourse(
-        req.params.courseId as string,
-        studentId
+          req.params.courseId as string,
+          studentId
       )
       res.json({ success: true, data: { course: result.course, enrollment: result.enrollment } })
     } catch (err: any) {

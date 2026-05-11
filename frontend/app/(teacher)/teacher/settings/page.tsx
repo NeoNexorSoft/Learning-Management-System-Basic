@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useRef, useEffect, type ChangeEvent } from "react"
+import { useState, useRef, useEffect, type ChangeEvent , Suspense } from "react"
 import { Camera, Save, CheckCircle2, Loader2, AlertCircle, Lock } from "lucide-react"
 import TopBar from "@/components/shared/TopBar"
 import api from "@/lib/axios"
 import { setUser } from "@/lib/auth"
 import { useAuth } from "@/hooks/useAuth"
 
-export default function TeacherSettingsPage() {
+function TeacherSettingsPage() {
   const { user, refreshUser } = useAuth()
   const [form, setForm]       = useState({ firstName: "", lastName: "", email: "", mobile: "", bio: "" })
   const [preview, setPreview] = useState<string | null>(null)
@@ -245,5 +245,13 @@ export default function TeacherSettingsPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <TeacherSettingsPage />
+    </Suspense>
   )
 }
