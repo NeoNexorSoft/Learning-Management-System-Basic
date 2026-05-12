@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Search, Users, Star, Loader2 } from "lucide-react"
 import api from "@/lib/axios"
+import {isCommercial} from "@/lib/utils";
 
 const gradients: Record<string, string> = {
   "Web Development": "from-blue-400 to-indigo-600",
@@ -140,16 +141,18 @@ function CoursesPage() {
                         <span className="flex items-center gap-1 text-amber-500"><Star className="w-3.5 h-3.5 fill-amber-400" /> {rating > 0 ? rating.toFixed(1) : "New"}</span>
                       </div>
                       <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-indigo-600">
-                            {finalPrice === 0 ? "Free" : `৳${finalPrice.toLocaleString()}`}
-                          </span>
-                          {hasDiscount && (
-                            <span className="text-xs text-slate-400 line-through">
-                              ৳{price.toLocaleString()}
-                            </span>
+                          {isCommercial && (
+                              <div className="flex items-center gap-2">
+                                  <span className="text-sm font-bold text-indigo-600">
+                                    {finalPrice === 0 ? "Free" : `৳${finalPrice.toLocaleString()}`}
+                                  </span>
+                                  {hasDiscount && (
+                                    <span className="text-xs text-slate-400 line-through">
+                                        ৳{price.toLocaleString()}
+                                    </span>
+                                  )}
+                              </div>
                           )}
-                        </div>
                         <Link href={`/courses/${course.slug}`} className="text-xs font-semibold text-slate-600 hover:text-indigo-600 transition-colors">
                           View →
                         </Link>
