@@ -8,7 +8,7 @@ import GeneratedQuestionsPanel from './GeneratedQuestionsPanel';
 
 const streamQuestions = (data: any) => {
   const token = getToken();
-  return fetch(`${API_BASE_URL}/api/question-bank/questions/stream`, {
+  return fetch(`${API_BASE_URL?.replace(/\/+$/, "")}/api/question-bank/questions/stream`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
