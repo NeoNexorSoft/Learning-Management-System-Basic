@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react"
 import api from "@/lib/axios"
 import { getToken, getUser } from "@/lib/auth"
 import CourseViewer from "@/components/shared/CourseViewer"
+import {isCommercial} from "@/lib/utils";
 
 export default function CourseDetailPage() {
   const { id: slug } = useParams<{ id: string }>()
@@ -33,8 +34,14 @@ export default function CourseDetailPage() {
       router.push("/student/dashboard")
       return
     }
+
+    if (!isCommercial) {
+        const { data } = await api.post("/api/payment/enroll-free", {
+            course_id: course.id
+        })
+    }
     // Redirect to payment page
-    router.push(`/student/courses/${course.id}/payment`)
+    router.push(`/student/courses/${course.id}/${isCommercial ? 'payment' : 'learn'}`)
   }
 
   if (loading) {
@@ -63,7 +70,7 @@ export default function CourseDetailPage() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <CourseViewer
           course={course}
-          accessLevel="public"
+          accessLevel={isCommercial ? "public" : "full"}
           onEnroll={handleEnroll}
         />
       </div>

@@ -19,4 +19,11 @@ router.post("/payment/callback", paymentController.handleCallback)
 // ✅ Paystation → user's browser (redirect to course)
 router.get("/payment/return", paymentController.handleReturn)
 
+router.post(
+    "/payment/enroll-free",
+    authenticate,
+    requireRole("STUDENT"),
+    paymentController.enrollWithoutPayment
+)
+
 export default router

@@ -11,6 +11,7 @@ import QuizPreview from "@/components/shared/QuizPreview"
 import RichTextRenderer from "../ui/RichTextRenderer"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/hooks/useAuth"
+import {isCommercial} from "@/lib/utils";
 
 interface CourseViewerProps {
   course: any
@@ -205,8 +206,8 @@ export default function CourseViewer({
         ))}
       </div>
 
-      {/* Course Objective */}
-      {learnList.length > 0 && (
+      {/* Course Objective for Commercial version */}
+      {isCommercial && learnList.length > 0 && (
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm mb-6">
           <h2 className="text-base font-bold text-slate-900 mb-4">What is the Objective of this Course</h2>
           <div className="grid sm:grid-cols-2 gap-3">
@@ -220,8 +221,8 @@ export default function CourseViewer({
         </div>
       )}
 
-      {/* Requirements */}
-      {reqList.length > 0 && (
+      {/* Requirements for Commercial version */}
+      {isCommercial && reqList.length > 0 && (
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm mb-6">
           <h2 className="text-base font-bold text-slate-900 mb-4">Requirements</h2>
           <ul className="space-y-2">
@@ -235,8 +236,8 @@ export default function CourseViewer({
         </div>
       )}
 
-      {/* Target Audience */}
-      {audienceList.length > 0 && (
+      {/* Target Audience for Commercial version */}
+      {isCommercial && audienceList.length > 0 && (
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm mb-6">
           <h2 className="text-base font-bold text-slate-900 mb-4">Who Is This Course For</h2>
           <ul className="space-y-2">
@@ -250,47 +251,49 @@ export default function CourseViewer({
         </div>
       )}
 
-      {/* Pricing */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm mb-6">
-        <h3 className="text-base font-bold text-slate-900 mb-4">Pricing</h3>
-        {(() => {
-          const p  = Number(course?.price ?? 0)
-          const dp = Number(course?.discount_price ?? 0)
-          const hd = dp > 0 && dp < p
-          const fp = hd ? dp : p
-          return (
-            <div className="space-y-2">
-              <div className="flex items-baseline gap-3">
+      {/* Pricing for Commercial version */}
+        {isCommercial && (
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm mb-6">
+                <h3 className="text-base font-bold text-slate-900 mb-4">Pricing</h3>
+                {(() => {
+                    const p  = Number(course?.price ?? 0)
+                    const dp = Number(course?.discount_price ?? 0)
+                    const hd = dp > 0 && dp < p
+                    const fp = hd ? dp : p
+                    return (
+                        <div className="space-y-2">
+                            <div className="flex items-baseline gap-3">
                 <span className="text-3xl font-extrabold text-indigo-600">
                   {fp === 0 ? "Free" : `৳${fp.toLocaleString()}`}
                 </span>
-                {hd && (
-                  <>
+                                {hd && (
+                                    <>
                     <span className="text-lg text-slate-400 line-through">
                       ৳{p.toLocaleString()}
                     </span>
-                    <span className="text-sm font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                                        <span className="text-sm font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
                       {Math.round(((p - dp) / p) * 100)}% OFF
                     </span>
-                  </>
-                )}
-              </div>
-              {course?.discount_ends_at && hd && (
-                <p className="text-xs text-red-500">
-                  Offer ends: {new Date(course.discount_ends_at).toLocaleDateString("en-BD")}
-                </p>
-              )}
-              {course?.discount_type && hd && (
-                <p className="text-xs text-slate-400">
-                  {course.discount_type === "PERCENTAGE"
-                    ? `${course.discount_value}% discount applied`
-                    : `৳${p - fp} discount applied`}
-                </p>
-              )}
+                                    </>
+                                )}
+                            </div>
+                            {course?.discount_ends_at && hd && (
+                                <p className="text-xs text-red-500">
+                                    Offer ends: {new Date(course.discount_ends_at).toLocaleDateString("en-BD")}
+                                </p>
+                            )}
+                            {course?.discount_type && hd && (
+                                <p className="text-xs text-slate-400">
+                                    {course.discount_type === "PERCENTAGE"
+                                        ? `${course.discount_value}% discount applied`
+                                        : `৳${p - fp} discount applied`}
+                                </p>
+                            )}
+                        </div>
+                    )
+                })()}
             </div>
-          )
-        })()}
-      </div>
+        )}
 
       {/* Curriculum */}
       {course.sections?.length > 0 && (
@@ -302,7 +305,7 @@ export default function CourseViewer({
             </span>
           </h2>
 
-          {accessLevel === "public" && (
+          {isCommercial && accessLevel === "public" && (
             <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl mb-4">
               <Lock className="w-4 h-4 text-amber-500 flex-shrink-0" />
               <p className="text-xs text-amber-700 font-medium">
@@ -354,14 +357,14 @@ export default function CourseViewer({
 
                           {accessLevel === "full" && (
                             <>
-                              {lesson.type === "VIDEO" && lesson.video_urls.length && (
+                              {lesson.type === "VIDEO" && lesson?.video_urls?.length && (
                                 <>
                                   {lesson.video_urls.map((url: string, idx: number) => (
                                     <FilePreview key={idx} url={url} type="VIDEO" className="mt-2" />
                                   ))}
                                 </>
                               )}
-                              {lesson.type === "DOCUMENT" && lesson.file_urls.length && (
+                              {lesson.type === "DOCUMENT" && lesson?.file_urls?.length && (
                                 <>
                                   {lesson.file_urls.map((url: string, idx: number) => (
                                     <FilePreview key={idx} url={url} type="DOCUMENT" className="mt-2" />
@@ -398,35 +401,46 @@ export default function CourseViewer({
               {course.canAccessContent ? (isCourseCreator ? "Manage Course" : "Continue Learning") : "Enroll Now to Access Content"}
             </button>
           )}
+
+            {!isCommercial && (
+                <button
+                    onClick={onEnroll}
+                    className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-colors cursor-pointer"
+                >
+                    {"Continue Learning"}
+                </button>
+            )}
         </div>
       )}
 
-      {/* Instructor */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm mb-6">
-        <h2 className="text-base font-bold text-slate-900 mb-4">Your Instructor</h2>
-        <div className="flex items-center gap-4">
-          {course.teacher?.avatar ? (
-            <img
-              src={course.teacher.avatar}
-              alt={teacherName}
-              className="w-14 h-14 rounded-2xl object-cover flex-shrink-0"
-            />
-          ) : (
-            <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center text-lg font-bold text-white flex-shrink-0`}>
-              {teacherInitials}
+      {/* Instructor for Commercial version */}
+        {isCommercial && (
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm mb-6">
+                <h2 className="text-base font-bold text-slate-900 mb-4">Your Instructor</h2>
+                <div className="flex items-center gap-4">
+                    {course.teacher?.avatar ? (
+                        <img
+                            src={course.teacher.avatar}
+                            alt={teacherName}
+                            className="w-14 h-14 rounded-2xl object-cover flex-shrink-0"
+                        />
+                    ) : (
+                        <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center text-lg font-bold text-white flex-shrink-0`}>
+                            {teacherInitials}
+                        </div>
+                    )}
+                    <div>
+                        <p className="font-bold text-slate-900">{teacherName}</p>
+                        {course.teacher?.bio && (
+                            <p className="text-sm text-slate-500 mt-0.5">{course.teacher.bio}</p>
+                        )}
+                    </div>
+                </div>
             </div>
-          )}
-          <div>
-            <p className="font-bold text-slate-900">{teacherName}</p>
-            {course.teacher?.bio && (
-              <p className="text-sm text-slate-500 mt-0.5">{course.teacher.bio}</p>
-            )}
-          </div>
-        </div>
-      </div>
+        )}
 
-      {/* Reviews */}
-      {course.reviews?.length > 0 && (
+      {/* Reviews for Commercial version */}
+      {isCommercial && course.reviews?.length > 0 && (
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm mb-6">
           <h2 className="text-base font-bold text-slate-900 mb-4">Student Reviews</h2>
           <div className="space-y-4">
@@ -461,14 +475,14 @@ export default function CourseViewer({
           </div>
         </div>
       )}
-      {/* Welcome / Completion Messages */}
-      {course?.welcome_message && (
+      {/* Welcome / Completion Messages for Commercial version */}
+      {isCommercial && course?.welcome_message && (
         <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-4">
           <p className="text-xs font-bold text-indigo-700 mb-1">Welcome Message</p>
           <p className="text-sm text-indigo-800">{course.welcome_message}</p>
         </div>
       )}
-      {course?.congrats_message && (
+      {isCommercial && course?.congrats_message && (
         <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4">
           <p className="text-xs font-bold text-emerald-700 mb-1">Completion Message</p>
           <p className="text-sm text-emerald-800">{course.congrats_message}</p>

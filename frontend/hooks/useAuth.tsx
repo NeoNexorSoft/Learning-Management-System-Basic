@@ -11,6 +11,7 @@ import {
   getUser, setUser, removeUser,
   type AuthUser,
 } from "@/lib/auth"
+import {isCommercial} from "@/lib/utils";
 
 interface AuthContextType {
   user: AuthUser | null
@@ -89,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     document.cookie = `demo_role=${role}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`
 
-    router.push(role === "student" ? "/student/dashboard" : "/teacher/dashboard")
+    router.push(role === "student" ? `/student/${isCommercial ? 'dashboard' : 'e-library'}` : "/teacher/dashboard")
     router.refresh()
   }
 

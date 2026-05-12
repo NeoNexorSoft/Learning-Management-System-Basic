@@ -18,6 +18,7 @@ import TopBar from "@/components/shared/TopBar";
 import EarningsChart from "@/components/teacher/EarningsChart";
 import api from "@/lib/axios";
 import { useAuth } from "@/hooks/useAuth";
+import {isCommercial} from "@/lib/utils";
 
 type SortBy = "enrollments" | "revenue" | "rating";
 
@@ -465,14 +466,16 @@ function TeacherDashboardPage() {
             iconColor="text-emerald-600"
           />
 
-          <StatCard
-            icon={TrendingUp}
-            label="Total Earnings"
-            value={`TK${totalEarnings.toLocaleString()}`}
-            sub="BDT lifetime earnings"
-            iconBg="bg-amber-50"
-            iconColor="text-amber-600"
-          />
+            {isCommercial && (
+                <StatCard
+                    icon={TrendingUp}
+                    label="Total Earnings"
+                    value={`TK${totalEarnings.toLocaleString()}`}
+                    sub="BDT lifetime earnings"
+                    iconBg="bg-amber-50"
+                    iconColor="text-amber-600"
+                />
+            )}
 
           <StatCard
             icon={Star}
@@ -571,26 +574,28 @@ function TeacherDashboardPage() {
           </div>
         </div>
 
-        <div className="grid xl:grid-cols-3 gap-6">
-          <div className="xl:col-span-2">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-bold text-slate-900">
-                Earnings This Month
-              </h2>
-            </div>
+          {isCommercial && (
+              <div className="grid xl:grid-cols-3 gap-6">
+                  <div className="xl:col-span-2">
+                      <div className="flex items-center justify-between mb-4">
+                          <h2 className="text-base font-bold text-slate-900">
+                              Earnings This Month
+                          </h2>
+                      </div>
 
-            <div className="bg-white border border-slate-200 rounded-2xl p-5">
-              <p className="text-3xl font-extrabold text-slate-900">
-                TK{(stats?.thisMonthEarnings ?? 0).toLocaleString()}
-              </p>
-              <p className="text-sm text-slate-400 mt-1">
-                BDT earned this month
-              </p>
-            </div>
-          </div>
+                      <div className="bg-white border border-slate-200 rounded-2xl p-5">
+                          <p className="text-3xl font-extrabold text-slate-900">
+                              TK{(stats?.thisMonthEarnings ?? 0).toLocaleString()}
+                          </p>
+                          <p className="text-sm text-slate-400 mt-1">
+                              BDT earned this month
+                          </p>
+                      </div>
+                  </div>
 
-          <EarningsChart />
-        </div>
+                  <EarningsChart />
+              </div>
+          )}
 
         <TopPerformingCoursesSection courses={courses} />
       </main>

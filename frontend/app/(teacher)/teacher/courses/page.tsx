@@ -10,6 +10,7 @@ import {
 import TopBar from "@/components/shared/TopBar"
 import CourseFilter from "@/components/shared/CourseFilter"
 import api from "@/lib/axios"
+import {isCommercial} from "@/lib/utils";
 
 type Course = {
   id: string
@@ -170,16 +171,18 @@ function TeacherCoursesPage() {
 
                           <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100">
                             <div>
-                              <div className="flex items-center gap-2">
-                              <span className="text-sm font-bold text-indigo-600">
-                                {finalPrice === 0 ? "Free" : `৳${finalPrice.toLocaleString()}`}
-                              </span>
-                                {hasDiscount && (
-                                    <span className="text-xs text-slate-400 line-through">
-                                  ৳{price.toLocaleString()}
-                                </span>
+                                {isCommercial && (
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm font-bold text-indigo-600">
+                                        {finalPrice === 0 ? "Free" : `৳${finalPrice.toLocaleString()}`}
+                                      </span>
+                                      {hasDiscount && (
+                                        <span className="text-xs text-slate-400 line-through">
+                                            ৳{price.toLocaleString()}
+                                        </span>
+                                      )}
+                                    </div>
                                 )}
-                              </div>
                               <p className="text-xs text-slate-400">{course._count?.enrollments ?? 0} enrolled</p>
                             </div>
                             <div className="flex items-center gap-1.5">

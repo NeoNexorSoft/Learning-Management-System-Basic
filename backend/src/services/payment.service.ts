@@ -221,7 +221,31 @@ export const paymentService = {
     }
 
     return { success: false, courseId: null }
-  }
+  },
+
+    async enrollWithoutPayment(courseId: string, studentId: string) {
+        const course = await prisma.course.findUnique({ where: { id: courseId } })
+        if (!course) throw Object.assign(new Error("Course not found"), { statusCode: 404 })
+
+        const enrolled = await prisma.enrollment.findUnique({
+            where: { student_id_course_id: { student_id: studentId, course_id: courseId } }
+        })
+        if (enrolled) throw Object.assign(new Error("Already enrolled"), { statusCode: 400 })
+
+        const student = await prisma.user.findUnique({ where: { id: studentId } })
+        if (!student) throw Object.assign(new Error("Student not found"), { statusCode: 404 })
+
+        await prisma.enrollment.create({
+            data: {
+                id:         uuidv4(),
+                student_id: studentId,
+                course_id:  courseId!,
+                status:     "ACTIVE",
+            }
+        })
+
+        return { success: true, courseId }
+    },
 }
 
 const getPayStationConfig = async () => {
