@@ -4,6 +4,8 @@ import { useEffect, useState , Suspense } from "react"
 import { useRouter } from "next/navigation"
 import { Check, X, Eye, Search, Star, BookOpen, PlayCircle, HelpCircle, Users } from "lucide-react"
 import api from "@/lib/axios"
+import CourseFilter from "@/components/shared/CourseFilter"
+import {isCommercial} from "@/lib/utils";
 
 type Course = {
   id: string
@@ -42,20 +44,30 @@ function AdminCoursesPage() {
   const [rejectReason, setReason]  = useState("")
   const [actionLoading, setAction] = useState(false)
   const [error, setError]          = useState("")
+  const [page,    setPage]         = useState(1)
+  const [filters, setFilters]      = useState({ categoryId: "", subcategoryId: "", sort: "oldest" })
+
+  function handleFilter(params: { categoryId: string; subcategoryId: string; sort: string }) {
+    setFilters(params)
+    setPage(1)
+  }
 
   async function load() {
     setLoading(true)
     try {
-      const params: Record<string, string> = { limit: "50" }
-      if (statusFilter) params.status = statusFilter
-      if (search)       params.search = search
+      const params: Record<string, string | number> = { limit: 20, page }
+      if (statusFilter)        params.status       = statusFilter
+      if (search)              params.search       = search
+      if (filters.categoryId)    params.categoryId    = filters.categoryId
+      if (filters.subcategoryId) params.subcategoryId = filters.subcategoryId
+      params.sort = filters.sort
       const { data } = await api.get("/api/admin/courses", { params })
       setCourses(Array.isArray(data.data) ? { data: data.data, total: data.total, page: data.page, totalPages: data.totalPages } : { data: [], total: 0, page: 1, totalPages: 0 })
     } catch { setCourses({ data: [], total: 0, page: 1, totalPages: 0 }) }
     finally { setLoading(false) }
   }
 
-  useEffect(() => { load() }, [statusFilter, search]) // eslint-disable-line
+  useEffect(() => { load() }, [statusFilter, search, filters, page]) // eslint-disable-line
 
   const [pendingCount, setPendingCount] = useState(0)
 
@@ -138,6 +150,9 @@ function AdminCoursesPage() {
           </div>
         </div>
 
+        {/* Category / Sort filters */}
+        <CourseFilter onFilter={handleFilter} />
+
         {/* Table */}
         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
           {loading ? (
@@ -148,7 +163,7 @@ function AdminCoursesPage() {
               <table className="w-full text-sm">
                 <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  {["Course", "Teacher", "Category", "Subcategory", "Price", "Status", "Actions"].map(h => (
+                  {["Course", "Teacher", "Category", "Subcategory", "Status", "Actions"].map(h => (
                       <th key={h} className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">{h}</th>
                   ))}
                 </tr>
@@ -189,18 +204,20 @@ function AdminCoursesPage() {
                         </td>
                         <td className="px-4 py-3 text-slate-600">{c.category?.parent?.name ?? "—"}</td>
                         <td className="px-4 py-3 text-slate-600">{c.category?.name ?? "—"}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
+                          {isCommercial && (
+                              <td className="px-4 py-3">
+                                  <div className="flex items-center gap-2">
                             <span className="text-sm font-bold text-indigo-600">
                               {finalPrice === 0 ? "Free" : `৳${finalPrice.toLocaleString()}`}
                             </span>
-                            {hasDiscount && (
-                              <span className="text-xs text-slate-400 line-through">
+                                      {hasDiscount && (
+                                          <span className="text-xs text-slate-400 line-through">
                                 ৳{price.toLocaleString()}
                               </span>
-                            )}
-                          </div>
-                        </td>
+                                      )}
+                                  </div>
+                              </td>
+                          )}
                         <td className="px-4 py-3">
                           <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${STATUS_STYLES[c.status]}`}>
                             {c.status}

@@ -8,7 +8,9 @@ import {
   PlayCircle, HelpCircle, Users
 } from "lucide-react"
 import TopBar from "@/components/shared/TopBar"
+import CourseFilter from "@/components/shared/CourseFilter"
 import api from "@/lib/axios"
+import {isCommercial} from "@/lib/utils";
 
 type Course = {
   id: string
@@ -37,13 +39,21 @@ const STATUS_CONFIG = {
 function TeacherCoursesPage() {
   const [courses, setCourses] = useState<{ data: Course[]; total: number; page: number; totalPages: number } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [page,    setPage]    = useState(1)
+  const [filters, setFilters] = useState({ categoryId: "", subcategoryId: "", sort: "oldest" })
+
+  function handleFilter(params: { categoryId: string; subcategoryId: string; sort: string }) {
+    setFilters(params)
+    setPage(1)
+  }
 
   useEffect(() => {
-    api.get("/api/teacher/courses", { params: { limit: 100 } })
+    setLoading(true)
+    api.get("/api/teacher/courses", { params: { ...filters, page, limit: 20 } })
         .then(({ data }) => setCourses(data))
         .catch(() => setCourses(null))
         .finally(() => setLoading(false))
-  }, [])
+  }, [filters, page])
 
   const stats = {
     total:    courses?.data?.length ?? 0,
@@ -82,6 +92,9 @@ function TeacherCoursesPage() {
                 </div>
             ))}
           </div>
+
+          {/* Filters */}
+          <CourseFilter onFilter={handleFilter} />
 
           {/* Course list */}
           {loading ? (
@@ -158,16 +171,18 @@ function TeacherCoursesPage() {
 
                           <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100">
                             <div>
-                              <div className="flex items-center gap-2">
-                              <span className="text-sm font-bold text-indigo-600">
-                                {finalPrice === 0 ? "Free" : `৳${finalPrice.toLocaleString()}`}
-                              </span>
-                                {hasDiscount && (
-                                    <span className="text-xs text-slate-400 line-through">
-                                  ৳{price.toLocaleString()}
-                                </span>
+                                {isCommercial && (
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm font-bold text-indigo-600">
+                                        {finalPrice === 0 ? "Free" : `৳${finalPrice.toLocaleString()}`}
+                                      </span>
+                                      {hasDiscount && (
+                                        <span className="text-xs text-slate-400 line-through">
+                                            ৳{price.toLocaleString()}
+                                        </span>
+                                      )}
+                                    </div>
                                 )}
-                              </div>
                               <p className="text-xs text-slate-400">{course._count?.enrollments ?? 0} enrolled</p>
                             </div>
                             <div className="flex items-center gap-1.5">

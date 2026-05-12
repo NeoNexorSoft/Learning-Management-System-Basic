@@ -133,13 +133,8 @@ function StudentCoursesPage() {
         <div className="flex flex-col flex-1">
             <main className="flex-1 p-6 overflow-y-auto">
                 <PageHeader
-                    title="My Courses"
-                    subtitle={
-                        error ?? (search
-                                ? `${filtered.length} result${filtered.length !== 1 ? "s" : ""} for "${searchParams.get("search")}"`
-                                : `${courses.length} enrolled — ${inProgress} in progress, ${completed} completed`
-                        )
-                    }
+                    title="e-Library"
+                    subtitle={"A digital library with all available courses"}
                 />
 
                 {/* CourseFilter is always rendered — never unmounts */}

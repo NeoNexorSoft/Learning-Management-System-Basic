@@ -100,14 +100,14 @@ function AdminTeachersPage() {
       header: "Total Courses",
       render: (u) => <span className="font-semibold text-slate-700">{u.total_courses ?? 0}</span>,
     },
-    {
-      header: "Total Earnings",
-      render: (u) => (
-        <span className="font-semibold text-slate-700">
-          ৳ {parseFloat(u.total_earnings ?? "0").toFixed(2)}
-        </span>
-      ),
-    },
+    // {
+    //   header: "Total Earnings",
+    //   render: (u) => (
+    //     <span className="font-semibold text-slate-700">
+    //       ৳ {parseFloat(u.total_earnings ?? "0").toFixed(2)}
+    //     </span>
+    //   ),
+    // },
     {
       header: "Status",
       render: (u) => <Badge label={u.is_banned ? "Banned" : "Active"} />,

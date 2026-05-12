@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import api from "@/lib/axios";
 import type { DashboardStats } from "@/types/admin";
+import {isCommercial} from "@/lib/utils";
 
 const zero: DashboardStats = {
   totalUsers: 0,
@@ -338,98 +339,102 @@ function AdminDashboardPage() {
         </div>
       </div>
 
-      <div>
-        <SectionTitle
-          title="Payments Summary"
-          sub="Revenue, pending amount, and completed payment overview"
-        />
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          <StatCard
-            icon={CircleDollarSign}
-            label="Total Revenue"
-            value={formatBDT(paymentSummary.totalRevenue, loading)}
-            sub="Completed payment revenue"
-            iconBg="bg-emerald-50"
-            iconColor="text-emerald-600"
-            onClick={() => router.push("/admin/payments")}
-          />
+        {isCommercial && (
+            <div>
+                <SectionTitle
+                    title="Payments Summary"
+                    sub="Revenue, pending amount, and completed payment overview"
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                    <StatCard
+                        icon={CircleDollarSign}
+                        label="Total Revenue"
+                        value={formatBDT(paymentSummary.totalRevenue, loading)}
+                        sub="Completed payment revenue"
+                        iconBg="bg-emerald-50"
+                        iconColor="text-emerald-600"
+                        onClick={() => router.push("/admin/payments")}
+                    />
 
-          <StatCard
-            icon={AlertCircle}
-            label="Pending Amount"
-            value={formatBDT(paymentSummary.pendingAmount, loading)}
-            sub="Awaiting confirmation"
-            iconBg="bg-amber-50"
-            iconColor="text-amber-600"
-            onClick={() => router.push("/admin/payments?tab=PENDING")}
-          />
+                    <StatCard
+                        icon={AlertCircle}
+                        label="Pending Amount"
+                        value={formatBDT(paymentSummary.pendingAmount, loading)}
+                        sub="Awaiting confirmation"
+                        iconBg="bg-amber-50"
+                        iconColor="text-amber-600"
+                        onClick={() => router.push("/admin/payments?tab=PENDING")}
+                    />
 
-          <StatCard
-            icon={CheckCircle}
-            label="Completed Payments"
-            value={fmt(paymentSummary.completedPayments)}
-            sub="Successfully completed"
-            iconBg="bg-blue-50"
-            iconColor="text-blue-600"
-            onClick={() => router.push("/admin/payments?tab=COMPLETED")}
-          />
+                    <StatCard
+                        icon={CheckCircle}
+                        label="Completed Payments"
+                        value={fmt(paymentSummary.completedPayments)}
+                        sub="Successfully completed"
+                        iconBg="bg-blue-50"
+                        iconColor="text-blue-600"
+                        onClick={() => router.push("/admin/payments?tab=COMPLETED")}
+                    />
 
-          <StatCard
-            icon={Banknote}
-            label="Pending Payments"
-            value={fmt(paymentSummary.pendingPayments)}
-            sub="Pending payment count"
-            iconBg="bg-violet-50"
-            iconColor="text-violet-600"
-            onClick={() => router.push("/admin/payments?tab=PENDING")}
-          />
-        </div>
-      </div>
+                    <StatCard
+                        icon={Banknote}
+                        label="Pending Payments"
+                        value={fmt(paymentSummary.pendingPayments)}
+                        sub="Pending payment count"
+                        iconBg="bg-violet-50"
+                        iconColor="text-violet-600"
+                        onClick={() => router.push("/admin/payments?tab=PENDING")}
+                    />
+                </div>
+            </div>
+        )}
 
-      <div>
-        <SectionTitle
-          title="Financials"
-          sub="Payment collections and withdrawal requests"
-        />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            icon={CreditCard}
-            label="Total Payments"
-            value={formatBDT(toNumber(stats.totalPayments), loading)}
-            sub="All-time revenue collected"
-            iconBg="bg-indigo-50"
-            iconColor="text-indigo-600"
-            onClick={() => router.push("/admin/payments")}
-          />
-          <StatCard
-            icon={AlertCircle}
-            label="Pending Payments"
-            value={formatBDT(toNumber(stats.pendingPayments), loading)}
-            sub="Awaiting confirmation"
-            iconBg="bg-amber-50"
-            iconColor="text-amber-600"
-            onClick={() => router.push("/admin/payments?tab=PENDING")}
-          />
-          <StatCard
-            icon={Wallet}
-            label="Total Withdrawals"
-            value={formatBDT(toNumber(stats.totalWithdrawals), loading)}
-            sub="Paid out to teachers"
-            iconBg="bg-violet-50"
-            iconColor="text-violet-600"
-            onClick={() => router.push("/admin/withdrawals")}
-          />
-          <StatCard
-            icon={Clock}
-            label="Pending Withdrawals"
-            value={formatBDT(toNumber(stats.pendingWithdrawals), loading)}
-            sub="Awaiting admin approval"
-            iconBg="bg-rose-50"
-            iconColor="text-rose-600"
-            onClick={() => router.push("/admin/withdrawals?tab=PENDING")}
-          />
-        </div>
-      </div>
+        {isCommercial && (
+            <div>
+                <SectionTitle
+                    title="Financials"
+                    sub="Payment collections and withdrawal requests"
+                />
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <StatCard
+                        icon={CreditCard}
+                        label="Total Payments"
+                        value={formatBDT(toNumber(stats.totalPayments), loading)}
+                        sub="All-time revenue collected"
+                        iconBg="bg-indigo-50"
+                        iconColor="text-indigo-600"
+                        onClick={() => router.push("/admin/payments")}
+                    />
+                    <StatCard
+                        icon={AlertCircle}
+                        label="Pending Payments"
+                        value={formatBDT(toNumber(stats.pendingPayments), loading)}
+                        sub="Awaiting confirmation"
+                        iconBg="bg-amber-50"
+                        iconColor="text-amber-600"
+                        onClick={() => router.push("/admin/payments?tab=PENDING")}
+                    />
+                    <StatCard
+                        icon={Wallet}
+                        label="Total Withdrawals"
+                        value={formatBDT(toNumber(stats.totalWithdrawals), loading)}
+                        sub="Paid out to teachers"
+                        iconBg="bg-violet-50"
+                        iconColor="text-violet-600"
+                        onClick={() => router.push("/admin/withdrawals")}
+                    />
+                    <StatCard
+                        icon={Clock}
+                        label="Pending Withdrawals"
+                        value={formatBDT(toNumber(stats.pendingWithdrawals), loading)}
+                        sub="Awaiting admin approval"
+                        iconBg="bg-rose-50"
+                        iconColor="text-rose-600"
+                        onClick={() => router.push("/admin/withdrawals?tab=PENDING")}
+                    />
+                </div>
+            </div>
+        )}
     </main>
   );
 }
