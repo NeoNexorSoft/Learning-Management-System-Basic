@@ -64,14 +64,14 @@ const adminEvaluationNav: NavItem[] = [
   { icon: BarChart2, label: "Student Overview",              href: "/admin/evaluation/overview" },
   { icon: Trophy,    label: "Self Evaluation & Leaderboard", href: "/admin/evaluation/leaderboard" },
   { icon: Award,     label: "House Competition",             href: "/admin/evaluation/house" },
-  { icon: School,    label: "Inter Cadet College Evaluation",        href: "/admin/evaluation/inter-cadet" },
+  { icon: School,    label: "Inter Cadet College Evaluation",href: "/admin/evaluation/inter-cadet" },
   { icon: BarChart2, label: "Routine & Weakness Tracker",    href: "/admin/evaluation/tracker" }, // new
 ];
 
 const adminAiExamNav: NavItem[] = [ // new
   { icon: BrainCircuit,  label: "Question Generator", href: "/admin/ai-exam/questions" },
   { icon: ClipboardList, label: "Quiz Module",         href: "/admin/ai-exam/quiz" },
-  { icon: Trophy,        label: "Assignment",          href: "/admin/ai-exam/assignment" },
+  { icon: Trophy,        label: "Assignment",          href: "/admin/assignments" },
   { icon: Award,         label: "Self Test",           href: "/admin/ai-exam/self-test" },
 ];
 

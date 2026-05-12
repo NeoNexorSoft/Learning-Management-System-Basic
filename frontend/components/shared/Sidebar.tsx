@@ -51,7 +51,7 @@ const studentStudyNav: NavItem[] = [
 ]
 
 const studentAiExamNav: NavItem[] = [
-  { icon: ClipboardList, label: "Assignment", href: "/student/ai-exam/assignment" },
+  { icon: ClipboardList, label: "Assignment", href: "/student/assignments" },
   { icon: Award,         label: "Self Test",  href: "/student/ai-exam/self-test" },
 ]
 
@@ -77,8 +77,8 @@ const teacherAiExamNav: NavItem[] = [
   { icon: Database,      label: "Question Bank",        href: "/teacher/ai-exam/question-bank" },
   { icon: Sparkles,      label: "Create Exam Question", href: "/teacher/ai-exam/question/create" },
   { icon: ClipboardList, label: "Quiz Module",          href: "/teacher/ai-exam/quiz" },
-  { icon: Trophy,        label: "Assignment",           href: "/teacher/ai-exam/assignment" },
-  { icon: Award,         label: "Self Test",            href: "/teacher/ai-exam/self-test" },
+  { icon: Trophy,        label: "Assignment",           href: "/teacher/assignments" },
+  { icon: Award,         label: "Self Test",            href: "/teacher/exam-module/self-test" },
 ]
 
 // 5. Centralized Evaluation System
