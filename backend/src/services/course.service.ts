@@ -302,11 +302,10 @@ export const courseService = {
   async listCategories() {
     return prisma.category.findMany({
       where:   { parent_id: null },
-      include: {
-        children: { select: { id: true, name: true, slug: true }, orderBy: { name: 'asc' } },
-        _count:   { select: { courses: true } },
-      },
       orderBy: { name: 'asc' },
+      include: {
+        children: { select: { id: true, name: true }, orderBy: { name: 'asc' } },
+      },
     });
   },
 
@@ -337,21 +336,48 @@ export const courseService = {
 
   // ─── Teacher: Own Courses ──────────────────────────────────────────────────
 
-  async listTeacherCourses(teacherId: string, { page = 1, limit = 20 }: { page?: number; limit?: number }) {
+  async listTeacherCourses(
+    teacherId: string,
+    { page = 1, limit = 20, categoryId, subcategoryId, sort = 'oldest' }: {
+      page?: number; limit?: number;
+      categoryId?: string; subcategoryId?: string; sort?: string;
+    },
+  ) {
     const skip = (page - 1) * limit;
+
+    const sortMap: Record<string, Prisma.CourseOrderByWithRelationInput> = {
+      newest: { created_at: 'desc' },
+      oldest: { created_at: 'asc' },
+    };
+    const orderBy = sortMap[sort] ?? sortMap.oldest;
+
+    let categoryFilter: Prisma.CourseWhereInput = {};
+    if (subcategoryId) {
+      categoryFilter = { category_id: subcategoryId };
+    } else if (categoryId) {
+      const subcategoryIds = await prisma.category.findMany({
+        where:  { parent_id: categoryId },
+        select: { id: true },
+      }).then(rows => rows.map(r => r.id));
+      categoryFilter = subcategoryIds.length > 0
+        ? { category_id: { in: subcategoryIds } }
+        : { category_id: categoryId };
+    }
+
+    const where: Prisma.CourseWhereInput = { teacher_id: teacherId, ...categoryFilter };
 
     const [courses, total] = await Promise.all([
       prisma.course.findMany({
-        where:   { teacher_id: teacherId },
+        where,
         skip,
         take:    limit,
-        orderBy: { created_at: 'desc' },
+        orderBy,
         include: {
           category: { select: { id: true, name: true, slug: true } },
           _count:   { select: { enrollments: true, sections: true } },
         },
       }),
-      prisma.course.count({ where: { teacher_id: teacherId } }),
+      prisma.course.count({ where }),
     ]);
 
     const courseIds = courses.map(c => c.id);
@@ -698,12 +724,35 @@ export const courseService = {
   },
 
   async listAllCourses({
-                         status, search, page = 1, limit = 20,
-                       }: { status?: CourseStatus; search?: string; page?: number; limit?: number }) {
+    status, search, page = 1, limit = 20, categoryId, subcategoryId, sort = 'oldest',
+  }: {
+    status?: CourseStatus; search?: string; page?: number; limit?: number;
+    categoryId?: string; subcategoryId?: string; sort?: string;
+  }) {
     const skip = (page - 1) * limit;
+
+    const sortMap: Record<string, Prisma.CourseOrderByWithRelationInput> = {
+      newest: { created_at: 'desc' },
+      oldest: { created_at: 'asc' },
+    };
+    const orderBy = sortMap[sort] ?? sortMap.oldest;
+
+    let categoryFilter: Prisma.CourseWhereInput = {};
+    if (subcategoryId) {
+      categoryFilter = { category_id: subcategoryId };
+    } else if (categoryId) {
+      const subcategoryIds = await prisma.category.findMany({
+        where:  { parent_id: categoryId },
+        select: { id: true },
+      }).then(rows => rows.map(r => r.id));
+      categoryFilter = subcategoryIds.length > 0
+        ? { category_id: { in: subcategoryIds } }
+        : { category_id: categoryId };
+    }
 
     const where: Prisma.CourseWhereInput = {
       ...(status && { status }),
+      ...categoryFilter,
       ...(search && {
         OR: [
           { title: { contains: search, mode: 'insensitive' } },
@@ -717,7 +766,7 @@ export const courseService = {
         where,
         skip,
         take:    limit,
-        orderBy: { created_at: 'desc' },
+        orderBy,
         select: {
           id: true, title: true, slug: true, status: true, level: true,
           price: true, is_popular: true, thumbnail: true, published_at: true, created_at: true,

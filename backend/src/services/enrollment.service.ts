@@ -43,10 +43,36 @@ export const enrollmentService = {
     return enrollment;
   },
 
-  async getMyEnrollments(studentId: string) {
+  async getMyEnrollments(
+    studentId: string,
+    { categoryId, subcategoryId, sort = 'oldest' }: {
+      categoryId?: string; subcategoryId?: string; sort?: string;
+    } = {},
+  ) {
+    const sortMap: Record<string, 'asc' | 'desc'> = {
+      newest: 'desc',
+      oldest: 'asc',
+    };
+    const createdAtOrder = sortMap[sort] ?? sortMap.oldest;
+
+    let categoryFilter: Prisma.EnrollmentWhereInput = {};
+    if (subcategoryId) {
+      categoryFilter = { course: { category_id: subcategoryId } };
+    } else if (categoryId) {
+      const subcategoryIds = await prisma.category.findMany({
+        where:  { parent_id: categoryId },
+        select: { id: true },
+      }).then(rows => rows.map(r => r.id));
+      if (subcategoryIds.length === 0) {
+        categoryFilter = { course: { category_id: categoryId } };
+      } else {
+        categoryFilter = { course: { category_id: { in: subcategoryIds } } };
+      }
+    }
+
     return prisma.enrollment.findMany({
-      where:   { student_id: studentId },
-      orderBy: { enrolled_at: 'desc' },
+      where:   { student_id: studentId, ...categoryFilter },
+      orderBy: { enrolled_at: createdAtOrder },
       select: {
         id: true,
         progress: true,
@@ -61,7 +87,8 @@ export const enrollmentService = {
             thumbnail: true,
             level: true,
             duration: true,
-            teacher: { select: { id: true, name: true, avatar: true } },
+            teacher:  { select: { id: true, name: true, avatar: true } },
+            category: { select: { id: true, name: true } },
           },
         },
       },
