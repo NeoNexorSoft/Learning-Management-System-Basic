@@ -8,6 +8,7 @@ import {
   PlayCircle, HelpCircle, Users
 } from "lucide-react"
 import TopBar from "@/components/shared/TopBar"
+import CourseFilter from "@/components/shared/CourseFilter"
 import api from "@/lib/axios"
 
 type Course = {
@@ -37,13 +38,21 @@ const STATUS_CONFIG = {
 function TeacherCoursesPage() {
   const [courses, setCourses] = useState<{ data: Course[]; total: number; page: number; totalPages: number } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [page,    setPage]    = useState(1)
+  const [filters, setFilters] = useState({ categoryId: "", subcategoryId: "", sort: "oldest" })
+
+  function handleFilter(params: { categoryId: string; subcategoryId: string; sort: string }) {
+    setFilters(params)
+    setPage(1)
+  }
 
   useEffect(() => {
-    api.get("/api/teacher/courses", { params: { limit: 100 } })
+    setLoading(true)
+    api.get("/api/teacher/courses", { params: { ...filters, page, limit: 20 } })
         .then(({ data }) => setCourses(data))
         .catch(() => setCourses(null))
         .finally(() => setLoading(false))
-  }, [])
+  }, [filters, page])
 
   const stats = {
     total:    courses?.data?.length ?? 0,
@@ -82,6 +91,9 @@ function TeacherCoursesPage() {
                 </div>
             ))}
           </div>
+
+          {/* Filters */}
+          <CourseFilter onFilter={handleFilter} />
 
           {/* Course list */}
           {loading ? (

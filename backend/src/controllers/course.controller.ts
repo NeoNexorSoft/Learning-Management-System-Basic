@@ -75,15 +75,17 @@ export const courseController = {
 
   async listTeacherCourses(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const page  = req.query.page  as string | undefined;
-      const limit = req.query.limit as string | undefined;
+      const { page, limit, categoryId, subcategoryId, sort } = req.query as {
+        page?: string; limit?: string;
+        categoryId?: string; subcategoryId?: string; sort?: string;
+      };
 
-      // Service returns { data: Course[], total, page, limit, totalPages }
-      // Spread it directly so frontend receives:
-      // { status, data: [...], total, page, limit, totalPages }
       const result = await courseService.listTeacherCourses(req.user!.userId, {
         page:  page  ? parseInt(page, 10) : 1,
         limit: limit ? Math.min(parseInt(limit, 10), 100) : 20,
+        categoryId,
+        subcategoryId,
+        sort,
       });
 
       res.json({ status: 'success', ...result });
@@ -188,10 +190,10 @@ export const courseController = {
 
   async listAllCourses(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const status = req.query.status as string | undefined;
-      const search = req.query.search as string | undefined;
-      const page   = req.query.page   as string | undefined;
-      const limit  = req.query.limit  as string | undefined;
+      const { status, search, page, limit, categoryId, subcategoryId, sort } = req.query as {
+        status?: string; search?: string; page?: string; limit?: string;
+        categoryId?: string; subcategoryId?: string; sort?: string;
+      };
 
       if (status && !Object.values(CourseStatus).includes(status as CourseStatus)) {
         res.status(400).json({ status: 'error', message: 'Invalid status value' });
@@ -203,6 +205,9 @@ export const courseController = {
         search,
         page:  page  ? parseInt(page, 10) : 1,
         limit: limit ? Math.min(parseInt(limit, 10), 100) : 20,
+        categoryId,
+        subcategoryId,
+        sort,
       });
 
       res.json({ status: 'success', ...result });

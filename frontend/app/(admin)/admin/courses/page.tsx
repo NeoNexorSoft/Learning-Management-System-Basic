@@ -4,6 +4,7 @@ import { useEffect, useState , Suspense } from "react"
 import { useRouter } from "next/navigation"
 import { Check, X, Eye, Search, Star, BookOpen, PlayCircle, HelpCircle, Users } from "lucide-react"
 import api from "@/lib/axios"
+import CourseFilter from "@/components/shared/CourseFilter"
 
 type Course = {
   id: string
@@ -42,20 +43,30 @@ function AdminCoursesPage() {
   const [rejectReason, setReason]  = useState("")
   const [actionLoading, setAction] = useState(false)
   const [error, setError]          = useState("")
+  const [page,    setPage]         = useState(1)
+  const [filters, setFilters]      = useState({ categoryId: "", subcategoryId: "", sort: "oldest" })
+
+  function handleFilter(params: { categoryId: string; subcategoryId: string; sort: string }) {
+    setFilters(params)
+    setPage(1)
+  }
 
   async function load() {
     setLoading(true)
     try {
-      const params: Record<string, string> = { limit: "50" }
-      if (statusFilter) params.status = statusFilter
-      if (search)       params.search = search
+      const params: Record<string, string | number> = { limit: 20, page }
+      if (statusFilter)        params.status       = statusFilter
+      if (search)              params.search       = search
+      if (filters.categoryId)    params.categoryId    = filters.categoryId
+      if (filters.subcategoryId) params.subcategoryId = filters.subcategoryId
+      params.sort = filters.sort
       const { data } = await api.get("/api/admin/courses", { params })
       setCourses(Array.isArray(data.data) ? { data: data.data, total: data.total, page: data.page, totalPages: data.totalPages } : { data: [], total: 0, page: 1, totalPages: 0 })
     } catch { setCourses({ data: [], total: 0, page: 1, totalPages: 0 }) }
     finally { setLoading(false) }
   }
 
-  useEffect(() => { load() }, [statusFilter, search]) // eslint-disable-line
+  useEffect(() => { load() }, [statusFilter, search, filters, page]) // eslint-disable-line
 
   const [pendingCount, setPendingCount] = useState(0)
 
@@ -137,6 +148,9 @@ function AdminCoursesPage() {
             ))}
           </div>
         </div>
+
+        {/* Category / Sort filters */}
+        <CourseFilter onFilter={handleFilter} />
 
         {/* Table */}
         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">

@@ -18,7 +18,15 @@ export const enrollmentController = {
 
   async getMyEnrollments(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const enrollments = await enrollmentService.getMyEnrollments(req.user!.userId);
+      const { categoryId, subcategoryId, sort } = req.query as {
+        categoryId?: string; subcategoryId?: string; sort?: string;
+      };
+
+      const enrollments = await enrollmentService.getMyEnrollments(req.user!.userId, {
+        categoryId,
+        subcategoryId,
+        sort,
+      });
       res.json({ status: 'success', data: { enrollments } });
     } catch (err) {
       next(err);
