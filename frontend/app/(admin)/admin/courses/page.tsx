@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Check, X, Eye, Search, Star, BookOpen, PlayCircle, HelpCircle, Users } from "lucide-react"
 import api from "@/lib/axios"
 import CourseFilter from "@/components/shared/CourseFilter"
+import {isCommercial} from "@/lib/utils";
 
 type Course = {
   id: string
@@ -162,7 +163,7 @@ function AdminCoursesPage() {
               <table className="w-full text-sm">
                 <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  {["Course", "Teacher", "Category", "Subcategory", "Price", "Status", "Actions"].map(h => (
+                  {["Course", "Teacher", "Category", "Subcategory", "Status", "Actions"].map(h => (
                       <th key={h} className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">{h}</th>
                   ))}
                 </tr>
@@ -203,18 +204,20 @@ function AdminCoursesPage() {
                         </td>
                         <td className="px-4 py-3 text-slate-600">{c.category?.parent?.name ?? "—"}</td>
                         <td className="px-4 py-3 text-slate-600">{c.category?.name ?? "—"}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
+                          {isCommercial && (
+                              <td className="px-4 py-3">
+                                  <div className="flex items-center gap-2">
                             <span className="text-sm font-bold text-indigo-600">
                               {finalPrice === 0 ? "Free" : `৳${finalPrice.toLocaleString()}`}
                             </span>
-                            {hasDiscount && (
-                              <span className="text-xs text-slate-400 line-through">
+                                      {hasDiscount && (
+                                          <span className="text-xs text-slate-400 line-through">
                                 ৳{price.toLocaleString()}
                               </span>
-                            )}
-                          </div>
-                        </td>
+                                      )}
+                                  </div>
+                              </td>
+                          )}
                         <td className="px-4 py-3">
                           <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${STATUS_STYLES[c.status]}`}>
                             {c.status}
