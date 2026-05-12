@@ -6,7 +6,7 @@ import { z } from "zod";
 // Using zod keeps validation declarative and easy to read.
 const simulationBodySchema = z.object({
     title: z.string().min(3, "Title must be at least 3 characters.").max(150),
-    description: z.string().max(1000).optional(),
+    description: z.string().max(50000).optional(),
     subject: z.string().min(1, "Subject is required.").max(100),
     gradeLevel: z.string().min(1, "Grade level is required.").max(50),
     provider: z.string().min(1, "Provider name is required.").max(100),
