@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Search, Users, Star, Loader2 } from "lucide-react"
 import api from "@/lib/axios"
-import {isCommercial} from "@/lib/utils";
+import {cn, isCommercial} from "@/lib/utils";
 
 const gradients: Record<string, string> = {
   "Web Development": "from-blue-400 to-indigo-600",
@@ -111,54 +111,59 @@ function CoursesPage() {
                 const teacherName   = course.teacher?.name ?? "Instructor"
 
                 return (
-                  <div key={course.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-lg hover:border-indigo-200 transition-all group">
-                    {course.thumbnail ? (
-                      <img src={course.thumbnail} alt={course.title} className="h-36 w-full object-cover" />
-                    ) : (
-                      <div className={`bg-gradient-to-br ${displayGradient} h-36 flex items-center justify-center`}>
-                        <span className="text-5xl">{displayEmoji}</span>
-                      </div>
-                    )}
-                    <div className="p-5">
-                      <div className="flex flex-wrap items-center gap-1.5 mb-2">
-                        {categoryName && (
-                          <span className="inline-block text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
-                            {categoryName}
-                          </span>
+                    <Link href={`/courses/${course.slug}`} key={course.id}>
+                      <div key={course.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-lg hover:border-indigo-200 transition-all group">
+                        {course.thumbnail ? (
+                          <img src={course.thumbnail} alt={course.title} className="h-36 w-full object-cover" />
+                        ) : (
+                          <div className={`bg-gradient-to-br ${displayGradient} h-36 flex items-center justify-center`}>
+                            <span className="text-5xl">{displayEmoji}</span>
+                          </div>
                         )}
-                        {subcategoryName && subcategoryName !== categoryName && (
-                          <span className="inline-block text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">
-                            {subcategoryName}
-                          </span>
-                        )}
+                        <div className="p-5">
+                          <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                            {categoryName && (
+                              <span className="inline-block text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
+                                {categoryName}
+                              </span>
+                            )}
+                            {subcategoryName && subcategoryName !== categoryName && (
+                              <span className="inline-block text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">
+                                {subcategoryName}
+                              </span>
+                            )}
+                          </div>
+                          <h3 className="font-bold text-slate-900 mb-1 line-clamp-2 group-hover:text-indigo-600 transition-colors text-sm">
+                            {course.title}
+                          </h3>
+                          <p className="text-xs text-slate-500 mb-3">by {teacherName}</p>
+                          <div className="flex items-center justify-between text-xs text-slate-500 mb-4">
+                            <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {students.toLocaleString()}</span>
+                            <span className="flex items-center gap-1 text-amber-500"><Star className="w-3.5 h-3.5 fill-amber-400" /> {rating > 0 ? rating.toFixed(1) : "New"}</span>
+                          </div>
+                          <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                              {isCommercial && (
+                                  <div className="flex items-center gap-2">
+                                      <span className="text-sm font-bold text-indigo-600">
+                                        {finalPrice === 0 ? "Free" : `৳${finalPrice.toLocaleString()}`}
+                                      </span>
+                                      {hasDiscount && (
+                                        <span className="text-xs text-slate-400 line-through">
+                                            ৳{price.toLocaleString()}
+                                        </span>
+                                      )}
+                                  </div>
+                              )}
+                            <span className={cn(
+                                "text-xs font-semibold text-slate-600 hover:text-indigo-600 transition-colors",
+                                isCommercial ? "" : "w-full"
+                            )}>
+                              View →
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <h3 className="font-bold text-slate-900 mb-1 line-clamp-2 group-hover:text-indigo-600 transition-colors text-sm">
-                        {course.title}
-                      </h3>
-                      <p className="text-xs text-slate-500 mb-3">by {teacherName}</p>
-                      <div className="flex items-center justify-between text-xs text-slate-500 mb-4">
-                        <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {students.toLocaleString()}</span>
-                        <span className="flex items-center gap-1 text-amber-500"><Star className="w-3.5 h-3.5 fill-amber-400" /> {rating > 0 ? rating.toFixed(1) : "New"}</span>
-                      </div>
-                      <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                          {isCommercial && (
-                              <div className="flex items-center gap-2">
-                                  <span className="text-sm font-bold text-indigo-600">
-                                    {finalPrice === 0 ? "Free" : `৳${finalPrice.toLocaleString()}`}
-                                  </span>
-                                  {hasDiscount && (
-                                    <span className="text-xs text-slate-400 line-through">
-                                        ৳{price.toLocaleString()}
-                                    </span>
-                                  )}
-                              </div>
-                          )}
-                        <Link href={`/courses/${course.slug}`} className="text-xs font-semibold text-slate-600 hover:text-indigo-600 transition-colors">
-                          View →
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
+                    </Link>
                 )
               })}
             </div>

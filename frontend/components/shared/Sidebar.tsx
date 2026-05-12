@@ -305,13 +305,22 @@ export default function Sidebar({ role }: { role: "student" | "teacher" }) {
             <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-0.5">
 
               {/* 1. Dashboard */}
-              <NavLink
-                  href="/student/dashboard"
-                  icon={LayoutDashboard}
-                  label="Dashboard"
-                  active={pathname === "/student/dashboard"}
-                  variant="student"
-              />
+              {/*<NavLink*/}
+              {/*    href="/student/dashboard"*/}
+              {/*    icon={LayoutDashboard}*/}
+              {/*    label="Dashboard"*/}
+              {/*    active={pathname === "/student/dashboard"}*/}
+              {/*    variant="student"*/}
+              {/*/>*/}
+
+                {/* 1. E-Library */}
+                <NavLink
+                    href="/student/e-library"
+                    icon={LayoutDashboard}
+                    label="E-Library"
+                    active={pathname === "/student/e-library"}
+                    variant="student"
+                />
 
               {/* 2. Content Management & Study */}
               <div>

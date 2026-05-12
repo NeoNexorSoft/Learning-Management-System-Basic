@@ -1,5 +1,6 @@
 import { Request, Response } from "express"
 import { paymentService } from "../services/payment.service"
+import {env} from "../config/env";
 
 export const paymentController = {
 
@@ -52,5 +53,19 @@ export const paymentController = {
       console.error("Return error:", err.message)
       return res.redirect(`${process.env.FRONTEND_URL}/payment/failed`)
     }
-  }
+  },
+
+    async enrollWithoutPayment(req: Request, res: Response) {
+        try {
+            const isCommercial = env.IS_COMMERCIAL === "true";
+            console.log("Is Commercial =====>>>> ", isCommercial)
+            if (isCommercial) res.status(422).json({ success: false, message: "Can not proceed without payment" })
+            const studentId = req.user!.userId
+            const { course_id } = req.body
+            const result = await paymentService.enrollWithoutPayment(course_id, studentId)
+            res.json({ success: true, data: result })
+        } catch (err: any) {
+            res.status(err.statusCode ?? 500).json({ success: false, message: err.message })
+        }
+    },
 }
