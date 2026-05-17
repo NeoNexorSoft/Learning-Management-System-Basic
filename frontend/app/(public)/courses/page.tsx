@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback, Suspense } from "react"
+import { useEffect, useState, useCallback, useMemo, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Search, Users, Star, Loader2 } from "lucide-react"
@@ -56,6 +56,32 @@ function CoursesPage() {
     router.replace(search ? `/courses?${p}` : "/courses", { scroll: false })
   }
 
+  const grouped = useMemo(() => {
+    const classMap = new Map<string, { id: string; name: string; order: number; subjects: Map<string, { id: string; name: string; order: number; courses: any[] }> }>()
+    courses.forEach(course => {
+      const subject      = course.category?.name ?? "General"
+      const className    = course.category?.parent?.name ?? subject
+      const classId      = course.category?.parent?.id ?? course.category?.id ?? "general"
+      const subjectId    = course.category?.id ?? "general"
+      const classOrder   = course.category?.parent?.order ?? course.category?.order ?? 999
+      const subjectOrder = course.category?.order ?? 999
+      if (!classMap.has(classId)) {
+        classMap.set(classId, { id: classId, name: className, order: classOrder, subjects: new Map() })
+      }
+      const classGroup = classMap.get(classId)!
+      if (!classGroup.subjects.has(subjectId)) {
+        classGroup.subjects.set(subjectId, { id: subjectId, name: subject, order: subjectOrder, courses: [] })
+      }
+      classGroup.subjects.get(subjectId)!.courses.push(course)
+    })
+    return Array.from(classMap.values())
+        .sort((a, b) => a.order - b.order)
+        .map(c => ({
+          ...c,
+          subjects: Array.from(c.subjects.values()).sort((a, b) => a.order - b.order)
+        }))
+  }, [courses])
+
   return (
     <main className="pt-16">
       {/* Hero */}
@@ -96,77 +122,99 @@ function CoursesPage() {
         ) : (
           <>
             <p className="text-sm text-slate-500 mb-5">{courses.length} course{courses.length !== 1 ? "s" : ""} found</p>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {courses.map((course: any) => {
-                const subcategoryName = course.category?.name ?? ""
-                const categoryName    = course.category?.parent?.name ?? subcategoryName
-                const displayGradient = gradients[categoryName] ?? gradients[subcategoryName] ?? "from-slate-400 to-slate-600"
-                const displayEmoji    = emojis[categoryName]    ?? emojis[subcategoryName]    ?? "📚"
-                const students        = Number(course.totalStudents ?? course._count?.enrollments ?? 0)
-                const rating          = Number(course.avgRating ?? 0)
-                const price         = Number(course.price ?? 0)
-                const discountPrice = Number(course.discount_price ?? 0)
-                const hasDiscount   = discountPrice > 0 && discountPrice < price
-                const finalPrice    = hasDiscount ? discountPrice : price
-                const teacherName   = course.teacher?.name ?? "Instructor"
+            {grouped.map(classGroup => (
+              <div key={classGroup.id} style={{ marginBottom: "2.5rem" }}>
+                {/* Class heading */}
+                <div style={{ borderLeft: "4px solid #6366f1", paddingLeft: "12px", marginBottom: "1.25rem" }}>
+                  <div className="flex items-center gap-2">
+                    <span style={{ fontSize: "18px", fontWeight: 500 }} className="text-slate-800">{classGroup.name}</span>
+                    <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                      {classGroup.subjects.reduce((acc, s) => acc + s.courses.length, 0)} courses
+                    </span>
+                  </div>
+                </div>
 
-                return (
-                    <Link href={`/courses/${course.slug}`} key={course.id}>
-                      <div key={course.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-lg hover:border-indigo-200 transition-all group">
-                        {course.thumbnail ? (
-                          <img src={course.thumbnail} alt={course.title} className="h-36 w-full object-cover" />
-                        ) : (
-                          <div className={`bg-gradient-to-br ${displayGradient} h-36 flex items-center justify-center`}>
-                            <span className="text-5xl">{displayEmoji}</span>
-                          </div>
-                        )}
-                        <div className="p-5">
-                          <div className="flex flex-wrap items-center gap-1.5 mb-2">
-                            {categoryName && (
-                              <span className="inline-block text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
-                                {categoryName}
-                              </span>
-                            )}
-                            {subcategoryName && subcategoryName !== categoryName && (
-                              <span className="inline-block text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">
-                                {subcategoryName}
-                              </span>
-                            )}
-                          </div>
-                          <h3 className="font-bold text-slate-900 mb-1 line-clamp-2 group-hover:text-indigo-600 transition-colors text-sm">
-                            {course.title}
-                          </h3>
-                          <p className="text-xs text-slate-500 mb-3">by {teacherName}</p>
-                          <div className="flex items-center justify-between text-xs text-slate-500 mb-4">
-                            <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {students.toLocaleString()}</span>
-                            <span className="flex items-center gap-1 text-amber-500"><Star className="w-3.5 h-3.5 fill-amber-400" /> {rating > 0 ? rating.toFixed(1) : "New"}</span>
-                          </div>
-                          <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                              {isCommercial && (
-                                  <div className="flex items-center gap-2">
+                {classGroup.subjects.map(subjectGroup => (
+                  <div key={subjectGroup.id} style={{ marginBottom: "1.5rem", paddingLeft: "16px", borderLeft: "2px solid #e2e8f0" }}>
+                    {/* Subject heading */}
+                    <p className="text-sm font-medium text-slate-400 mb-4">{subjectGroup.name}</p>
+
+                    {/* Courses grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {subjectGroup.courses.map((course: any) => {
+                        const subcategoryName = course.category?.name ?? ""
+                        const categoryName    = course.category?.parent?.name ?? subcategoryName
+                        const displayGradient = gradients[categoryName] ?? gradients[subcategoryName] ?? "from-slate-400 to-slate-600"
+                        const displayEmoji    = emojis[categoryName]    ?? emojis[subcategoryName]    ?? "📚"
+                        const students        = Number(course.totalStudents ?? course._count?.enrollments ?? 0)
+                        const rating          = Number(course.avgRating ?? 0)
+                        const price         = Number(course.price ?? 0)
+                        const discountPrice = Number(course.discount_price ?? 0)
+                        const hasDiscount   = discountPrice > 0 && discountPrice < price
+                        const finalPrice    = hasDiscount ? discountPrice : price
+                        const teacherName   = course.teacher?.name ?? "Instructor"
+
+                        return (
+                          <Link href={`/courses/${course.slug}`} key={course.id}>
+                            <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-lg hover:border-indigo-200 transition-all group">
+                              {course.thumbnail ? (
+                                <img src={course.thumbnail} alt={course.title} className="h-36 w-full object-cover" />
+                              ) : (
+                                <div className={`bg-gradient-to-br ${displayGradient} h-36 flex items-center justify-center`}>
+                                  <span className="text-5xl">{displayEmoji}</span>
+                                </div>
+                              )}
+                              <div className="p-5">
+                                <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                                  {categoryName && (
+                                    <span className="inline-block text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
+                                      {categoryName}
+                                    </span>
+                                  )}
+                                  {subcategoryName && subcategoryName !== categoryName && (
+                                    <span className="inline-block text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">
+                                      {subcategoryName}
+                                    </span>
+                                  )}
+                                </div>
+                                <h3 className="font-bold text-slate-900 mb-1 line-clamp-2 group-hover:text-indigo-600 transition-colors text-sm">
+                                  {course.title}
+                                </h3>
+                                <p className="text-xs text-slate-500 mb-3">by {teacherName}</p>
+                                <div className="flex items-center justify-between text-xs text-slate-500 mb-4">
+                                  <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {students.toLocaleString()}</span>
+                                  <span className="flex items-center gap-1 text-amber-500"><Star className="w-3.5 h-3.5 fill-amber-400" /> {rating > 0 ? rating.toFixed(1) : "New"}</span>
+                                </div>
+                                <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                                  {isCommercial && (
+                                    <div className="flex items-center gap-2">
                                       <span className="text-sm font-bold text-indigo-600">
                                         {finalPrice === 0 ? "Free" : `৳${finalPrice.toLocaleString()}`}
                                       </span>
                                       {hasDiscount && (
                                         <span className="text-xs text-slate-400 line-through">
-                                            ৳{price.toLocaleString()}
+                                          ৳{price.toLocaleString()}
                                         </span>
                                       )}
-                                  </div>
-                              )}
-                            <span className={cn(
-                                "text-xs font-semibold text-slate-600 hover:text-indigo-600 transition-colors",
-                                isCommercial ? "" : "w-full"
-                            )}>
-                              View →
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                )
-              })}
-            </div>
+                                    </div>
+                                  )}
+                                  <span className={cn(
+                                    "text-xs font-semibold text-slate-600 hover:text-indigo-600 transition-colors",
+                                    isCommercial ? "" : "w-full"
+                                  )}>
+                                    View →
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
           </>
         )}
       </div>

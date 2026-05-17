@@ -275,12 +275,12 @@ export const courseController = {
 
   async createCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { name, parent_id } = req.body;
+      const { name, parent_id, order } = req.body;
       if (!name) {
         res.status(400).json({ status: 'error', message: 'name is required' });
         return;
       }
-      const category = await courseService.createCategory(name, parent_id);
+      const category = await courseService.createCategory(name, parent_id, order);
       res.status(201).json({ status: 'success', data: { category } });
     } catch (err) {
       next(err);
@@ -289,7 +289,8 @@ export const courseController = {
 
   async updateCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const category = await courseService.updateCategory(req.params.id as string, req.body);
+      const { name, parent_id, order } = req.body;
+      const category = await courseService.updateCategory(req.params.id as string, { name, parent_id, order });
       res.json({ status: 'success', data: { category } });
     } catch (err) {
       next(err);

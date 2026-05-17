@@ -44,10 +44,10 @@ export const enrollmentService = {
   },
 
   async getMyEnrollments(
-    studentId: string,
-    { categoryId, subcategoryId, sort = 'oldest' }: {
-      categoryId?: string; subcategoryId?: string; sort?: string;
-    } = {},
+      studentId: string,
+      { categoryId, subcategoryId, sort = 'oldest' }: {
+        categoryId?: string; subcategoryId?: string; sort?: string;
+      } = {},
   ) {
     const sortMap: Record<string, 'asc' | 'desc'> = {
       newest: 'desc',
@@ -88,7 +88,16 @@ export const enrollmentService = {
             level: true,
             duration: true,
             teacher:  { select: { id: true, name: true, avatar: true } },
-            category: { select: { id: true, name: true } },
+            category: {
+              select: {
+                id: true,
+                name: true,
+                order: true,
+                parent: {
+                  select: { id: true, name: true, order: true }
+                }
+              }
+            },
           },
         },
       },

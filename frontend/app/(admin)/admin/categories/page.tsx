@@ -14,13 +14,14 @@ function CategoryForm({
                       }: {
   initial?: Partial<Category>
   parents: Category[]
-  onSubmit: (data: { name: string; slug: string; parent_id?: string }) => void
+  onSubmit: (data: { name: string; slug: string; order: number; parent_id?: string }) => void
   loading: boolean
   isParent: boolean
 }) {
   const [name,     setName]     = useState(initial?.name ?? "")
   const [slug,     setSlug]     = useState(initial?.slug ?? "")
   const [parentId, setParentId] = useState(initial?.parent_id ?? "")
+  const [order,    setOrder]    = useState((initial as any)?.order ?? 0)
 
   function autoSlug(n: string) {
     return n.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")
@@ -30,7 +31,7 @@ function CategoryForm({
       <form
           onSubmit={(e) => {
             e.preventDefault()
-            onSubmit({ name: name.trim(), slug: slug.trim(), ...(!isParent && parentId ? { parent_id: parentId } : {}) })
+            onSubmit({ name: name.trim(), slug: slug.trim(), order, ...(!isParent && parentId ? { parent_id: parentId } : {}) })
           }}
           className="space-y-4"
       >
@@ -65,6 +66,16 @@ function CategoryForm({
               </select>
             </div>
         )}
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Display Order</label>
+          <input
+              type="number" min={0} value={order}
+              onChange={(e) => setOrder(Number(e.target.value))}
+              placeholder="e.g. 1"
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 bg-slate-50 focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
+          />
+          <p className="text-xs text-slate-400 mt-1">Lower number = appears first. e.g. Class 11-12 → 1, Class 9-10 → 2</p>
+        </div>
         <div className="flex gap-3 justify-end pt-2">
           <button
               type="submit" disabled={loading}
@@ -122,9 +133,9 @@ function AdminCategoriesPage() {
       const raw: any[] = data.data?.categories ?? (Array.isArray(data.data) ? data.data : [])
       const all: Category[] = []
       for (const parent of raw) {
-        all.push({ id: parent.id, name: parent.name, slug: parent.slug, parent_id: null })
+        all.push({ id: parent.id, name: parent.name, slug: parent.slug, parent_id: null, order: parent.order ?? 0 } as any)
         for (const child of (parent.children ?? [])) {
-          all.push({ id: child.id, name: child.name, slug: child.slug, parent_id: parent.id })
+          all.push({ id: child.id, name: child.name, slug: child.slug, parent_id: parent.id, order: child.order ?? 0 } as any)
         }
       }
       setCategories(all)
@@ -152,7 +163,7 @@ function AdminCategoriesPage() {
     setModalOpen(true)
   }
 
-  async function handleSubmit(data: { name: string; slug: string; parent_id?: string }) {
+  async function handleSubmit(data: { name: string; slug: string; order: number; parent_id?: string }) {
     setFormLoading(true)
     try {
       if (editTarget) {
@@ -202,6 +213,7 @@ function AdminCategoriesPage() {
               <p className="text-xs text-slate-400 font-mono">{cat.slug}</p>
               {parentName && <p className="text-xs text-indigo-500 mt-0.5">Under: {parentName}</p>}
               {isParent && childCount > 0 && <p className="text-xs text-slate-400 mt-0.5">{childCount} subcategories</p>}
+              <p className="text-xs text-slate-400 mt-0.5">Order: {(cat as any).order ?? 0}</p>
             </div>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
@@ -271,7 +283,6 @@ function AdminCategoriesPage() {
             <p className="text-sm text-slate-500 mt-1">Manage course categories and subcategories</p>
           </div>
 
-          {/* Search bar */}
           <div className="relative w-full max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
@@ -286,7 +297,7 @@ function AdminCategoriesPage() {
 
         <div className="grid lg:grid-cols-2 gap-6">
           <Section title="Categories" items={parents} onAdd={() => openAdd(true)}  isParent={true}  />
-          <Section title="Subcategories"     items={subs}    onAdd={() => openAdd(false)} isParent={false} />
+          <Section title="Subcategories" items={subs} onAdd={() => openAdd(false)} isParent={false} />
         </div>
 
         <Modal
@@ -319,8 +330,8 @@ function AdminCategoriesPage() {
 
 export default function Page() {
   return (
-    <Suspense>
-      <AdminCategoriesPage />
-    </Suspense>
+      <Suspense>
+        <AdminCategoriesPage />
+      </Suspense>
   )
 }

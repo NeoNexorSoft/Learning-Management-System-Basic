@@ -129,7 +129,17 @@ export const courseService = {
           published_at: true,
           created_at: true,
           teacher:  { select: { id: true, name: true, avatar: true } },
-          category: { select: { id: true, name: true, slug: true } },
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              order: true,
+              parent: {
+                select: { id: true, name: true, slug: true, order: true }
+              }
+            }
+          },
           _count:   { select: { enrollments: true } },
         },
       }),
@@ -302,27 +312,34 @@ export const courseService = {
   async listCategories() {
     return prisma.category.findMany({
       where:   { parent_id: null },
-      orderBy: { name: 'asc' },
+      orderBy: { order: 'asc' },
       include: {
-        children: { select: { id: true, name: true }, orderBy: { name: 'asc' } },
+        children: { select: { id: true, name: true, order: true }, orderBy: { order: 'asc' } },
       },
     });
   },
 
-  async createCategory(name: string, parent_id?: string) {
+  async createCategory(name: string, parent_id?: string, order?: number) {
     if (parent_id) {
       const parent = await prisma.category.findUnique({ where: { id: parent_id } });
       if (!parent) throw Object.assign(new Error('Parent category not found'), { statusCode: 404 });
     }
     const slug = await generateCategorySlug(name);
-    return prisma.category.create({ data: { id: uuidv4(), name, slug, parent_id } });
+    return prisma.category.create({ data: { id: uuidv4(), name, slug, parent_id, order: order ?? 0 } });
   },
 
-  async updateCategory(id: string, data: { name?: string; parent_id?: string | null }) {
+  async updateCategory(id: string, data: { name?: string; parent_id?: string | null; order?: number }) {
     const category = await prisma.category.findUnique({ where: { id } });
     if (!category) throw Object.assign(new Error('Category not found'), { statusCode: 404 });
 
-    const updateData: Prisma.CategoryUpdateInput = { ...data };
+    const updateData: Prisma.CategoryUpdateInput = {};
+    if (data.name      !== undefined) updateData.name      = data.name;
+    if (data.parent_id !== undefined) {
+      updateData.parent = data.parent_id
+          ? { connect: { id: data.parent_id } }
+          : { disconnect: true };
+    }
+    if (data.order     !== undefined) updateData.order     = data.order;
     if (data.name) updateData.slug = await generateCategorySlug(data.name);
 
     return prisma.category.update({ where: { id }, data: updateData });
@@ -373,7 +390,17 @@ export const courseService = {
         take:    limit,
         orderBy,
         include: {
-          category: { select: { id: true, name: true, slug: true } },
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              order: true,
+              parent: {
+                select: { id: true, name: true, slug: true, order: true }
+              }
+            }
+          },
           _count:   { select: { enrollments: true, sections: true } },
         },
       }),
@@ -771,7 +798,17 @@ export const courseService = {
           id: true, title: true, slug: true, status: true, level: true,
           price: true, is_popular: true, thumbnail: true, published_at: true, created_at: true,
           teacher:  { select: { id: true, name: true, email: true, avatar: true } },
-          category: { select: { id: true, name: true, parent: { select: { name: true } } } },
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              order: true,
+              parent: {
+                select: { id: true, name: true, slug: true, order: true }
+              }
+            }
+          },
           _count:   { select: { enrollments: true, sections: true } },
         },
       }),
