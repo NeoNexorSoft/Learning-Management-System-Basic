@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation"
 import { Check, X, Eye, Search, Star, BookOpen, PlayCircle, HelpCircle, Users } from "lucide-react"
 import api from "@/lib/axios"
 import CourseFilter from "@/components/shared/CourseFilter"
-import {isCommercial} from "@/lib/utils";
+import Pagination from "@/components/shared/Pagination"
+import {isCommercial} from "@/lib/utils"
+import { COURSES_PER_PAGE } from "@/lib/config"
 
 type Course = {
   id: string
@@ -55,14 +57,16 @@ function AdminCoursesPage() {
   async function load() {
     setLoading(true)
     try {
-      const params: Record<string, string | number> = { limit: 20, page }
+      const params: Record<string, string | number> = { limit: COURSES_PER_PAGE, page }
       if (statusFilter)        params.status       = statusFilter
       if (search)              params.search       = search
       if (filters.categoryId)    params.categoryId    = filters.categoryId
       if (filters.subcategoryId) params.subcategoryId = filters.subcategoryId
       params.sort = filters.sort
       const { data } = await api.get("/api/admin/courses", { params })
-      setCourses(Array.isArray(data.data) ? { data: data.data, total: data.total, page: data.page, totalPages: data.totalPages } : { data: [], total: 0, page: 1, totalPages: 0 })
+      // Handle both { data: [...], totalPages } and { data: { data: [...], totalPages } }
+      const src = Array.isArray(data.data) ? data : (data.data ?? data)
+      setCourses(Array.isArray(src.data) ? { data: src.data, total: Number(src.total ?? 0), page: Number(src.page ?? 1), totalPages: Math.max(1, Number(src.totalPages ?? 1)) } : { data: [], total: 0, page: 1, totalPages: 1 })
     } catch { setCourses({ data: [], total: 0, page: 1, totalPages: 0 }) }
     finally { setLoading(false) }
   }
@@ -131,14 +135,14 @@ function AdminCoursesPage() {
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
-                value={search} onChange={e => setSearch(e.target.value)}
+                value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
                 placeholder="Search courses or teachers…"
                 className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-300"
             />
           </div>
           <div className="flex items-center gap-2">
             {["", "PENDING", "APPROVED", "REJECTED", "DRAFT"].map(s => (
-                <button key={s} onClick={() => setStatus(s)}
+                <button key={s} onClick={() => { setStatus(s); setPage(1) }}
                         className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
                             statusFilter === s
                                 ? "border-indigo-500 bg-indigo-50 text-indigo-700"
@@ -255,6 +259,8 @@ function AdminCoursesPage() {
               </table>
           )}
         </div>
+
+        <Pagination page={page} totalPages={courses.totalPages} onPageChange={setPage} />
 
         {/* Reject Modal */}
         {rejectId && (

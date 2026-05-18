@@ -5,6 +5,8 @@ import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Search, Users, Star, Loader2 } from "lucide-react"
 import api from "@/lib/axios"
+import Pagination from "@/components/shared/Pagination"
+import { COURSES_PER_PAGE } from "@/lib/config"
 import {cn, isCommercial} from "@/lib/utils";
 
 const gradients: Record<string, string> = {
@@ -27,30 +29,34 @@ function CoursesPage() {
   const searchParams = useSearchParams()
   const router       = useRouter()
 
-  const [courses, setCourses] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [search, setSearch]   = useState(searchParams.get("q") ?? "")
+  const [courses,    setCourses]    = useState<any[]>([])
+  const [loading,    setLoading]    = useState(true)
+  const [search,     setSearch]     = useState(searchParams.get("q") ?? "")
+  const [page,       setPage]       = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
 
-  const fetchCourses = useCallback((q: string) => {
+  const fetchCourses = useCallback((q: string, pg: number) => {
     setLoading(true)
-    const params = new URLSearchParams({ limit: "24" })
+    const params = new URLSearchParams({ limit: String(COURSES_PER_PAGE), page: String(pg) })
     if (q) params.set("search", q)
     api.get(`/api/courses?${params}`)
       .then(({ data }) => {
         const result = data.data
         setCourses(Array.isArray(result) ? result : (result.data ?? []))
+        setTotalPages(Array.isArray(result) ? 1 : Math.max(1, Number(result.totalPages ?? 1)))
       })
       .catch(() => setCourses([]))
       .finally(() => setLoading(false))
   }, [])
 
   useEffect(() => {
-    fetchCourses(search)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    fetchCourses(search, page)
+  }, [page]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
-    fetchCourses(search)
+    setPage(1)
+    fetchCourses(search, 1)
     const p = new URLSearchParams()
     if (search) p.set("q", search)
     router.replace(search ? `/courses?${p}` : "/courses", { scroll: false })
@@ -215,6 +221,7 @@ function CoursesPage() {
                 ))}
               </div>
             ))}
+            <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
           </>
         )}
       </div>
