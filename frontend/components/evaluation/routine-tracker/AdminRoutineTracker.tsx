@@ -47,7 +47,9 @@ import type {
   AdminStudentTrackerProfile,
   AdminTrackerOverview,
   AdminTrackerStudent,
+  RoutineTask,
   RoutineTrackerOverview,
+  StudentWeakness,
   WeaknessLevel,
 } from "@/types/routine-tracker";
 
@@ -276,20 +278,20 @@ export default function AdminRoutineTracker() {
             const studentOverview = await routineTrackerApi.getAdminStudentOverview(student.id);
             const rate = completionRateFromOverview(studentOverview);
             const riskLevel = riskFromProfile(studentOverview, safeCount(student, "studentWeaknesses"));
-            return {
+           return {
               student,
               overview: studentOverview,
-              weaknesses: [],
-              routine: [],
+              weaknesses: [] as StudentWeakness[],
+              routine: [] as RoutineTask[],
               completionRate: rate,
               riskLevel,
-            } satisfies AdminStudentTrackerProfile;
+            } as AdminStudentTrackerProfile;
           })
         );
 
         if (!alive) return;
         const loadedProfiles = profileResponses
-          .filter((item): item is PromiseFulfilledResult<AdminStudentTrackerProfile> => item.status === "fulfilled")
+          .filter((item): item is PromiseFulfilledResult<AdminStudentTrackerProfile> => item.status === "fulfilled" && "value" in item)
           .map((item) => item.value);
 
         setProfiles(loadedProfiles.length ? loadedProfiles : FALLBACK_PROFILES);
