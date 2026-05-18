@@ -218,7 +218,7 @@ function normalizeScore(value: number | undefined | null) {
 
 function EmptyState({ title, description }: { title: string; description: string }) {
   return (
-    <div className="flex min-h-[180px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 p-6 text-center">
+    <div className="flex min-h-45 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 p-6 text-center">
       <BookOpen className="mb-3 h-8 w-8 text-slate-300" />
       <p className="text-sm font-semibold text-slate-800">{title}</p>
       <p className="mt-1 max-w-sm text-xs text-slate-500">{description}</p>
@@ -383,13 +383,13 @@ function RoutinePlanner({ tasks, selectedDate, setSelectedDate, onAddClick }: { 
 
         <div className="flex items-center justify-center gap-3">
           <button type="button" onClick={() => setSelectedDate(toISODate(addDays(selected, -7)))} className="rounded-full border border-slate-200 p-2 text-violet-600 hover:bg-violet-50"><ChevronLeft className="h-4 w-4" /></button>
-          <p className="min-w-[185px] text-center text-sm font-extrabold text-slate-800">{displayDateRange(weekStart)}</p>
+          <p className="min-w-46.25 text-center text-sm font-extrabold text-slate-800">{displayDateRange(weekStart)}</p>
           <button type="button" onClick={() => setSelectedDate(toISODate(addDays(selected, 7)))} className="rounded-full border border-slate-200 p-2 text-violet-600 hover:bg-violet-50"><ChevronRight className="h-4 w-4" /></button>
         </div>
       </div>
 
       <div className="overflow-x-auto pb-2">
-        <div className="min-w-[760px]">
+        <div className="min-w-190">
           <div className="grid grid-cols-[74px_repeat(7,minmax(90px,1fr))] border-b border-slate-100 text-center text-xs font-bold text-slate-500">
             <div />
             {weekDays.map((day) => {
@@ -405,7 +405,7 @@ function RoutinePlanner({ tasks, selectedDate, setSelectedDate, onAddClick }: { 
           </div>
 
           {TIME_SLOTS.map((slot) => (
-            <div key={slot} className="grid min-h-[72px] grid-cols-[74px_repeat(7,minmax(90px,1fr))] border-b border-slate-100">
+            <div key={slot} className="grid min-h-18 grid-cols-[74px_repeat(7,minmax(90px,1fr))] border-b border-slate-100">
               <div className="flex items-start justify-center pt-4 text-xs font-semibold text-slate-500">{slot}</div>
               {weekDays.map((day) => {
                 const key = toISODate(day);
@@ -463,7 +463,7 @@ function TodayRoutineTable({ tasks, onComplete }: { tasks: RoutineTask[]; onComp
         <EmptyState title="No routine for today" description="Add a session from the planner to start tracking your daily study routine." />
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[680px] overflow-hidden rounded-xl text-left text-sm">
+          <table className="w-full min-w-170 overflow-hidden rounded-xl text-left text-sm">
             <thead className="bg-slate-50 text-xs font-bold text-slate-500">
               <tr>
                 <th className="px-4 py-3">Time</th>
@@ -518,7 +518,7 @@ function WeaknessOverview({ weaknesses }: { weaknesses: StudentWeakness[] }) {
         <EmptyState title="No weakness data yet" description="Weakness analytics will appear after your teacher or admin adds evaluation data." />
       ) : (
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_0.85fr]">
-          <div className="h-[290px] min-w-0">
+          <div className="h-72.5 min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={chartData} outerRadius="72%">
                 <PolarGrid stroke="#e2e8f0" />
@@ -531,7 +531,7 @@ function WeaknessOverview({ weaknesses }: { weaknesses: StudentWeakness[] }) {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[330px] overflow-hidden rounded-xl border border-slate-200 text-left text-sm">
+            <table className="w-full min-w-82.5 overflow-hidden rounded-xl border border-slate-200 text-left text-sm">
               <thead className="bg-slate-50 text-xs font-bold text-slate-500">
                 <tr>
                   <th className="px-4 py-3">Subject</th>
@@ -603,7 +603,7 @@ function PerformanceChart({ points }: { points: PerformancePoint[] }) {
           <option>This Term</option>
         </select>
       </div>
-      <div className="h-[260px]">
+      <div className="h-65">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData} margin={{ left: -16, right: 12, top: 10, bottom: 0 }}>
             <defs>
@@ -721,7 +721,7 @@ export default function StudentRoutineTracker() {
     <main className="min-h-full bg-slate-50 px-4 py-5 sm:px-6 lg:px-8">
       <RoutineTaskModal open={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleAddTask} selectedDate={selectedDate} />
 
-      <div className="mx-auto max-w-[1600px] space-y-5">
+      <div className="mx-auto max-w-400 space-y-5">
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Routine &amp; Weakness Tracker</h1>

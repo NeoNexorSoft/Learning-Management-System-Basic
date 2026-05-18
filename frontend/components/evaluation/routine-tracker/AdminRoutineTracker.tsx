@@ -426,7 +426,7 @@ export default function AdminRoutineTracker() {
       </div>
 
       {loading ? (
-        <div className="flex min-h-[420px] items-center justify-center rounded-2xl border border-slate-200 bg-white">
+        <div className="flex min-h-105 items-center justify-center rounded-2xl border border-slate-200 bg-white">
           <div className="text-center">
             <Loader2 className="mx-auto h-8 w-8 animate-spin text-violet-600" />
             <p className="mt-3 text-sm font-semibold text-slate-600">Loading admin tracker analytics...</p>
@@ -512,7 +512,7 @@ export default function AdminRoutineTracker() {
 
               <SectionCard title="Weakness Reports" subtitle="Subjects ordered by institutional weakness risk">
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[560px] text-left text-sm">
+                  <table className="w-full min-w-140 text-left text-sm">
                     <thead>
                       <tr className="border-b border-slate-100 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                         <th className="px-4 py-3 font-bold">Subject</th>
@@ -632,7 +632,7 @@ export default function AdminRoutineTracker() {
                 <SectionCard title="Student Performance Dashboard" subtitle="Students sorted by weakness and performance risk">
                   {studentPerformanceRows.length ? (
                     <div className="overflow-x-auto">
-                      <table className="w-full min-w-[760px] text-left text-sm">
+                      <table className="w-full min-w-190 text-left text-sm">
                         <thead>
                           <tr className="border-b border-slate-100 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                             <th className="px-4 py-3 font-bold">Student</th>
