@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, Suspense } from "react"
+import { useEffect, useState, useMemo, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { BookOpen, Loader2 } from "lucide-react"
@@ -19,6 +19,7 @@ interface CourseItem {
     thumbnail: string
     totalLessons: number
     completedLessons: number
+    _raw?: any
 }
 
 const gradients: Record<string, string> = {
@@ -108,6 +109,7 @@ function StudentCoursesPage() {
                     thumbnail:        e.course?.thumbnail    ?? "",
                     totalLessons:     0,
                     completedLessons: 0,
+                    _raw:             e,
                 }))
                 setCourses(mapped)
             })
@@ -126,6 +128,33 @@ function StudentCoursesPage() {
         )
         : courses
 
+    const grouped = useMemo(() => {
+        const classMap = new Map<string, { id: string; name: string; order: number; subjects: Map<string, { id: string; name: string; order: number; courses: CourseItem[] }> }>()
+        filtered.forEach(course => {
+            const rawCategory  = (course as any)._raw?.course?.category
+            const subject      = rawCategory?.name ?? course.category ?? "General"
+            const className    = rawCategory?.parent?.name ?? subject
+            const classId      = rawCategory?.parent?.id ?? rawCategory?.id ?? "general"
+            const subjectId    = rawCategory?.id ?? "general"
+            const classOrder   = rawCategory?.parent?.order ?? rawCategory?.order ?? 999
+            const subjectOrder = rawCategory?.order ?? 999
+            if (!classMap.has(classId)) {
+                classMap.set(classId, { id: classId, name: className, order: classOrder, subjects: new Map() })
+            }
+            const classGroup = classMap.get(classId)!
+            if (!classGroup.subjects.has(subjectId)) {
+                classGroup.subjects.set(subjectId, { id: subjectId, name: subject, order: subjectOrder, courses: [] })
+            }
+            classGroup.subjects.get(subjectId)!.courses.push(course)
+        })
+        return Array.from(classMap.values())
+            .sort((a, b) => a.order - b.order)
+            .map(c => ({
+                ...c,
+                subjects: Array.from(c.subjects.values()).sort((a, b) => a.order - b.order)
+            }))
+    }, [filtered])
+
     // FIX: No early return when loading.
     // CourseFilter must ALWAYS stay mounted so its state is never reset.
     // Show spinner inside the layout instead of replacing the whole page.
@@ -133,8 +162,8 @@ function StudentCoursesPage() {
         <div className="flex flex-col flex-1">
             <main className="flex-1 p-6 overflow-y-auto">
                 <PageHeader
-                    title="e-Library"
-                    subtitle={"A digital library with all available courses"}
+                    title={"A Digital Library with All Available Courses"}
+                    /* subtitle={"A digital library with all available courses"}*/
                 />
 
                 {/* CourseFilter is always rendered — never unmounts */}
@@ -160,9 +189,35 @@ function StudentCoursesPage() {
                         )}
                     </div>
                 ) : (
-                    <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                        {filtered.map((course) => <CourseCard key={course.id} course={course} />)}
-                    </div>
+                    <>
+                        {grouped.map(classGroup => (
+                            <div key={classGroup.id} style={{ marginBottom: "2.5rem" }}>
+                                {/* Class heading */}
+                                <div style={{ borderLeft: "4px solid #6366f1", paddingLeft: "12px", marginBottom: "1.25rem" }}>
+                                    <div className="flex items-center gap-2">
+                                        <span style={{ fontSize: "18px", fontWeight: 500 }} className="text-slate-800">{classGroup.name}</span>
+                                        <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                                            {classGroup.subjects.reduce((acc, s) => acc + s.courses.length, 0)} courses
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {classGroup.subjects.map(subjectGroup => (
+                                    <div key={subjectGroup.id} style={{ marginBottom: "1.5rem", paddingLeft: "16px", borderLeft: "2px solid #e2e8f0" }}>
+                                        {/* Subject heading */}
+                                        <p className="text-sm font-medium text-slate-400 mb-4">{subjectGroup.name}</p>
+
+                                        {/* Courses grid */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                                            {subjectGroup.courses.map((course) => (
+                                                <CourseCard key={course.id} course={course} />
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ))}
+                    </>
                 )}
             </main>
         </div>
