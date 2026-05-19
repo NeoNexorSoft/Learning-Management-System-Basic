@@ -13,8 +13,7 @@ import {
 import TopBar from "@/components/shared/TopBar"
 import api from "@/lib/axios"
 import {GenerateQuizModal} from "@/components/teacher/GenerateQuizModal";
-
-const IS_COMMERCIAL = process.env.NEXT_PUBLIC_IS_COMMERCIAL === "true"
+import { isCommercial } from "@/lib/utils"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -62,7 +61,7 @@ const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").repla
 
 const LANGUAGES   = ["English", "Bengali", "Hindi", "Arabic", "Spanish"]
 const LEVELS      = ["Beginner", "Intermediate", "Advanced"]
-const STEP_LABELS = IS_COMMERCIAL
+const STEP_LABELS = isCommercial
   ? ["Content", "Learners", "Curriculum", "Pricing", "Messages"]
   : ["Content", "Curriculum"]
 
@@ -1026,7 +1025,7 @@ function CreateCoursePage() {
       if (!w.subtitle.trim())     { setSubmitError("Course subtitle is required."); return }
       if (!w.categoryId)          { setSubmitError("Please select a category."); return }
       if (!w.subcategoryId)       { setSubmitError("Please select a subcategory."); return }
-      if (IS_COMMERCIAL && !w.description?.trim()) { setSubmitError("Course description is required."); return }
+      if (isCommercial && !w.description?.trim()) { setSubmitError("Course description is required."); return }
       if (!w.thumbnail)           { setSubmitError("Course thumbnail is required."); return }
     }
     if (w.step === 1) {
@@ -1043,7 +1042,7 @@ function CreateCoursePage() {
     if (w.step === 3) {
       if (!w.price && w.price !== "0") { setSubmitError("Please set a course price."); return }
     }
-    if (w.step < (IS_COMMERCIAL ? 4 : 1)) set({ step: w.step + 1 })
+    if (w.step < (isCommercial ? 4 : 1)) set({ step: w.step + 1 })
   }
   const back = () => { if (w.step > 0) set({ step: w.step - 1 }) }
 
@@ -1051,7 +1050,7 @@ function CreateCoursePage() {
     if (!w.title.trim())      { setSubmitError("Course title is required."); return }
     if (!w.categoryId)        { setSubmitError("Please select a category."); return }
     if (!w.subcategoryId)     { setSubmitError("Please select a subcategory."); return }
-    if (IS_COMMERCIAL && !w.description.trim()) { setSubmitError("Course description is required."); return }
+    if (isCommercial && !w.description.trim()) { setSubmitError("Course description is required."); return }
     if (!w.thumbnail)         { setSubmitError("Course thumbnail is required."); return }
     setSubmitError(""); setSubmitting(true)
 
@@ -1072,7 +1071,7 @@ function CreateCoursePage() {
       if (w.description)      updatePayload.description      = w.description
       if (w.thumbnail)        updatePayload.thumbnail        = w.thumbnail
       if (w.introVideo)       updatePayload.intro_video      = w.introVideo
-      if (IS_COMMERCIAL) {
+      if (isCommercial) {
         if (w.price)            updatePayload.price            = Number(w.price)
         if (w.welcomeMessage)   updatePayload.welcome_message  = w.welcomeMessage
         if (w.congratsMessage)  updatePayload.congrats_message = w.congratsMessage
@@ -1090,7 +1089,7 @@ function CreateCoursePage() {
       await api.put(`/api/courses/${courseId}`, updatePayload)
 
       // 3. Objectives (filter empty)
-      if (IS_COMMERCIAL) {
+      if (isCommercial) {
         const allObjectives = [
           ...w.objectives.filter(Boolean).map((content, order) => ({ type: "OBJECTIVE",        content, order })),
           ...w.requirements.filter(Boolean).map((content, order) => ({ type: "REQUIREMENT",     content, order })),
@@ -1187,7 +1186,7 @@ function CreateCoursePage() {
           <div className="max-w-3xl mx-auto px-6 py-8">
             <StepIndicator current={w.step} />
 
-            {IS_COMMERCIAL ? (
+            {isCommercial ? (
               <>
                 {w.step === 0 && <Step3 {...stepProps} categories={categories} uploadConfig={uploadConfig} />}
                 {w.step === 1 && <Step1 {...stepProps} />}
@@ -1214,7 +1213,7 @@ function CreateCoursePage() {
                       className="flex items-center gap-2 px-5 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-semibold hover:bg-slate-50 disabled:opacity-40 transition-colors">
                 <ArrowLeft className="w-4 h-4" /> Back
               </button>
-              {w.step < (IS_COMMERCIAL ? 4 : 1) ? (
+              {w.step < (isCommercial ? 4 : 1) ? (
                   <button type="button" onClick={next}
                           className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-500/20">
                     Save & Continue <ChevronRight className="w-4 h-4" />
