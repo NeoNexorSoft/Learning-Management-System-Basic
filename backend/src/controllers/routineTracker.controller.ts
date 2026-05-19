@@ -2,13 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import { Role } from '@prisma/client';
 import { routineTrackerService } from '../services/routineTracker.service';
 import { parseDateRange, routineTrackerValidation } from '../utils/routineTracker.validation';
-
-const toDate = (value?: string | null): Date | undefined => (value ? new Date(value) : undefined);
-const toNullableDate = (value?: string | null): Date | null | undefined => {
-  if (value === null) return null;
-  if (value === undefined) return undefined;
-  return new Date(value);
-};
+import { toDate, toNullableDate } from '../utils/helper';
 
 export const routineTrackerController = {
   // ─── Common/Student ────────────────────────────────────────────────────────
