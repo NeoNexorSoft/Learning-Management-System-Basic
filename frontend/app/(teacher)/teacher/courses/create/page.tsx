@@ -13,6 +13,7 @@ import {
 import TopBar from "@/components/shared/TopBar"
 import api from "@/lib/axios"
 import {GenerateQuizModal} from "@/components/teacher/GenerateQuizModal";
+import { isCommercial } from "@/lib/utils"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -60,7 +61,9 @@ const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").repla
 
 const LANGUAGES   = ["English", "Bengali", "Hindi", "Arabic", "Spanish"]
 const LEVELS      = ["Beginner", "Intermediate", "Advanced"]
-const STEP_LABELS = ["Content", "Learners", "Curriculum", "Pricing", "Messages"]
+const STEP_LABELS = isCommercial
+  ? ["Content", "Learners", "Curriculum", "Pricing", "Messages"]
+  : ["Content", "Curriculum"]
 
 const initWizard: Wizard = {
   step: 0,
@@ -676,7 +679,9 @@ function Step2({ w, set, uploadConfig }: { w: Wizard; set: (p: Partial<Wizard>) 
 
 // ─── Step 3: Course Content (with thumbnail + intro video upload) ─────────────
 
-function Step3({ w, set, categories, uploadConfig }: { w: Wizard; set: (p: Partial<Wizard>) => void; categories: Category[]; uploadConfig?: any }) {
+function Step3({ w, set, categories, uploadConfig, isCommercial = true }: {
+  w: Wizard; set: (p: Partial<Wizard>) => void; categories: Category[]; uploadConfig?: any; isCommercial?: boolean
+}) {
   const thumbRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLInputElement>(null)
   const [thumbUploading, setThumbUploading] = useState(false)
@@ -770,6 +775,7 @@ function Step3({ w, set, categories, uploadConfig }: { w: Wizard; set: (p: Parti
           </div>
 
           {/* Level (OPTIONAL) */}
+          {isCommercial && (
           <div>
             <Label optional>Level</Label>
             <select value={w.level} onChange={e => set({ level: e.target.value })}
@@ -778,12 +784,15 @@ function Step3({ w, set, categories, uploadConfig }: { w: Wizard; set: (p: Parti
               {LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
             </select>
           </div>
+          )}
 
           {/* Description */}
+          {isCommercial && (
           <div>
             <Label>Course Description *</Label>
             <RichTextEditor initialValue={w.description} onBlur={description => set({ description })} />
           </div>
+          )}
 
           {/* Thumbnail upload */}
           <div>
@@ -816,7 +825,7 @@ function Step3({ w, set, categories, uploadConfig }: { w: Wizard; set: (p: Parti
           </div>
 
           {/* Intro video upload */}
-          <div>
+          {isCommercial && <div>
             <Label optional>Course Intro Video</Label>
             <input ref={videoRef} type="file" accept="video/mp4,video/webm,.mkv" className="hidden" onChange={handleIntroVideo} />
             {w.introVideo ? (
@@ -837,7 +846,7 @@ function Step3({ w, set, categories, uploadConfig }: { w: Wizard; set: (p: Parti
                 </button>
             )}
             {videoError && <p className="text-xs text-red-500 mt-1.5">{videoError}</p>}
-          </div>
+          </div>}
 
         </div>
       </Card>
@@ -1016,7 +1025,7 @@ function CreateCoursePage() {
       if (!w.subtitle.trim())     { setSubmitError("Course subtitle is required."); return }
       if (!w.categoryId)          { setSubmitError("Please select a category."); return }
       if (!w.subcategoryId)       { setSubmitError("Please select a subcategory."); return }
-      if (!w.description?.trim()) { setSubmitError("Course description is required."); return }
+      if (isCommercial && !w.description?.trim()) { setSubmitError("Course description is required."); return }
       if (!w.thumbnail)           { setSubmitError("Course thumbnail is required."); return }
     }
     if (w.step === 1) {
@@ -1033,7 +1042,7 @@ function CreateCoursePage() {
     if (w.step === 3) {
       if (!w.price && w.price !== "0") { setSubmitError("Please set a course price."); return }
     }
-    if (w.step < 4) set({ step: w.step + 1 })
+    if (w.step < (isCommercial ? 4 : 1)) set({ step: w.step + 1 })
   }
   const back = () => { if (w.step > 0) set({ step: w.step - 1 }) }
 
@@ -1041,7 +1050,7 @@ function CreateCoursePage() {
     if (!w.title.trim())      { setSubmitError("Course title is required."); return }
     if (!w.categoryId)        { setSubmitError("Please select a category."); return }
     if (!w.subcategoryId)     { setSubmitError("Please select a subcategory."); return }
-    if (!w.description.trim()) { setSubmitError("Course description is required."); return }
+    if (isCommercial && !w.description.trim()) { setSubmitError("Course description is required."); return }
     if (!w.thumbnail)         { setSubmitError("Course thumbnail is required."); return }
     setSubmitError(""); setSubmitting(true)
 
@@ -1060,31 +1069,35 @@ function CreateCoursePage() {
       const updatePayload: any = {}
       if (w.subtitle)         updatePayload.subtitle         = w.subtitle
       if (w.description)      updatePayload.description      = w.description
-      if (w.price)            updatePayload.price            = Number(w.price)
-      if (w.welcomeMessage)   updatePayload.welcome_message  = w.welcomeMessage
-      if (w.congratsMessage)  updatePayload.congrats_message = w.congratsMessage
       if (w.thumbnail)        updatePayload.thumbnail        = w.thumbnail
       if (w.introVideo)       updatePayload.intro_video      = w.introVideo
-      if (w.discountType)     updatePayload.discount_type    = w.discountType
-      if (w.discountEndsAt)   updatePayload.discount_ends_at = new Date(w.discountEndsAt).toISOString()
-      if (w.discountType && w.discountValue) {
-        const base = parseFloat(w.price) || 0
-        const disc = parseFloat(w.discountValue) || 0
-        const final = w.discountType === "PERCENTAGE"
-            ? Math.max(0, base - (base * Math.min(disc, 100)) / 100)
-            : Math.max(0, base - disc)
-        updatePayload.discount_price = final
+      if (isCommercial) {
+        if (w.price)            updatePayload.price            = Number(w.price)
+        if (w.welcomeMessage)   updatePayload.welcome_message  = w.welcomeMessage
+        if (w.congratsMessage)  updatePayload.congrats_message = w.congratsMessage
+        if (w.discountType)     updatePayload.discount_type    = w.discountType
+        if (w.discountEndsAt)   updatePayload.discount_ends_at = new Date(w.discountEndsAt).toISOString()
+        if (w.discountType && w.discountValue) {
+          const base = parseFloat(w.price) || 0
+          const disc = parseFloat(w.discountValue) || 0
+          const final = w.discountType === "PERCENTAGE"
+              ? Math.max(0, base - (base * Math.min(disc, 100)) / 100)
+              : Math.max(0, base - disc)
+          updatePayload.discount_price = final
+        }
       }
       await api.put(`/api/courses/${courseId}`, updatePayload)
 
       // 3. Objectives (filter empty)
-      const allObjectives = [
-        ...w.objectives.filter(Boolean).map((content, order) => ({ type: "OBJECTIVE",        content, order })),
-        ...w.requirements.filter(Boolean).map((content, order) => ({ type: "REQUIREMENT",     content, order })),
-        ...w.audience.filter(Boolean).map((content, order)     => ({ type: "TARGET_AUDIENCE", content, order })),
-      ]
-      if (allObjectives.length > 0) {
-        await api.post(`/api/courses/${courseId}/objectives`, { objectives: allObjectives })
+      if (isCommercial) {
+        const allObjectives = [
+          ...w.objectives.filter(Boolean).map((content, order) => ({ type: "OBJECTIVE",        content, order })),
+          ...w.requirements.filter(Boolean).map((content, order) => ({ type: "REQUIREMENT",     content, order })),
+          ...w.audience.filter(Boolean).map((content, order)     => ({ type: "TARGET_AUDIENCE", content, order })),
+        ]
+        if (allObjectives.length > 0) {
+          await api.post(`/api/courses/${courseId}/objectives`, { objectives: allObjectives })
+        }
       }
 
       // 4. Sections + lessons
@@ -1173,11 +1186,20 @@ function CreateCoursePage() {
           <div className="max-w-3xl mx-auto px-6 py-8">
             <StepIndicator current={w.step} />
 
-            {w.step === 0 && <Step3 {...stepProps} categories={categories} uploadConfig={uploadConfig} />}
-            {w.step === 1 && <Step1 {...stepProps} />}
-            {w.step === 2 && <Step2 {...stepProps} uploadConfig={uploadConfig} />}
-            {w.step === 3 && <Step4 {...stepProps} />}
-            {w.step === 4 && <Step5 {...stepProps} />}
+            {isCommercial ? (
+              <>
+                {w.step === 0 && <Step3 {...stepProps} categories={categories} uploadConfig={uploadConfig} />}
+                {w.step === 1 && <Step1 {...stepProps} />}
+                {w.step === 2 && <Step2 {...stepProps} uploadConfig={uploadConfig} />}
+                {w.step === 3 && <Step4 {...stepProps} />}
+                {w.step === 4 && <Step5 {...stepProps} />}
+              </>
+            ) : (
+              <>
+                {w.step === 0 && <Step3 {...stepProps} categories={categories} uploadConfig={uploadConfig} isCommercial={false} />}
+                {w.step === 1 && <Step2 {...stepProps} uploadConfig={uploadConfig} />}
+              </>
+            )}
 
             {submitError && (
                 <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-3 mt-6">
@@ -1191,7 +1213,7 @@ function CreateCoursePage() {
                       className="flex items-center gap-2 px-5 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-semibold hover:bg-slate-50 disabled:opacity-40 transition-colors">
                 <ArrowLeft className="w-4 h-4" /> Back
               </button>
-              {w.step < 4 ? (
+              {w.step < (isCommercial ? 4 : 1) ? (
                   <button type="button" onClick={next}
                           className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-500/20">
                     Save & Continue <ChevronRight className="w-4 h-4" />
