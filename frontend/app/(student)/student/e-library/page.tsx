@@ -7,7 +7,9 @@ import { BookOpen, Loader2 } from "lucide-react"
 
 import PageHeader from "@/components/shared/PageHeader"
 import CourseFilter from "@/components/shared/CourseFilter"
+import Pagination from "@/components/shared/Pagination"
 import api from "@/lib/axios"
+import { COURSES_PER_PAGE } from "@/lib/config"
 
 interface CourseItem {
     id: string
@@ -82,7 +84,8 @@ function StudentCoursesPage() {
     const [courses, setCourses] = useState<CourseItem[]>([])
     const [loading, setLoading] = useState(true)
     const [error,   setError]   = useState<string | null>(null)
-    const [page,    setPage]    = useState(1)
+    const [page,       setPage]       = useState(1)
+    const [totalPages, setTotalPages] = useState(1)
     const [filters, setFilters] = useState({
         categoryId:    searchParams.get("categoryId")    ?? "",
         subcategoryId: searchParams.get("subcategoryId") ?? "",
@@ -96,7 +99,7 @@ function StudentCoursesPage() {
 
     useEffect(() => {
         setLoading(true)
-        api.get("/api/enrollments/my", { params: { ...filters, page, limit: 20 } })
+        api.get("/api/enrollments/my", { params: { ...filters, page, limit: COURSES_PER_PAGE } })
             .then(({ data }) => {
                 const enrollments: any[] = data.data.enrollments ?? []
                 const mapped: CourseItem[] = enrollments.map((e: any) => ({
@@ -112,6 +115,7 @@ function StudentCoursesPage() {
                     _raw:             e,
                 }))
                 setCourses(mapped)
+                setTotalPages(Math.max(1, Number(data.data?.totalPages ?? data.totalPages ?? 1)))
             })
             .catch(() => setError("Failed to load courses."))
             .finally(() => setLoading(false))
@@ -162,8 +166,8 @@ function StudentCoursesPage() {
         <div className="flex flex-col flex-1">
             <main className="flex-1 p-6 overflow-y-auto">
                 <PageHeader
-                    title={"A Digital Library with All Available Courses"}
-                    /* subtitle={"A digital library with all available courses"}*/
+                    title={"A digital library with all available courses"}
+                   /* subtitle={"A digital library with all available courses"}*/
                 />
 
                 {/* CourseFilter is always rendered — never unmounts */}
@@ -219,6 +223,7 @@ function StudentCoursesPage() {
                         ))}
                     </>
                 )}
+                <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
             </main>
         </div>
     )

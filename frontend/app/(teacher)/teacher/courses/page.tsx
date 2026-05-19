@@ -9,8 +9,10 @@ import {
 } from "lucide-react"
 import TopBar from "@/components/shared/TopBar"
 import CourseFilter from "@/components/shared/CourseFilter"
+import Pagination from "@/components/shared/Pagination"
 import api from "@/lib/axios"
-import {isCommercial} from "@/lib/utils";
+import {isCommercial} from "@/lib/utils"
+import { COURSES_PER_PAGE } from "@/lib/config"
 
 type Course = {
   id: string
@@ -49,8 +51,12 @@ function TeacherCoursesPage() {
 
   useEffect(() => {
     setLoading(true)
-    api.get("/api/teacher/courses", { params: { ...filters, page, limit: 20 } })
-        .then(({ data }) => setCourses(data))
+    api.get("/api/teacher/courses", { params: { ...filters, page, limit: COURSES_PER_PAGE } })
+        .then(({ data }) => {
+            // Handle both { data: [...], totalPages } and { data: { data: [...], totalPages } }
+            const src = Array.isArray(data.data) ? data : (data.data ?? data)
+            setCourses(src.data ? { ...src, totalPages: Math.max(1, Number(src.totalPages ?? 1)) } : null)
+        })
         .catch(() => setCourses(null))
         .finally(() => setLoading(false))
   }, [filters, page])
@@ -206,6 +212,7 @@ function TeacherCoursesPage() {
                 })}
               </div>
           )}
+          <Pagination page={page} totalPages={courses?.totalPages ?? 1} onPageChange={setPage} />
         </div>
       </div>
   )
