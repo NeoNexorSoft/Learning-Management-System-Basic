@@ -89,6 +89,41 @@ enum AssignmentStatus {
   REJECTED
 }
 
+enum WeaknessLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum RoutinePlanStatus {
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum RoutineTaskStatus {
+  PENDING
+  UPCOMING
+  COMPLETED
+  MISSED
+  CANCELLED
+}
+
+enum RoutineTaskType {
+  READING
+  PRACTICE
+  REVISION
+  TEST
+  ASSIGNMENT
+  OTHER
+}
+
+enum TrackerRecommendationPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
 // ─── Models ───────────────────────────────────────────────────────────────────
 
 model User {
@@ -125,6 +160,18 @@ model User {
   questionBank      QuestionBank[]
   simulations       Simulation[]      @relation("createdBy")
   assignments       Assignment[]
+
+  studentWeaknesses              StudentWeakness[]       @relation("StudentWeaknessStudent")
+  identifiedStudentWeaknesses    StudentWeakness[]       @relation("StudentWeaknessIdentifier")
+  routinePlans                   RoutinePlan[]          @relation("RoutinePlanStudent")
+  createdRoutinePlans            RoutinePlan[]          @relation("RoutinePlanCreator")
+  routineTasks                   RoutineTask[]          @relation("RoutineTaskStudent")
+  createdRoutineTasks            RoutineTask[]          @relation("RoutineTaskCreator")
+  routineTaskLogs                RoutineTaskLog[]       @relation("RoutineTaskLogStudent")
+  trackerRecommendations         TrackerRecommendation[] @relation("TrackerRecommendationStudent")
+  createdTrackerRecommendations  TrackerRecommendation[] @relation("TrackerRecommendationCreator")
+  receivedTrackerFeedbacks       TrackerFeedback[]      @relation("TrackerFeedbackStudent")
+  givenTrackerFeedbacks          TrackerFeedback[]      @relation("TrackerFeedbackTeacher")
 
   @@map("users")
 }
@@ -582,3 +629,155 @@ model Simulation {
 
   @@map("simulations")
 }
+
+model WeaknessCategory {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  type        String?
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  studentWeaknesses      StudentWeakness[]
+  routineTasks           RoutineTask[]
+  trackerRecommendations TrackerRecommendation[]
+
+  @@index([is_active])
+  @@map("weakness_categories")
+}
+
+model StudentWeakness {
+  id               String        @id @default(uuid())
+  student_id       String
+  category_id      String
+  score            Int           @default(0)
+  level            WeaknessLevel @default(LOW)
+  note             String?       @db.Text
+  identified_by_id String?
+  created_at       DateTime      @default(now())
+  updated_at       DateTime      @updatedAt
+
+  student      User             @relation("StudentWeaknessStudent", fields: [student_id], references: [id], onDelete: Cascade)
+  category     WeaknessCategory @relation(fields: [category_id], references: [id], onDelete: Cascade)
+  identifiedBy User?            @relation("StudentWeaknessIdentifier", fields: [identified_by_id], references: [id], onDelete: SetNull)
+
+  @@unique([student_id, category_id])
+  @@index([student_id])
+  @@index([category_id])
+  @@index([level])
+  @@map("student_weaknesses")
+}
+
+model RoutinePlan {
+  id            String            @id @default(uuid())
+  student_id    String
+  title         String
+  start_date    DateTime
+  end_date      DateTime?
+  status        RoutinePlanStatus @default(ACTIVE)
+  created_by_id String?
+  created_at    DateTime          @default(now())
+  updated_at    DateTime          @updatedAt
+
+  student   User          @relation("RoutinePlanStudent", fields: [student_id], references: [id], onDelete: Cascade)
+  createdBy User?         @relation("RoutinePlanCreator", fields: [created_by_id], references: [id], onDelete: SetNull)
+  tasks     RoutineTask[]
+
+  @@index([student_id])
+  @@index([status])
+  @@index([start_date])
+  @@map("routine_plans")
+}
+
+model RoutineTask {
+  id               String            @id @default(uuid())
+  routine_plan_id  String?
+  student_id       String
+  category_id      String?
+  subject          String
+  topic            String?
+  task_type        RoutineTaskType   @default(READING)
+  date             DateTime
+  start_time       DateTime?
+  end_time         DateTime?
+  duration_minutes Int?
+  status           RoutineTaskStatus @default(UPCOMING)
+  note             String?           @db.Text
+  created_by_id    String?
+  created_at       DateTime          @default(now())
+  updated_at       DateTime          @updatedAt
+
+  routinePlan RoutinePlan?     @relation(fields: [routine_plan_id], references: [id], onDelete: SetNull)
+  student     User             @relation("RoutineTaskStudent", fields: [student_id], references: [id], onDelete: Cascade)
+  category    WeaknessCategory? @relation(fields: [category_id], references: [id], onDelete: SetNull)
+  createdBy   User?            @relation("RoutineTaskCreator", fields: [created_by_id], references: [id], onDelete: SetNull)
+  logs        RoutineTaskLog[]
+
+  @@index([student_id])
+  @@index([routine_plan_id])
+  @@index([category_id])
+  @@index([date])
+  @@index([status])
+  @@map("routine_tasks")
+}
+
+model RoutineTaskLog {
+  id              String            @id @default(uuid())
+  routine_task_id String
+  student_id      String
+  status          RoutineTaskStatus
+  completed_at    DateTime?
+  note            String?           @db.Text
+  created_at      DateTime          @default(now())
+
+  routineTask RoutineTask @relation(fields: [routine_task_id], references: [id], onDelete: Cascade)
+  student     User        @relation("RoutineTaskLogStudent", fields: [student_id], references: [id], onDelete: Cascade)
+
+  @@index([routine_task_id])
+  @@index([student_id])
+  @@index([status])
+  @@map("routine_task_logs")
+}
+
+model TrackerRecommendation {
+  id              String                        @id @default(uuid())
+  student_id      String
+  category_id     String?
+  title           String
+  description     String?                       @db.Text
+  priority        TrackerRecommendationPriority @default(MEDIUM)
+  action_label    String?
+  resource_url    String?
+  is_active       Boolean                       @default(true)
+  created_by_id   String?
+  created_at      DateTime                      @default(now())
+  updated_at      DateTime                      @updatedAt
+
+  student   User              @relation("TrackerRecommendationStudent", fields: [student_id], references: [id], onDelete: Cascade)
+  category  WeaknessCategory? @relation(fields: [category_id], references: [id], onDelete: SetNull)
+  createdBy User?             @relation("TrackerRecommendationCreator", fields: [created_by_id], references: [id], onDelete: SetNull)
+
+  @@index([student_id])
+  @@index([category_id])
+  @@index([priority])
+  @@index([is_active])
+  @@map("tracker_recommendations")
+}
+
+model TrackerFeedback {
+  id         String   @id @default(uuid())
+  student_id String
+  teacher_id String?
+  message    String   @db.Text
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  student User  @relation("TrackerFeedbackStudent", fields: [student_id], references: [id], onDelete: Cascade)
+  teacher User? @relation("TrackerFeedbackTeacher", fields: [teacher_id], references: [id], onDelete: SetNull)
+
+  @@index([student_id])
+  @@index([teacher_id])
+  @@map("tracker_feedbacks")
+}
+

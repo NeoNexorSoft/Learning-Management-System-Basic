@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import { ZodError } from "zod";
 import { env } from "./config/env";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
@@ -41,6 +42,7 @@ import couponRoutes from "./routes/coupon.routes";
 import questionBankRouter from "./routes/questionBank.routes";
 import taxonomySubject from "./routes/lms-ai/taxonomy.subject.routes";
 import simulationRoutes from "./routes/simulationRoutes";
+import routineTrackerRoutes from "./routes/routineTracker.routes";
 
 const app = express();
 
@@ -105,6 +107,7 @@ app.use("/api/question-bank", questionBankRouter);
 app.use("/api/taxonomy/subjects", taxonomySubject);
 
 app.use("/api/simulations", simulationRoutes);
+app.use("/api/routine-tracker", routineTrackerRoutes);
 
 app.use(
   (
@@ -113,6 +116,18 @@ app.use(
     res: Response,
     _next: NextFunction,
   ) => {
+    if (err instanceof ZodError) {
+      res.status(400).json({
+        status: "error",
+        message: "Validation failed",
+        errors: err.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message,
+        })),
+      });
+      return;
+    }
+
     const statusCode = err.statusCode ?? 500;
     const message =
       statusCode === 500 && env.NODE_ENV === "production"
