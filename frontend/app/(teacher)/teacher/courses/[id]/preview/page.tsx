@@ -17,7 +17,7 @@ export default function TeacherCoursePreviewPage() {
     api.get(`/api/teacher/courses/${id}`)
       .then(({ data }) => {
         const slug = data.data.course.slug
-        return api.get(`/api/admin/courses/preview/${slug}`)
+        return api.get(`/api/teacher/courses/preview/${slug}`)
       })
       .then(({ data }) => setCourse(data.data.course))
       .catch(() => setCourse(null))

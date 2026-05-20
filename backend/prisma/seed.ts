@@ -260,13 +260,13 @@ async function main() {
             {
               title: "Introduction to React",
               type: LessonType.VIDEO,
-              video_urls: "https://example.com/react-intro",
+              video_urls: ["https://example.com/react-intro"],
               duration: 1800,
             },
             {
               title: "JSX and Components",
               type: LessonType.VIDEO,
-              video_urls: "https://example.com/jsx",
+              video_urls: ["https://example.com/jsx"],
               duration: 2100,
             },
             {
@@ -313,13 +313,13 @@ async function main() {
             {
               title: "useEffect Deep Dive",
               type: LessonType.VIDEO,
-              video_urls: "https://example.com/useeffect",
+              video_urls: ["https://example.com/useeffect"],
               duration: 2400,
             },
             {
               title: "Context API",
               type: LessonType.VIDEO,
-              video_urls: "https://example.com/context",
+              video_urls: ["https://example.com/context"],
               duration: 1800,
             },
             {
@@ -366,13 +366,13 @@ async function main() {
             {
               title: "Performance Optimization",
               type: LessonType.VIDEO,
-              video_urls: "https://example.com/performance",
+              video_urls: ["https://example.com/performance"],
               duration: 2700,
             },
             {
               title: "Testing React Apps",
               type: LessonType.VIDEO,
-              video_urls: "https://example.com/testing",
+              video_urls: ["https://example.com/testing"],
               duration: 2100,
             },
             {
@@ -456,13 +456,13 @@ async function main() {
             {
               title: "Introduction to Node.js",
               type: LessonType.VIDEO,
-              video_urls: "https://example.com/node-intro",
+              video_urls: ["https://example.com/node-intro"],
               duration: 1800,
             },
             {
               title: "Express Routing",
               type: LessonType.VIDEO,
-              video_urls: "https://example.com/express-routing",
+              video_urls: ["https://example.com/express-routing"],
               duration: 2100,
             },
             {
@@ -506,13 +506,13 @@ async function main() {
             {
               title: "JWT Authentication",
               type: LessonType.VIDEO,
-              video_urls: "https://example.com/jwt",
+              video_urls: ["https://example.com/jwt"],
               duration: 2400,
             },
             {
               title: "Password Hashing with bcrypt",
               type: LessonType.VIDEO,
-              video_urls: "https://example.com/bcrypt",
+              video_urls: ["https://example.com/bcrypt"],
               duration: 1200,
             },
             {
@@ -606,13 +606,13 @@ async function main() {
             {
               title: "Python Syntax and Variables",
               type: LessonType.VIDEO,
-              video_urls: "https://example.com/python-basics",
+              video_urls: ["https://example.com/python-basics"],
               duration: 1800,
             },
             {
               title: "Data Structures in Python",
               type: LessonType.VIDEO,
-              video_urls: "https://example.com/python-ds",
+              video_urls: ["https://example.com/python-ds"],
               duration: 2100,
             },
             {
@@ -660,13 +660,13 @@ async function main() {
             {
               title: "Introduction to NumPy",
               type: LessonType.VIDEO,
-              video_urls: "https://example.com/numpy",
+              video_urls: ["https://example.com/numpy"],
               duration: 1500,
             },
             {
               title: "Pandas DataFrames",
               type: LessonType.VIDEO,
-              video_urls: "https://example.com/pandas",
+              video_urls: ["https://example.com/pandas"],
               duration: 2400,
             },
             {
@@ -718,13 +718,13 @@ async function main() {
             {
               title: "Matplotlib Basics",
               type: LessonType.VIDEO,
-              video_urls: "https://example.com/matplotlib",
+              video_urls: ["https://example.com/matplotlib"],
               duration: 1800,
             },
             {
               title: "Seaborn for Statistical Plots",
               type: LessonType.VIDEO,
-              video_urls: "https://example.com/seaborn",
+              video_urls: ["https://example.com/seaborn"],
               duration: 1500,
             },
             {
